@@ -1,0 +1,26 @@
+---
+description: FitAI KMP vision, stack, modules, identity, and phased delivery
+alwaysApply: true
+---
+
+# FitAI — Project Core
+
+**Product:** AI-assisted personal training and diet for Android + iOS; onboarding, plans, meal photo analysis, progress photos, contextual notifications.
+
+**Stack (targets):** Kotlin 2.1.x (K2), Compose Multiplatform 1.8.x, min Android API 26, min iOS 16, Gradle 8.7+ with version catalog `gradle/libs.versions.toml`.
+
+**Libraries:** Ktor Client 3.4.x, SQLDelight 2.2.x, Koin 4.1.x (`koin-compose-multiplatform`), kotlinx.serialization 1.8.x, coroutines 1.10.x, kotlinx-datetime 0.7.x, Coil3 3.x, Multiplatform Settings 1.3.x, Compose Navigation 3 (2.9.x), Jetpack ViewModel KMP (2.9.x), Napier 2.7.x, moko-permissions 0.18.x.
+
+**Backend (dev):** Prefer **Supabase** for fast auth, storage, and realtime; alternative Ktor server. AI: OpenAI GPT-4o (text + vision). Auth: Firebase or Supabase. Push: FCM. Storage: Firebase or Supabase.
+
+**Modules:**
+
+- `composeApp/` — shared UI, `commonMain` (`ui/`, `viewmodel/`, `domain/`, `data/`, `di/`), `androidMain`, `iosMain`, `resources/`.
+- `shared/` — no UI: `model/`, `network/`, `database/` (SQLDelight `.sq`), `util/`.
+- `iosApp/` — Xcode entry.
+
+**App identity:** Display TR/EN as documented; package **com.fitai.app**; align existing `org.fitai.*` package gradually if the codebase differs.
+
+**Delivery phases:** (1) tooling + design system + nav + Koin + SQLDelight schema → (2) onboarding + auth + profile → (3) home, workouts, nutrition → (4) progress + notifications + AI coach → (5) polish and performance.
+
+When adding dependencies, align entries with the project’s `libs.versions.toml` (single source of truth).

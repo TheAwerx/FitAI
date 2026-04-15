@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FitAI</string>
+    <string name="splash_loading">Yükleniyor…</string>
+    <string name="home_title">Ana Sayfa</string>
+    <string name="home_subtitle">Faz 1 — temel altyapı hazır</string>
+    <string name="action_continue">Devam</string>
+    <string name="action_primary_example">Örnek birincil buton</string>
+    <string name="sample_email_label">E-posta</string>
+    <string name="sample_email_placeholder">ornek@fitai.app</string>
+</resources>

@@ -1,0 +1,18 @@
+CREATE TABLE users (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    age INTEGER NOT NULL,
+    height_cm REAL NOT NULL,
+    weight_kg REAL NOT NULL,
+    goal TEXT NOT NULL,
+    activity_level TEXT NOT NULL,
+    equipment TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+selectAll:
+SELECT * FROM users;
+
+selectById:
+SELECT * FROM users WHERE id = ?;

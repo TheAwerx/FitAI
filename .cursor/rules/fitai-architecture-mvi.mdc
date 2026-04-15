@@ -1,0 +1,31 @@
+---
+description: Clean Architecture, MVI, and Kotlin layering for FitAI
+globs: "**/*.kt"
+alwaysApply: false
+---
+
+# Architecture — Clean + MVI
+
+**Flow:** `Compose Screen → ViewModel (MVI) → Use Case → Repository` → remote (Ktor) + local (SQLDelight).
+
+**Per screen (required):**
+
+- `UiState` data class (immutable; prefer `val` only).
+- `UiIntent` sealed hierarchy (user actions).
+- `UiEffect` sealed hierarchy (one-shot: navigation, snackbar/toast).
+- Expose `StateFlow<UiState>`; emit side effects via `SharedFlow<UiEffect>` (or equivalent pattern).
+
+**Do**
+
+- Use `Result<T>` (or sealed outcomes) for async boundaries; show loading and error in state.
+- Keep **platform APIs out of `commonMain`** — use `expect`/`actual` or shared facades.
+- Inject via **Koin**; register modules in `di/`.
+
+**Don’t**
+
+- Call HTTP APIs directly from ViewModels.
+- Use mutable `var` for UI-driven state trees; avoid anemic god-ViewModels.
+
+**Naming:** `HomeScreen.kt`, `HomeViewModel.kt`, `HomeState.kt` (or state nested in VM file), `WorkoutRepository` + `WorkoutRepositoryImpl`, `GenerateWorkoutPlanUseCase.kt`.
+
+**New feature checklist:** State/Intent/Effect → ViewModel → repository interface + impl → composable → Koin module → SQLDelight if cached.

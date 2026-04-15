@@ -1,0 +1,16 @@
+CREATE TABLE body_measurements (
+    id TEXT NOT NULL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    weight_kg REAL NOT NULL,
+    body_fat_pct REAL,
+    chest_cm REAL,
+    waist_cm REAL,
+    hip_cm REAL,
+    arm_cm REAL,
+    photo_url TEXT,
+    measured_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+selectMeasurementsForUser:
+SELECT * FROM body_measurements WHERE user_id = ? ORDER BY measured_at DESC;
