@@ -1,0 +1,1 @@
+{"version":3,"file":"types.js","sourceRoot":"","sources":["../../src/notifications/types.ts"],"names":[],"mappings":";;;AAUa,QAAA,sBAAsB,GAA0B,CAAC,aAAa,EAAE,aAAa,EAAE,YAAY,EAAE,UAAU,CAAC,CAAC;AAEzG,QAAA,0BAA0B,GAAsB;IAC3D,WAAW,EAAE,IAAI;IACjB,WAAW,EAAE,IAAI;IACjB,UAAU,EAAE,IAAI;IAChB,QAAQ,EAAE,IAAI;CACf,CAAC"}

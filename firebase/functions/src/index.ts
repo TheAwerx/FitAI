@@ -305,3 +305,13 @@ export const getTrialStatus = onCall(authCallable, async (request) => {
   const data = doc.data()!;
   return trialStatus(new Date(data.trialStartedAt), data.hasSubscription ?? false);
 });
+
+// Dynamic push notifications (src/notifications, firebase/SCHEMA.md "Push notifications").
+export {
+  notificationSweep,
+  notificationsOnUserWritten,
+  notificationsOnDeviceWritten,
+  notificationsOnPlanWritten,
+  notificationsOnSessionWritten,
+  notificationsOnMealCreated,
+} from "./notifications";
