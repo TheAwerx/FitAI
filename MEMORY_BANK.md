@@ -4,6 +4,13 @@ Bu dosya (Memory Bank), proje üzerinde çalışan tüm yapay zeka ajanlarının
 
 ## 📝 Son Değişiklikler (Recent Changes)
 
+## 2026-11-15 — Deneme süresi hesap + cihaz başına bir kez
+- 7 günlük deneme sunucuda: `startTrial` / `getTrialStatus` (`functions/src/trial.ts`), `trials/{uid}` + `device_trials/{HMAC(deviceKey)}` tek transaction; aynı cihazda ikinci hesap `used`, aynı hesap başka cihazda denemesini korur, süre sunucu saatiyle. `initGuestTrial` ve herkese verilen 3 günlük `guest_trials` kaldırıldı (eski koleksiyon salt okunur)
+- Cihaz anahtarı: Android `ANDROID_ID`, iOS Keychain UUID (`ThisDeviceOnly`, iCloud yok); istemcide SHA-256, sunucuda `TRIAL_DEVICE_PEPPER` ile HMAC. Secret deploy'dan önce bir kez oluşturulmalı, asla değişmemeli
+- Paywall cihazı kayıttan önce sorar: kullanılmışsa "7 gün ücretsiz" yok, "Abone ol" + açıklama kartı. Deneme CTA'sı mock satın alma yapmaz, isteği kaydeder; PlanSetup kayıttan sonra başlatır (Trial da AI plan alır), çevrimdışıysa Home tekrar dener
+- Önbellek: 10 dk tazeleme, aktif deneme 3 gün çevrimdışı geçerli, saat geri alınırsa geçersiz. Dev'de `LocalTrialRepository` aynı kurallar. Debug Ayarlar'da durum + cihaz anahtarı öneki
+- Açıklar ve sonraki adımlar `docs/trial.md` (fabrika ayarı, root, çoklu cihaz, RevenueCat mağaza denemesi, Play Integrity / DeviceCheck). Functions 19/19, kurallar 15/15, Gradle + iOS link başarılı. Deploy yapılmadı
+
 ## 2026-11-15 — Firestore şeması özelleşti, planlar tüm onboarding cevaplarından
 - Şema `firebase/SCHEMA.md`: `users/{uid}` (profil + tüm onboarding cevapları, dil, saat dilimi) ve alt koleksiyonlar `workout_plans`, `diet_plans`, `workout_sessions`, `meal_logs`, `measurements` (`localDate` ile); ayrılmış `devices`, `device_trials`. Eski `user_profiles` salt okunur, girişte `users/{uid}`'ye taşınır
 - `firestore.rules`: catch-all yok; anonim olmayan sahip, alan/kod/aralık doğrulaması (`hasExactly` — istemciye yeni alan eklenirse kural, `SCHEMA.md`, `FirestoreMappersTest` ve `firebase/rules-tests` birlikte güncellenmeli). Kural testleri emülatörde (JDK 21 gerekir, Android Studio JBR)

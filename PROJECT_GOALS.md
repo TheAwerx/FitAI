@@ -14,7 +14,7 @@ Kullanıcı:
 - Antrenman seanslarını ve öğünlerini kaydeder
 - Fotoğraflı meal check-in ile beslenmesini analiz ettirir
 - İlerlemeyi (progress) ve akıllı bildirimleri takip eder
-- İsterse misafir (guest) 3 günlük trial ile uygulamayı dener; auth / paywall ile devam eder
+- İsterse 7 günlük ücretsiz deneme ile uygulamayı dener (hesap ve cihaz başına bir kez); auth / paywall ile devam eder
 
 Teknik olarak FitAI, Kotlin Multiplatform + Compose Multiplatform ile **Android ve iOS**’ta aynı ürün deneyimini hedefler. Backend tarafında Firebase (Auth, Firestore, Cloud Functions + Gemini) kullanılır; yapılandırma yoksa local mock / offline yol ile geliştirme sürdürülebilir.
 
@@ -23,7 +23,7 @@ Teknik olarak FitAI, Kotlin Multiplatform + Compose Multiplatform ile **Android 
 | Alan | Ne yapar |
 |---|---|
 | **Onboarding / Welcome / Splash** | İlk açılış, profil toplama, yönlendirme |
-| **Auth / Paywall / Trial** | Giriş-kayıt, abonelik duvarı, 3 günlük guest trial |
+| **Auth / Paywall / Trial** | Giriş-kayıt, abonelik duvarı, hesap ve cihaz başına bir kez 7 günlük deneme |
 | **Home** | Bugünkü antrenman özeti, trial durumu, hızlı aksiyonlar |
 | **Workout** | Plan listesi, egzersiz detayı, aktif seans takibi |
 | **Nutrition** | Diyet planı, öğün kaydı, meal photo analizi |
