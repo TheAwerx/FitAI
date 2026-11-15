@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,8 +43,7 @@ fun NutritionFlow(
     onNestedChange: (Boolean) -> Unit = {},
 ) {
     var stack by remember { mutableStateOf(emptyList<NutritionDestination>()) }
-    var sessions by remember { mutableIntStateOf(0) }
-    fun nextSession(): Int = ++sessions
+    fun nextSession(): Int = NutritionSessionIds.next()
     val nested = stack.isNotEmpty()
     LaunchedEffect(nested) { onNestedChange(nested) }
     DisposableEffect(Unit) { onDispose { onNestedChange(false) } }
@@ -119,6 +117,16 @@ fun NutritionFlow(
             modifier = modifier,
         )
     }
+}
+
+/**
+ * Push ids for the whole process. The tab's screen ViewModels outlive [NutritionFlow] (it leaves composition
+ * on a tab switch); a counter kept inside it restarted at 1 and the next search reopened with the old query.
+ */
+private object NutritionSessionIds {
+    private var last = 0
+
+    fun next(): Int = ++last
 }
 
 @OptIn(ExperimentalTime::class)

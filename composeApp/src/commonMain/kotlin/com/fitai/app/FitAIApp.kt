@@ -16,9 +16,12 @@ import org.koin.compose.koinInject
 @Composable
 fun FitAIApp(preferences: AppPreferences = koinInject()) {
     var language by remember { mutableStateOf(preferences.languageOverride) }
-    SideEffect { AppLanguage.override = language }
+    // Read in this scope (not only inside FitAITheme's content) so a language change recomposes it and the
+    // effect re-runs; otherwise plans and AI requests keep the old language until the app restarts.
+    val current = language
+    SideEffect { AppLanguage.override = current }
     FitAITheme {
-        ProvideFitAIStrings(languageOverride = language) {
+        ProvideFitAIStrings(languageOverride = current) {
             NavigationRoot(
                 onLanguageChange = { code ->
                     preferences.languageOverride = code

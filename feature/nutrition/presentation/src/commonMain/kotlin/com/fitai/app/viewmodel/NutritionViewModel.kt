@@ -263,6 +263,9 @@ internal fun Double.toFieldText(): String {
 internal fun String.toMacroGrams(): Double? =
     trim().replace(',', '.').toDoubleOrNull()?.takeIf { it >= 0.0 }
 
+/** Like [toMacroGrams], but an empty field is 0 g (quick add asks only for calories). */
+internal fun String.toOptionalMacroGrams(): Double? = if (isBlank()) 0.0 else toMacroGrams()
+
 /** Quick add of a meal by its totals, or editing a photo / quick-add entry ([MealLogState.editingId]). */
 class MealLogViewModel(
     private val logMealUseCase: LogMealUseCase,
@@ -329,9 +332,10 @@ class MealLogViewModel(
         val s = currentState()
         if (s.saving) return
         val calories = s.calories.toIntOrNull()
-        val protein = s.proteinG.toMacroGrams()
-        val carbs = s.carbsG.toMacroGrams()
-        val fat = s.fatG.toMacroGrams()
+        // Quick add needs a name and calories; macros left empty count as 0, a typed one must be a number.
+        val protein = s.proteinG.toOptionalMacroGrams()
+        val carbs = s.carbsG.toOptionalMacroGrams()
+        val fat = s.fatG.toOptionalMacroGrams()
         if (s.mealName.isBlank() || calories == null || protein == null || carbs == null || fat == null) {
             setState { copy(errorMessage = "validation_fields_required") }
             return

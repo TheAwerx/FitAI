@@ -184,6 +184,7 @@ interface Strings {
     fun quotaRemaining(remaining: Int, total: Int): String
     val quotaExhausted: String
     // region:workout:interface
+    val workoutRestDayHint: String
     fun workoutSuggestedWeight(weight: String, reps: Int): String
     fun workoutSuggestedReps(reps: Int): String
     val workoutReasonIncreaseWeight: String
@@ -369,6 +370,7 @@ interface Strings {
     fun foodPer100g(kcal: Int): String
     val foodInvalidAmount: String
     val foodFieldsInvalid: String
+    val foodQuickAddInvalid: String
     val customFoodTitle: String
     val customFoodName: String
     val customFoodServingUnit: String
@@ -918,6 +920,7 @@ object StringsTr : Strings {
     override fun quotaRemaining(remaining: Int, total: Int) = "Bu dönem $remaining/$total hak kaldı"
     override val quotaExhausted = "Ücretsiz hakkın doldu. Sınırsız kullanım için Pro'ya geç."
     // region:workout:tr
+    override val workoutRestDayHint = "Bu gün planında dinlenme günü. Başka bir gün seç ya da Bugün Modu ile kısa bir seans kur."
     override fun workoutSuggestedWeight(weight: String, reps: Int) = "Önerilen: ${weight.replace('.', ',')} kg × $reps"
     override fun workoutSuggestedReps(reps: Int) = "Önerilen: $reps tekrar"
     override val workoutReasonIncreaseWeight = "Geçen sefer tüm setlerde üst sınıra ulaştın"
@@ -1192,6 +1195,7 @@ object StringsTr : Strings {
     override fun foodPer100g(kcal: Int) = "100 g: $kcal kcal"
     override val foodInvalidAmount = "Geçerli bir miktar gir."
     override val foodFieldsInvalid = "Ad, kalori ve makroları geçerli sayılarla doldur."
+    override val foodQuickAddInvalid = "Ad ve kaloriyi gir. Makrolar isteğe bağlı; girersen geçerli bir sayı olmalı."
     override val customFoodTitle = "Yeni gıda"
     override val customFoodName = "Gıda adı"
     override val customFoodServingUnit = "Porsiyon ölçüsü"
@@ -1265,13 +1269,13 @@ object StringsTr : Strings {
         "P $proteinG g · K $carbsG g · Y $fatG g kaldı"
     override val homeNoDietPlan = "Diyet planın hazır olunca hedeflerin burada"
     override val homeWeekTitle = "Bu hafta"
-    override fun homeVolumeTonnes(tonnes: String) = "$tonnes t"
+    override fun homeVolumeTonnes(tonnes: String) = "${tonnes.replace('.', ',')} t"
     override fun homeVolumeChange(percent: Int) =
         if (percent >= 0) "+%$percent geçen haftaya göre" else "−%${-percent} geçen haftaya göre"
     override val progressWeightTitle = "Kilo trendi"
     override val progressWeightEmpty = "Trendini görmek için tartı ekle"
-    override fun progressWeightLatest(weight: String) = "$weight kg"
-    override fun progressWeightChange(change: String) = "90 günde $change kg"
+    override fun progressWeightLatest(weight: String) = "${weight.replace('.', ',')} kg"
+    override fun progressWeightChange(change: String) = "90 günde ${change.replace('.', ',')} kg"
     override val progressAddWeighIn = "Tartı ekle"
     override val progressWeightLabel = "Kilo (kg)"
     override val progressWaistLabel = "Bel (cm, isteğe bağlı)"
@@ -1285,8 +1289,8 @@ object StringsTr : Strings {
     override fun progressWeekShort(day: Int, month: Int) = "$day.$month"
     override val progressPrTitle = "Kişisel rekorlar"
     override val progressPrEmpty = "Seans tamamladıkça rekorların burada"
-    override fun progressPrValue(weight: String, reps: Int) = "$weight kg × $reps"
-    override fun progressE1rm(value: String) = "e1RM $value kg"
+    override fun progressPrValue(weight: String, reps: Int) = "${weight.replace('.', ',')} kg × $reps"
+    override fun progressE1rm(value: String) = "Tahmini 1TM ${value.replace('.', ',')} kg"
     override val progressBadgesTitle = "Rozetler"
     override fun progressBadgesCount(unlocked: Int, total: Int) = "$unlocked/$total"
     override val badgeFirstSession = "İlk seans"
@@ -1828,6 +1832,7 @@ object StringsEn : Strings {
     override fun quotaRemaining(remaining: Int, total: Int) = "$remaining/$total left this period"
     override val quotaExhausted = "You've used your free uses. Upgrade to Pro for unlimited access."
     // region:workout:en
+    override val workoutRestDayHint = "This is a rest day in your plan. Pick another day, or use Today Mode for a short session."
     override fun workoutSuggestedWeight(weight: String, reps: Int) = "Suggested: $weight kg × $reps"
     override fun workoutSuggestedReps(reps: Int) = "Suggested: $reps reps"
     override val workoutReasonIncreaseWeight = "You hit the top of the range on every set last time"
@@ -2105,6 +2110,7 @@ object StringsEn : Strings {
     override fun foodPer100g(kcal: Int) = "100 g: $kcal kcal"
     override val foodInvalidAmount = "Enter a valid amount."
     override val foodFieldsInvalid = "Fill in the name, calories and macros with valid numbers."
+    override val foodQuickAddInvalid = "Enter a name and calories. Macros are optional; if you enter one, use a valid number."
     override val customFoodTitle = "New food"
     override val customFoodName = "Food name"
     override val customFoodServingUnit = "Serving measure"
@@ -2478,8 +2484,8 @@ object StringsEn : Strings {
     override val streakHowItWorksBody =
         "Your streak grows when you finish a session on a planned training day. Planned rest days never break it. " +
             "Miss a training day and your weekly freeze keeps the streak alive."
-    override fun streakLongest(days: Int) = "Longest streak: $days days"
-    override fun streakA11y(days: Int) = "Workout streak: $days days"
+    override fun streakLongest(days: Int) = "Longest streak: ${engagementStreakDays(days)}"
+    override fun streakA11y(days: Int) = "Workout streak: ${engagementStreakDays(days)}"
     override val profileStatWorkouts = "Workouts"
     override val profileStatStreak = "Streak"
     override val profileStatRecords = "Records"

@@ -1,0 +1,242 @@
+# FitAI — Özellik ve fiziksel test listesi
+
+Notion görevi: "Ekstra Testler — Tüm özelliklerin ve özelliğin yerine getirmesi gereken görevin listesini çıkar. Tüm listenin fiziksel testlerini gerçekleştir, sonuçları aynı listede cevap olarak ver."
+
+- **Tarih:** 2026-11-15
+- **Test edilen kod:** `feat/notion-tasks` başı `e40b845` + bu çalışmadaki düzeltmeler (`be0ae1c`, `485614c`, `aed3345`, `8d52358`, `c804af2`)
+- **Ortamlar:** Android emülatörü Pixel_9a (API 35, tr-TR, dev flavor `com.fitai.app`, `MockAIRepository` plan üretimi), Firebase emülatörü (functions + Firestore kuralları, JDK 21), iOS simülatörü (iPhone 16, yalnız duman testi). Fiziksel telefon `R5CTA0VPTQY` test boyunca bağlı değildi.
+- **Yöntem:** `adb shell input` + `uiautomator dump` ile ekran ekran gezildi, kanıt ekran görüntüleri `docs/screenshots/qa/` altında (540 px genişlik). Zorunlu kayıt adımı, canlı projede hesap açmamak için `funnel_stage=PlanSetup` tercihiyle atlandı. Emülatördeki önceki `com.fitai.app` kurulumu DB yükseltme testi için kaldırıldı; sonda düzeltilmiş dev build kurulu bırakıldı. Uçak modu, animasyon ölçekleri ve saat dilimi test sonunda eski hâline döndürüldü.
+- **Sonuç işaretleri:** ✅ Geçti · ❌ Kaldı · 🔧 Kaldı → düzeltildi (commit) · ⏸ Test edilemedi
+
+## Özet
+
+| Sonuç | Adet |
+|---|---|
+| ✅ Geçti | 88 |
+| 🔧 Kaldı → düzeltildi | 7 |
+| ❌ Kaldı (açık) | 8 |
+| ⏸ Test edilemedi | 15 |
+| **Toplam** | **118** |
+
+Düzeltilen 7 madde 5 commit'te: `be0ae1c` (C2, E1), `485614c` (G1, G2), `aed3345` (H12), `8d52358` (H7), `c804af2` (E5). Açık 8 madde: C13, C14, D7, G5, G10, H3, J3, N9.
+
+### Kritik bulgular
+
+1. **Uygulama içi dil değişince AI ve planlar eski dilde kalıyordu (🔧 `be0ae1c`).** `FitAIApp` içindeki `SideEffect`, dil durumunu okuyan kapsamda değildi; Welcome'da veya Ayarlar'da dil değiştirildikten sonra yeni antrenman/diyet planı, gıda adları, koç yanıtı, haftalık rapor ve Bugün Modu uygulama yeniden başlatılana kadar eski dilde geldi (TR arayüzde "Your FitAI plan · 3 days", İngilizce koç yanıtı). Düzeltildi, emülatörde doğrulandı.
+2. **Yarıda bırakılan antrenman seansı açık kalıyor (❌, açık).** Aktif seanstan geri çıkıp aynı gün "Antrenmana başla"ya basınca yeni seans açılıyor; eski seans `completed_at` boş kalıyor, tamamlanan setleri yeni seansta görünmüyor ama haftalık hacme (Koç ekranında 370 kg = 130 kg tamamlanan + 240 kg yarım) ve ağırlık önerisine giriyor.
+3. **Detaylı diyet planı makroları hedefe oturmuyor (❌, açık).** Kalori ±%7 içinde ama vejetaryen profilde yağ 87/47 g, karbonhidrat 111/164 g; kısıtsız profilde yağ 114/80 g, karbonhidrat 260/389 g. `check:diet` yalnız kaloriyi doğruluyor.
+4. **Tartı profil kilosunu güncellemiyor, profil düzenlemede yaş/boy/kilo yok (❌, ürün kararı).** Ayarlar'da kilo onboarding değerinde (75,5 kg) kalıyor; plan yenileme ve makro hedefleri eski kiloyla hesaplanıyor.
+5. **Dev flavor bazı AI özelliklerinde canlı Cloud Functions'ı çağırıyor (bilgi).** `DevPlanAIRepository` yalnız plan üretimini yerelde yapıyor; koç sohbeti, haftalık rapor, Bugün Modu, sonraki öğün ve öğün fotoğrafı `fitai-1e8a4` üzerindeki deploy edilmiş callable'lara gidiyor (çevrimdışıyken yerel yedeğe düşüyor, fotoğraf düşmüyor). Test sırasında Pro olunca Koç ekranı bir kez canlı `weeklyCoachReport` çağırdı (uygulamanın kendi anonim oturumuyla). Sonraki AI testleri uçak modunda yapıldı. Hesap açılmadı, giriş yapılmadı.
+6. **Bilinen maddeler:** (1) 0/3 hakta "Antrenmana başla" pasifliği kota değil, pazar günü planda dinlenme günü olmasından; seçili "Paz" çipi ekranın dışında kaldığı ve açıklama olmadığı için hata gibi görünüyordu → 🔧 `485614c`. (2) İç içe Beslenme ekranlarında "Başlangıç Görevleri" pill'i bu build'de gizleniyor; alt menü ise tasarım gereği hiçbir akışta gizlenmiyor (`MainTabShell`'de `NavigationBar` koşulsuz; aktif seans ve Koç'ta da görünür). (3) Plan kartında başlık tekrarı vardı → 🔧 `485614c` ("Aktif plan"). (4) Bildirim linkleri Antrenman / Öğün arama / Ana sayfa'yı açıyor. (5) Cihaz anahtarı öneki `b15563c7` üç kurulumda aynı kaldı (android_id); dev ledger kaldırma ile silindiği için paywall yeniden "7 gün ücretsiz" gösteriyor (beklenen). (6) DB 358b220 → yeni build v1→v2 sorunsuz, veri korundu.
+
+### Açık hatalar ve tekrar adımları
+
+| # | Tekrar adımları | Beklenen | Gerçekleşen |
+|---|---|---|---|
+| G10 | Antrenman → plan günü seç → Antrenmana başla → 1–2 set tamamla → sol üst Geri → aynı gün yine Antrenmana başla | Aynı seansa dönülür (veya çıkarken seans kapatılır/silinir) | Yeni seans açılır; eski seans `workout_sessions.completed_at` boş kalır, setleri haftalık hacme ve "Önerilen" hesabına girer |
+| H3 | Onboarding'de Vejetaryen (veya Yok) seç → Beslenme → "Planın günlük toplamı" | Kalori ve makrolar hedefe yakın (ör. ±%15) | Vejetaryen: 1742/1682 kcal, K 111/164 g, Y 87/47 g. Kısıtsız: 2665/2880 kcal, K 260/389 g, Y 114/80 g |
+| J3 | Profil → Ölçümler → Tartı ekle 74,8 kg → Profil → Ayarlar → Profil bilgileri; "Profili düzenle" formuna bak | Kilo güncel tartıyı gösterir veya düzenlenebilir | Kilo onboarding değerinde kalır; formda yaş/boy/kilo yok |
+| G5 | Ekipman: yalnız dambıl + lastik → Antrenman → egzersiz → Değiştir; birini seç → listeye dön | Ev/dambıl alternatifleri önce; hareket yerinde değişir | "Salon" hareketleri önce; değiştirilen hareket günün sonuna taşınır |
+| C14 | Ana sayfa → AI Koç → Pro'ya geç → X (veya Abone ol) | Koç ekranına dönülür | Ana sayfa açılır (Ayarlar → Pro'ya geç'te de aynı) |
+| C13 | Kayıt yapılmamış durumda Ana sayfa → AI Koç → Pro'ya geç → 7 gün ücretsiz başla | Kayıt gerektiği söylenir veya kayda gidilir | Paywall sessizce kapanır |
+| D7 | Onboarding → boy → ft/in | Her adım ayrı inç değeri | 5'8" 5'8" 5'8" 5'9" tekrar eder (cm adımı) |
+| N9 | Dev build, Pro → AI Koç (çevrimiçi) | Görev notuna göre dev'de Cloud Functions çağrısı yok | `weeklyCoachReport` canlı callable'dan döndü (logcat `weekly_report_opened … full=true`, İngilizce rapor) |
+
+### Deploy sonrası ve gerçek hesapla test edilmesi gerekenler
+
+- Gerçek kayıt / giriş / Google / şifre sıfırlama e-postası, giriş sonrası yönlendirme, çıkış (yerel veri silme), Firestore senkron ve geri yükleme (B2–B7).
+- 7 günlük deneme: `startTrial` ile başlatma, Home/Ayarlar gün sayacı, ikinci hesapta "used" paywall'u, bitişten 24 saat önce hatırlatma (C8, C9, C11, F9). Önce `TRIAL_DEVICE_PEPPER` secret'ı oluşturulmalı.
+- Sunucu plan kotası (`withPlanQuota`, `plan_quotas/{uid}`); emülatör testi de yok (G15).
+- FCM token kaydı ve akıllı bildirimlerin gerçek gönderimi; iOS için APNs `.p8` anahtarı, Cloud Scheduler, `NOTIFICATIONS_REGION` (M4).
+- Gemini ile öğün fotoğrafı analizi ve "Sonraki öğün" önerisi (H16–H17).
+- Fiziksel telefonda (R5CTA0VPTQY) temel akışlar; bu çalışmada telefon hiç bağlanmadı.
+
+---
+
+## A. Açılış, karşılama ve huni
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| A1 | Splash | Lottie dumbbell animasyonu bir kez oynar, sonra doğru rotaya (Welcome / Onboarding / Main / huni adımı) geçer | Temiz kurulum, uygulamayı aç, ekranı izle | Emülatör Pixel_9a | ✅ Geçti | `05_splash.png`, `100_splash_end_frame.png` |
+| A2 | Welcome | Başla → onboarding, "Giriş yap" → giriş ekranı; sahte puan/yorum yok | Welcome'da iki butonu dene | Emülatör Pixel_9a | ✅ Geçti | `06_welcome_tr.png` |
+| A3 | Welcome dil seçimi | TR/EN menüsü arayüzü anında çevirir, seçim kalıcı | Dil ikonuna dokun, English seç, sonra uygulamayı yeniden başlat | Emülatör Pixel_9a | ✅ Geçti | `07_welcome_en.png`; AI dili için E1 |
+| A4 | Huni kaldığı yerden devam | Uygulama kapatılınca Paywall/Signup/PlanSetup adımından devam eder | Signup ekranında force-stop, yeniden aç | Emülatör Pixel_9a | ✅ Geçti | Signup ekranına döndü |
+| A5 | Sistem geri tuşu | İç ekranlardan geri, sekmelerden Ana sayfa'ya, Ana sayfa'dan uygulamadan çıkış; huni kayıt ekranında geri yok | Antrenman/Beslenme/iç içe ekranlarda ve kayıt ekranında geri | Emülatör Pixel_9a | ✅ Geçti | |
+
+## B. Hesap / giriş
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| B1 | Zorunlu kayıt (huni) | Paywall'dan sonra hesap açtırır, geri ile atlanamaz | Paywall → kayıt ekranı, sistem geri | Emülatör Pixel_9a | ✅ Geçti | `22_signup_funnel_en.png`; gerçek kayıt için B2 |
+| B2 | E-posta ile kayıt | Hesap açar, profil bağlanır, plan kurulumuna geçer | Yalnız yerel doğrulama: 3 haneli şifre → "Password must be at least 6 characters." | Emülatör Pixel_9a | ⏸ Test edilemedi | Test edilemedi — canlı projede hesap açmak için sahibin onayı gerekir. Yerel doğrulama geçti: `09_signup_short_password_en.png` |
+| B3 | E-posta ile giriş | Hesaba girer, profil yoksa onboarding, buluttan gelirse plan kurulumu / Main | Boş alanlarla "Sign in" pasif | Emülatör Pixel_9a | ⏸ Test edilemedi | Test edilemedi — canlı projede hesap açmak için sahibin onayı gerekir. Boş alanla buton pasif (doğru) |
+| B4 | Şifre sıfırlama | E-posta gönderir | Boş e-posta → "Enter your email." | Emülatör Pixel_9a | ⏸ Test edilemedi | Test edilemedi — canlı projede hesap açmak için sahibin onayı gerekir. Boş alan uyarısı geçti: `08_signin_validation_en.png` |
+| B5 | Google / Apple ile giriş | Credential Manager / Apple ile hesap | — | Emülatör Pixel_9a | ⏸ Test edilemedi | Test edilemedi — canlı projede hesap açmak için sahibin onayı gerekir |
+| B6 | Çıkış yap | Firebase çıkışı, yerel veri + ayarlar (dil hariç) silinir, girişe döner | Ayarlar'da buton yalnız hesapla görünüyor | Emülatör Pixel_9a | ⏸ Test edilemedi | Hesap gerektiriyor |
+| B7 | Firestore senkron ve geri yükleme | Her yazım `users/{uid}` altına yansır, girişte geri yüklenir | — | Firebase emülatörü | ⏸ Test edilemedi | Hesap gerektiriyor. Kurallar emülatörde 16/16 geçti (bkz. N6) |
+
+## C. Paywall ve 7 günlük deneme
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| C1 | Paywall planları | Plan özeti, Yıllık/Aylık, üstü çizili ve haftalık fiyat, seçime göre CTA ("7 gün ücretsiz başla" / "Abone ol") | Onboarding sonu ve Koç'tan paywall aç, plan değiştir | Emülatör Pixel_9a | ✅ Geçti | `20_paywall_trial_eligible_en.png`, `47_paywall_from_main_tr.png` |
+| C2 | Fiyat etiketlerinin dili | Fiyat soneki uygulama dilinde | EN arayüzde paywall | Emülatör Pixel_9a | 🔧 Kaldı → düzeltildi (`be0ae1c`) | Önce "999,99 ₺/yıl", "83,33 ₺/ay" (cihaz dili kullanılıyordu). Sonra "$44.99/yr": `95_fix_paywall_en_prices.png` |
+| C3 | Çıkış teklifi | X → alt sayfa; "Kişisel planımı aç" deneme isteği, "Kişisel plan olmadan devam et" kayda gider | X, iki seçeneği ayrı kurulumlarda dene | Emülatör Pixel_9a | ✅ Geçti | `21_paywall_exit_offer_en.png` |
+| C4 | Kayıttan önce deneme isteği | Mock satın alma yapmadan `trial_requested=true` yazar, kayda gider | "7 gün ücretsiz başla", prefs kontrolü | Emülatör Pixel_9a | ✅ Geçti | `trial_requested=true`, `funnel_stage=Signup` |
+| C5 | Satın alımları geri yükle | Aktif abonelik yoksa bilgi verir | Butona dokun | Emülatör Pixel_9a | ✅ Geçti | "Aktif abonelik bulunamadı." |
+| C6 | Mock abonelik → Pro | Aylık abonelik Pro açar (rozet, koç sohbeti, tam rapor) | Koç → Pro'ya geç → Aylık → Abone ol | Emülatör Pixel_9a | ✅ Geçti | `48_home_pro_badge.png` |
+| C7 | Deneme uygunluğu (kullanılmamış cihaz) | Paywall "7 gün ücretsiz" gösterir | Temiz kurulumda paywall | Emülatör Pixel_9a | ✅ Geçti | `20_paywall_trial_eligible_en.png`, `99_paywall_after_reinstall_trial_offered.png` |
+| C8 | Kullanılmış cihazda paywall | "7 gün ücretsiz" yok, "Abone ol" + açıklama kartı | Dev'de cihazı "used" yapmak için hesapla deneme başlatmak gerekiyor | Emülatör Pixel_9a | ⏸ Test edilemedi | Hesap gerekiyor. Birim testi `PaywallTrialStateTest` 5/5 geçti (`usedDeviceGetsSubscribeAndAnExplanation`) |
+| C9 | Denemeyi başlatma | Kayıttan sonra plan kurulumu `startTrial` çağırır, Trial = AI plan | Kayıt atlandığı için hesap yok | Emülatör Pixel_9a | ⏸ Test edilemedi | İstek beklemede kaldı (`trial_requested` true), plan kurulumu "başlangıç planı" yaptı: hesapsız durumda doğru davranış |
+| C10 | Deneme sunucu kuralları | Hesap + cihaz başına bir kez, sunucu saati, anonim red, yarış durumu | `npm test` (startTrial 9, getTrialStatus 3, callables 5, hashing 2) | Firebase emülatörü | ✅ Geçti | Emülatörde geçti, canlıda deploy sonrası test edilecek |
+| C11 | Deneme sayacı ve bitiş hatırlatması | Home "Deneme: N gün kaldı", Ayarlar "Pro deneme · N gün", bitişten 24 saat önce yerel hatırlatma | — | Emülatör Pixel_9a | ⏸ Test edilemedi | Deneme başlatılamadı (C9) |
+| C12 | Cihaz anahtarı kalıcılığı | Kaldırıp yeniden kurunca aynı anahtar (android_id); dev ledger silinir | Ayarlar debug satırını not et, uninstall + install, tekrar bak | Emülatör Pixel_9a | ✅ Geçti | Üç kurulumda `cihaz b15563c7 (android_id, local)`: `04_upgrade_settings_trial_debug.png`, `96_trial_debug_before_uninstall.png`, `101_trial_debug_after_reinstall_same_device_key.png`. Ledger ve `trial_requested` silindi, paywall yeniden denemeyi gösterdi (docs/trial.md ile uyumlu) |
+| C13 | Hesapsız ana ekrandan deneme CTA | Kullanıcıya ne olduğunu söyler | Kayıt atlanmış uygulamada Koç → Pro'ya geç → "7 gün ücretsiz başla" | Emülatör Pixel_9a | ❌ Kaldı | Paywall sessizce kapanıyor, deneme beklemede kalıyor, mesaj yok. Yalnız hesapsız durumda erişilebiliyor (huni kaydı zorunlu) |
+| C14 | Paywall'dan dönüş | Açıldığı alt ekrana (Koç, Ayarlar) döner | Ana sayfa → AI Koç → Pro'ya geç → Abone ol veya X | Emülatör Pixel_9a | ❌ Kaldı | Her zaman Ana sayfa açılıyor: `MainTabShell` durumu `remember` ile tutuluyor, PaywallRoute'a gidince kayboluyor |
+
+## D. Onboarding
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| D1 | Tanıtım slaytları | 3 slayt, Geri butonu | İleri/geri | Emülatör Pixel_9a | ✅ Geçti | `10_onboarding_intro1_en.png` |
+| D2 | Hedef, engel, deneyim, cinsiyet | Tek seçim; seçim yokken Devam pasif | Seçmeden Devam, sonra seç | Emülatör Pixel_9a | ✅ Geçti | `11_onboarding_goal_en.png` |
+| D3 | Odak | En fazla 3 seçim | 4. seçeneğe dokun | Emülatör Pixel_9a | ✅ Geçti | Yalnız 3 işaretli: `12_onboarding_focus_max3_en.png` |
+| D4 | Kaynak sorusu | Atlanabilir | Seçmeden Devam | Emülatör Pixel_9a | ✅ Geçti | |
+| D5 | Ad | Boşken Devam pasif | Boş bırak, sonra yaz | Emülatör Pixel_9a | ✅ Geçti | |
+| D6 | Yaş / boy / kilo seçicileri | Kaydırmalı seçici doğru değeri alır | Değer seç, Ayarlar'da kontrol | Emülatör Pixel_9a | ✅ Geçti | 173 cm, 75,5 kg Ayarlar'da doğru |
+| D7 | Boy ft/in gösterimi | ft/in modunda her adım ayrı değer | ft/in'e geç | Emülatör Pixel_9a | ❌ Kaldı | Seçici cm adımlıyor, etiketler tekrar ediyor (5'8" 5'8" 5'8" 5'9"): `13_onboarding_height_ftin_en.png` |
+| D8 | İfade ve hikâye adımları | 2 Evet/Hayır, 3 hikâye | Geç | Emülatör Pixel_9a | ✅ Geçti | `14_onboarding_story_en.png` |
+| D9 | Aktivite, ekipman, gün, süre, diyet | Ekipman/diyet çoklu seçim | Seç, Ayarlar'da kontrol | Emülatör Pixel_9a | ✅ Geçti | `15_onboarding_equipment_en.png` |
+| D10 | Bildirim izni adımı | "Hatırlat" sistem iznini sorar | İzin ver | Emülatör Pixel_9a | ✅ Geçti | `16_onboarding_notifications_en.png` |
+| D11 | Plan hazırlanıyor + sonuç | Yüzde animasyonu, hedef tarihi ve grafik, alıntı | İzle | Emülatör Pixel_9a | ✅ Geçti | `17_onboarding_generating_en.png`, `18_onboarding_result_en.png`, `97_onboarding_result_tr.png` |
+| D12 | Taahhüt | Basılı tutunca imzalar, kısa dokunuş imzalamaz | Kısa dokun, sonra 3,5 sn bas | Emülatör Pixel_9a | ✅ Geçti | `19_onboarding_commitment_en.png`, `98_onboarding_commitment_tr.png` |
+
+## E. Plan kurulumu ve yerelleştirme
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| E1 | AI/plan dili uygulama dilini izler | Dil değişince yeni planlar, gıda adları, koç ve Bugün Modu yanıtları yeni dilde | Ayarlar'da EN↔TR, plan yenile, gıda ara, koça sor | Emülatör Pixel_9a | 🔧 Kaldı → düzeltildi (`be0ae1c`) | Önce TR arayüzde "Your FitAI plan · 3 days", İngilizce rapor/yanıt: `44_plan_generation_done_title_en_bug.png`, `49_coach_weekly_report_en_text_bug.png`, `50_coach_chat_answer_offline_en_bug.png`. Sonra gıda adları yeniden başlatmadan dil değiştiriyor: `89_fix_language_switch_food_names_en.png`, `90_fix_language_switch_food_names_tr.png` |
+| E2 | Plan kurulumu | Starter/AI plan üretir, Main'e geçer | `funnel_stage=PlanSetup`, aç | Emülatör Pixel_9a | ✅ Geçti | `23_plan_setup_en.png` |
+| E3 | Plan tüm cevapları kullanır | Ekipman, deneyim, engel, gün, süre, diyet plana yansır | Dambıl+lastik / sakatlık / 3 gün / 30 dk / vejetaryen profil | Emülatör Pixel_9a | ✅ Geçti | Dambıl hareketleri, 2×12-15, "eklem dostu", et yok: `33_workout_monday_exercises.png`, `53_nutrition_top.png` |
+| E4 | TR/EN arayüz | Tüm metinler `LocalStrings`'ten, iki dilde | İki dilde gezildi | Emülatör Pixel_9a | ✅ Geçti | Sabit Türkçe metin bulunamadı (sistem erişilebilirlik etiketleri hariç) |
+| E5 | Sayı biçimi ve çoğul | TR ondalık virgül, EN "1 day" | İlerleme, seri | Emülatör Pixel_9a | 🔧 Kaldı → düzeltildi (`c804af2`) | Önce "74.8 kg", "0.4 t", "e1RM 14.3 kg", "Workout streak: 1 days". Sonra "74,8 kg", "0,4 t", "Tahmini 1TM 14,3 kg": `93_fix_progress_decimal_comma.png` |
+| E6 | Ayarlar'dan dil değişimi | Arayüz dili değişir, ekran yerinde kalır | Ayarlar → Türkçe/English | Emülatör Pixel_9a | ✅ Geçti | `29_settings_language_tr.png`. İlk denemede bir kez Ana sayfa'ya döndü, sonraki 4 denemede tekrarlanmadı |
+
+## F. Ana sayfa
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| F1 | Seri çipi ve kartı | Gün sayısı, "Bugün tamam", haftalık dondurma | Seans bitir, Ana sayfa | Emülatör Pixel_9a | ✅ Geçti | `30_home_tr.png`, `48_home_pro_badge.png` |
+| F2 | PRO rozeti | Pro/Trial'da görünür, Free'de yok | Abonelik öncesi/sonrası | Emülatör Pixel_9a | ✅ Geçti | `48_home_pro_badge.png` |
+| F3 | Seviye / XP | Seans sonrası XP artar | Seans bitir | Emülatör Pixel_9a | ✅ Geçti | 0 → 100 XP |
+| F4 | Bugünkü antrenman | Plan günü egzersizleri, dinlenme gününde "Bugün için egzersiz yok" | Pazar günü kontrol | Emülatör Pixel_9a | ✅ Geçti | |
+| F5 | Kalan makro + Öğün ekle | Kalan kcal/makro, buton öğün aramasını açar | Öğün ekle | Emülatör Pixel_9a | ✅ Geçti | Saate göre öğün (Akşam yemeği) açıldı |
+| F6 | Bu hafta özeti | Seans, hacim, rekor | Seanslardan sonra | Emülatör Pixel_9a | ✅ Geçti | Hacim yarım seansı da sayıyor, bkz. G10 |
+| F7 | Koç kartı | Koç ekranını açar | Dokun | Emülatör Pixel_9a | ✅ Geçti | |
+| F8 | Başlangıç Görevleri | Pill + sheet (%), görev dokununca ilgili sekme, kilitli hediye, "Tekrar gösterme" | Görevleri tamamla, sheet'i kullan | Emülatör Pixel_9a | ✅ Geçti | %25 → %75, gizleme kalıcı: `25_starter_goals_sheet_en.png`, `87_starter_goals_75_tr.png` |
+| F9 | Deneme günü göstergesi | "Deneme: N gün kaldı" | — | Emülatör Pixel_9a | ⏸ Test edilemedi | Deneme başlatılamadı (C9) |
+
+## G. Antrenman
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| G1 | Plan kartı | Başlık, açıklama, "Aktif plan" etiketi | Antrenman sekmesi | Emülatör Pixel_9a | 🔧 Kaldı → düzeltildi (`485614c`) | Önce başlık yeşil satırda tekrar ediyordu: `86_workout_plan_tr_after_restart_title_dup.png`. Sonra "Aktif plan": `88_fix_workout_restday_hint_active_label.png` |
+| G2 | Gün çipleri ve dinlenme günü | Seçili gün görünür; dinlenme gününde neden başlatılamadığı yazar | Pazar günü (0/3 hak) aç, Pazartesi'ye geç | Emülatör Pixel_9a | 🔧 Kaldı → düzeltildi (`485614c`) | Bilinen madde #1: kota değil, dinlenme günü; Pazartesi'de 0/3 hakta buton aktif (`77_workout_quota_0of3_monday_start_enabled.png`). Önce "Paz" çipi ekran dışında, açıklama yok (`32_workout_sunday_selected_restday.png`, `76_workout_quota_0of3_sunday.png`); sonra çip görünür + ipucu (`88_fix_workout_restday_hint_active_label.png`) |
+| G3 | Egzersiz listesi ve detayı | Set × tekrar, dinlenme, kas grubu | Egzersize dokun | Emülatör Pixel_9a | ✅ Geçti | `33_workout_monday_exercises.png`, `34_exercise_detail.png` |
+| G4 | Değiştir (detay ve seans) | Aynı kas grubundan alternatife geçer | Detayda ve aktif seansta Değiştir | Emülatör Pixel_9a | ✅ Geçti | `35_exercise_swap_options.png`, `37_active_session_swap_done.png` |
+| G5 | Alternatif listesi kalitesi | Kullanıcının ekipmanına uygun olanlar önce, sıra korunur | Dambıl/lastik kullanıcısında Değiştir | Emülatör Pixel_9a | ❌ Kaldı | Salon hareketleri (Bench press, Cable crossover) önce geliyor; detaydan değiştirilen hareket günün sonuna taşınıyor |
+| G6 | Aktif seans setleri | Tekrar/ağırlık, set tamamla, önceki seti kopyala | Set 1 gir, tamamla, kopyala | Emülatör Pixel_9a | ✅ Geçti | `36_active_session_set1_done_rest.png` |
+| G7 | Dinlenme sayacı | Set sonrası başlar, +15 sn, Atla | 0:44 → +15 → 0:55, Atla | Emülatör Pixel_9a | ✅ Geçti | |
+| G8 | Ağırlık önerisi | Önceki seansa göre "Önerilen" | İkinci seans | Emülatör Pixel_9a | ✅ Geçti | "Önerilen: 10 kg × 13 · Aynı ağırlık, bir tekrar daha": `38_active_session_overload_suggestion.png` |
+| G9 | Seans bitişi | Seri ekranı → "Seri nasıl çalışır?" → özet (süre, hacim, set, rekor, 1TM) | Antrenmanı bitir | Emülatör Pixel_9a | ✅ Geçti | `39_streak_screen.png`, `40_session_summary.png` |
+| G10 | Yarıda bırakılan seans | Geri çıkınca seans korunur veya kapanır; tekrar başlatınca aynı seansa döner | Seansta 2 set tamamla, Geri, aynı gün tekrar "Antrenmana başla" | Emülatör Pixel_9a | ❌ Kaldı | Yeni seans açılıyor; eski seans `completed_at` boş kalıyor (DB'de 2 açık seans), setleri yeni seansta yok ama haftalık hacme (370 kg) ve öneriye giriyor. Düzeltme `StartWorkoutSessionUseCase` + repository değişikliği ister |
+| G11 | Planı yenile | Onay diyaloğu, başarılı üretimde 1 hak düşer, 0'da pasif + açıklama | 3 → 2 → 1 → 0 | Emülatör Pixel_9a | ✅ Geçti | `41_regenerate_confirm_dialog.png`, `45_workout_after_regen_2of3.png`, `76_workout_quota_0of3_sunday.png` |
+| G12 | Üretim animasyonu | Kartlar karılıp haftaya dağılır, 3 adım, en az ~4,5 sn | Planı yenile | Emülatör Pixel_9a | ✅ Geçti | `42_plan_generation_anim_1.png`, `43_plan_generation_anim_2.png` |
+| G13 | Azaltılmış hareket | "Animasyonları kaldır" açıkken statik görünüm | Animasyon ölçekleri 0, yenile | Emülatör Pixel_9a | ✅ Geçti | `84_plan_generation_reduced_motion.png`; ayarlar geri alındı |
+| G14 | Bugün Modu | Süre/enerji/ağrı/yer → uyarlanmış seans | 20 dk, enerji 2, diz, ev | Emülatör Pixel_9a | ✅ Geçti | Uçak modunda yerel yedek yanıt: `51_today_mode_form.png`, `52_today_mode_result_offline.png` |
+| G15 | Sunucu plan kotası | `generateWorkoutPlan` hakkı sunucuda düşürür, 0'da `plan_quota_exhausted` | Emülatör test paketi yok, deploy yok | Firebase emülatörü | ⏸ Test edilemedi | `withPlanQuota` için test yok; istemci yerel sayaç G11'de geçti |
+| G16 | Geçmiş planlar | Eski planlar listelenir | Yenilemeden sonra | Emülatör Pixel_9a | ✅ Geçti | `88_fix_workout_restday_hint_active_label.png` |
+
+## H. Beslenme
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| H1 | Kalan makro halkası | Alınan / hedef / kalan, antrenman–dinlenme günü hedefi | Kayıt ekle, değerleri izle | Emülatör Pixel_9a | ✅ Geçti | `53_nutrition_top.png` |
+| H2 | Detaylı diyet planı | Saat, ev ölçüsü + gram, gıda/öğün makrosu, hazırlık notu | Öğün kartlarını aç | Emülatör Pixel_9a | ✅ Geçti | `54_nutrition_breakfast_plan.png` |
+| H3 | Plan toplamı hedefe uyar | Kalori ve makrolar hedefe yakın | Plan toplamı satırı | Emülatör Pixel_9a | ❌ Kaldı | Kalori yakın, makrolar değil: vejetaryen K 111/164 g, Y 87/47 g; kısıtsız K 260/389 g, Y 114/80 g (`53_nutrition_top.png`, `102_nutrition_plan_totals_no_restriction.png`). `check:diet` yalnız kaloriyi doğruluyor |
+| H4 | Alternatifler | Öğün başına 2 alternatif, "Bununla değiştir" | Kahvaltıda Alternatif 2 | Emülatör Pixel_9a | ✅ Geçti | Eski öğün alternatiflere geçti: `55_nutrition_alternatives.png` |
+| H5 | Planladığımı yedim | Plandaki tüm gıdaları günlüğe ekler | Butona dokun | Emülatör Pixel_9a | ✅ Geçti | `56_nutrition_ate_as_planned.png` |
+| H6 | Gıda arama | Plandan / son / sık / kendi gıdaların; aksan ve Türkçe harf duyarsız | "yogurt" → "Yoğurt (az yağlı)", "mercimek" | Emülatör Pixel_9a | ✅ Geçti | `58_food_search_nested.png`, `59_food_search_yogurt.png`, `64_food_search_recent_frequent.png`, `90_fix_language_switch_food_names_tr.png` |
+| H7 | Yeni aramanın temiz açılması | Her yeni arama boş sorguyla açılır, detaydan dönünce sorgu korunur | Ara, Geri, sekme değiştir, geri gel, yeni arama | Emülatör Pixel_9a | 🔧 Kaldı → düzeltildi (`8d52358`) | Önce eski sorgu ve sonuçlar geri geliyordu ("yogurtyogurt"). Sonra boş açılıyor, detaydan dönüşte sorgu korunuyor: `94_fix_food_search_fresh_after_tab_switch.png` |
+| H8 | Boş sonuç durumu | "Kendi gıdanı oluştur" ve "Hızlı kalori ekle" önerir | Anlamsız sorgu | Emülatör Pixel_9a | ✅ Geçti | `60_food_search_empty_state.png` |
+| H9 | Ölçü/porsiyon seçici | Ölçü (dilim/g/porsiyon), miktar, canlı makro, öğün seçimi | g'ye geç, 75 g, Öğle yemeği | Emülatör Pixel_9a | ✅ Geçti | 220 → 330 kcal: `62_custom_food_serving_picker.png`, `63_serving_picker_grams_lunch.png` |
+| H10 | Kayıt düzenle / sil | Miktarı değiştirir, siler | Peynir 1,5 → 2 dilim, haşlanmış yumurtayı sil | Emülatör Pixel_9a | ✅ Geçti | 119 → 158 kcal: `57_food_detail_edit_nested.png`. Silmede onay veya geri al yok (gözlem) |
+| H11 | Kendi gıdan | Ad, ölçü, gram, makro → kaydet ve ekle; "Gıdalarım"da görünür | QA Granola oluştur | Emülatör Pixel_9a | ✅ Geçti | `61_custom_food_form.png`, `64_food_search_recent_frequent.png` |
+| H12 | Hızlı kalori ekle | Ad + kalori yeter, makrolar isteğe bağlı | Yalnız ad + kalori ile kaydet | Emülatör Pixel_9a | 🔧 Kaldı → düzeltildi (`aed3345`) | Önce üç makro zorunluydu: `66_quick_add_requires_macros.png`. Sonra "Elma 95 kcal" kaydedildi (makrolar 0): `92_fix_quick_add_calories_only.png` |
+| H13 | İç içe ekranlarda pill ve alt menü | Bilinen madde #2: iç içe ekranda "Başlangıç Görevleri" pill'i gizli | Gıda detayı ve arama aç | Emülatör Pixel_9a | ✅ Geçti | Pill gizli. Alt menü bilinçli olarak her akışta görünüyor (`MainTabShell`'de koşulsuz, aktif seans ve Koç'ta da): `57_food_detail_edit_nested.png`, `58_food_search_nested.png` |
+| H14 | Diyet planını yenile | Yeni plan üretir | Butona dokun | Emülatör Pixel_9a | ✅ Geçti | Yeni `diet_plans` satırı; onay veya geri bildirim yok (gözlem) |
+| H15 | Tabak fotoğrafı (kamera/galeri) | Kamera ve galeri seçici açılır, fotoğraf analize gider | Galeriden ve kameradan fotoğraf, uçak modunda | Emülatör Pixel_9a | ✅ Geçti | Seçiciler çalışıyor; çevrimdışı "Fotoğraf analiz edilemedi.": `68_photo_analysis_offline_error.png` |
+| H16 | Fotoğraf analizi sonucu | Gemini makroları getirir, inceleyip kaydedilir | Canlı callable gerekir | Emülatör Pixel_9a | ⏸ Test edilemedi | Dev'de de canlı `analyzeMealPhoto` çağrılıyor; canlı AI çağrısından kaçınıldı |
+| H17 | Sonraki öğün önerisi (Pro) | Fotoğraflı kayıttan sonra öneri kartı | H16'ya bağlı | Emülatör Pixel_9a | ⏸ Test edilemedi | Yalnız fotoğraf analizi başarılı olunca tetikleniyor |
+| H18 | Eski diyet planı uyarısı | Öğünsüz eski planda "Öğün öğün plan için planı yenile" | Yükseltilmiş kurulumda Beslenme | Emülatör Pixel_9a | ✅ Geçti | `02_upgrade_old_meal_in_dinner_slot.png` |
+
+## I. İlerleme
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| I1 | Kilo trendi ve tartı | 20–400 kg doğrulama, "74,8" virgüllü giriş | 500 → hata, 74,8 → kayıt | Emülatör Pixel_9a | ✅ Geçti | `70_weighin_validation.png`, `71_progress_after_weighin.png` |
+| I2 | Haftalık hacim | Haftalara göre hacim grafiği | Seanslardan sonra | Emülatör Pixel_9a | ✅ Geçti | `69_progress_tab.png` |
+| I3 | Kişisel rekorlar ve rozetler | En iyi set, tahmini 1TM, rozet sayısı | Seans sonrası | Emülatör Pixel_9a | ✅ Geçti | Biçim düzeltmesi E5'te |
+
+## J. Profil ve ölçümler
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| J1 | Profil hub | İstatistikler, Antrenmanlar / Grafik sekmeleri | Sekmeleri gez | Emülatör Pixel_9a | ✅ Geçti | `72_profile_hub.png`, `73_profile_chart_tab.png` |
+| J2 | Profili düzenle | Hedef, aktivite, ekipman, diyet | Hedefi "Güçlen" yap, kaydet | Emülatör Pixel_9a | ✅ Geçti | Ayarlar'da güncellendi |
+| J3 | Vücut ölçüleri güncel kalır | Yaş/boy/kilo düzenlenebilir veya tartı profil kilosunu günceller | Tartı 74,2 / 74,8 kg gir, Ayarlar'a bak | Emülatör Pixel_9a | ❌ Kaldı | Ayarlar'da kilo onboarding değerinde kalıyor (75,0 / 75,5 kg); düzenleme formunda yaş/boy/kilo yok. Plan yenileme eski kiloyu kullanır. Ürün kararı gerekiyor |
+| J4 | Ölçümler ekranı | Kilo/Bel sekmeleri, dönem (1/3/6 ay, 1 yıl), kayıtlar, başlangıca göre fark | Sekme ve dönem değiştir, tartı ekle | Emülatör Pixel_9a | ✅ Geçti | `83_measurements_waist_tab.png` |
+
+## K. Ayarlar
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| K1 | Hesap bölümü | Misafir metni, giriş butonları; hesapla "Çıkış yap" | Ayarlar üstü | Emülatör Pixel_9a | ✅ Geçti | `26_settings_top_en.png` (çıkış: B6) |
+| K2 | Abonelik satırı | Ücretsiz plan / Pro aktif, Pro'ya geç → paywall | Pro öncesi/sonrası | Emülatör Pixel_9a | ✅ Geçti | `74_settings_top_tr_pro.png` |
+| K3 | Deneme debug satırı | Durum + cihaz anahtarı öneki + kaynak | Debug build Ayarlar | Emülatör Pixel_9a | ✅ Geçti | "Deneme (debug): eligible · 0 gün · cihaz b15563c7 (android_id, local)" |
+| K4 | Planı yeniden üret | Antrenman sekmesiyle aynı hak | 2/3 → 1/3 | Emülatör Pixel_9a | ✅ Geçti | `75_settings_regenerate_result.png` |
+| K5 | Hatırlatmalar aç/kapat | Kapatınca tüm yerel alarmlar iptal, açınca yeniden kurulur | Anahtarı kapat/aç, `dumpsys alarm` | Emülatör Pixel_9a | ✅ Geçti | Kapalıyken alarm 0, açınca yeniden kuruldu: `82_settings_reminders_off.png` |
+| K6 | Hatırlatma saati | 15 dk adımlı seçici, alarmlar yeni saate kurulur | 18:00 → 06:30 | Emülatör Pixel_9a | ✅ Geçti | Antrenman alarmları 06:30'a kuruldu |
+| K7 | Akıllı bildirim anahtarları | 4 tür; push kayıtlı değilken öğün anahtarı yerel 12:30 hatırlatmasını yönetir | "Öğün kaydı" kapat/aç, `fitai_reminders.xml` | Emülatör Pixel_9a | ✅ Geçti | Kapatınca `mealNudge` kalktı, açınca geri geldi: `81_settings_smart_notifications_meal_off.png`. Hesapsızken "İnternete bağlanınca kaydolur" mesajı yanıltıcı (gözlem) |
+| K8 | Dil | TR/EN | Ayarlar → dil | Emülatör Pixel_9a | ✅ Geçti | E1, E6 |
+
+## L. AI Koç ve haftalık rapor
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| L1 | Haftalık özet | Seans, hacim, protein, kilo, rekor | Koç ekranı | Emülatör Pixel_9a | ✅ Geçti | `46_coach_screen.png` |
+| L2 | Tam haftalık rapor (Pro) | Free'de kilitli kart, Pro'da AI raporu | Pro öncesi/sonrası | Emülatör Pixel_9a | ✅ Geçti | Rapor canlı `weeklyCoachReport`'tan geldi (bkz. kritik bulgu 5); dil hatası E1'de düzeltildi: `49_coach_weekly_report_en_text_bug.png` |
+| L3 | Koç sohbeti | Free'de kilitli; Pro'da hazır sorular, yazma, "Sohbeti temizle" | Uçak modunda hazır soru + yazılı mesaj, temizle | Emülatör Pixel_9a | ✅ Geçti | Çevrimdışı yerel yanıt: `50_coach_chat_answer_offline_en_bug.png` |
+
+## M. Bildirimler
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| M1 | Yerel hatırlatma planı | Antrenman günleri hatırlatma saati, 12:30 öğün, D0–D7 dizisi; saat dilimi değişince yeniden kurulur | `dumpsys alarm`, saat dilimini Kiritimati/Chatham/Dubai yapıp geri al | Emülatör Pixel_9a | ✅ Geçti | Alarmlar yerel saate göre kuruldu ve yeniden kuruldu; saat dilimi Europe/Istanbul'a geri alındı |
+| M2 | Yerel hatırlatmanın düşmesi | Zamanı gelince bildirim görünür | — | Emülatör Pixel_9a | ⏸ Test edilemedi | Alarmlar 1 saatlik pencereli (inexact) ve en yakın 21:15; saat ileri alınmadı (root yok). Dokunma davranışı M3'te aynı intent ile test edildi |
+| M3 | Bildirim derin linkleri | `link=workout` Antrenman, `meal_log` saate uygun öğün araması, `home` Ana sayfa; soğuk açılış; bilinmeyen link yok sayılır; aktif seans korunur | `adb shell am start -a com.fitai.app.action.OPEN_LINK --es link …` | Emülatör Pixel_9a | ✅ Geçti | `78_deeplink_workout.png`, `79_deeplink_meal_log_search.png`, `80_deeplink_workout_cold_start.png` |
+| M4 | Akıllı bildirimler (FCM) | Token `users/{uid}/devices`, sunucu sweep, sessiz saatler, günlük sınır, TR/EN metin | `npm test` (sweep kuralları), `npm run test:emulator` | Firebase emülatörü | ✅ Geçti | functions 50/50, emülatör 4/4. Emülatörde geçti, canlıda deploy sonrası test edilecek (APNs, Cloud Scheduler, gerçek cihaz gerekir) |
+
+## N. Çevrimdışı, veri, platform
+
+| # | Özellik | Yerine getirmesi gereken görev | Test adımları | Ortam | Sonuç | Not / kanıt |
+|---|---|---|---|---|---|---|
+| N1 | Çevrimdışı kullanım | Antrenman, beslenme, ölçüm yerelde çalışır; AI özellikleri yerel yedeğe düşer veya anlaşılır hata verir | Uçak modunda seans, kayıt, koç, Bugün Modu, fotoğraf | Emülatör Pixel_9a | ✅ Geçti | Uçak modu sonra kapatıldı |
+| N2 | DB yükseltme (v1 → v2) | Eski build verisi korunur, çökme yok | 358b220 dev build kur, seans/öğün/tartı gir, yeni build'i üstüne kur | Emülatör Pixel_9a | ✅ Geçti | `user_version` 1 → 2, `custom_foods` + yeni kolonlar; seans, 2 set, öğün, tartı korundu: `00_upgrade_old_build_measurements.png`–`04_upgrade_settings_trial_debug.png` |
+| N3 | Prod flavor derlemesi | `assembleProdDebug` derlenir | Gradle | Gradle (yerel) | ✅ Geçti | Yalnız derleme; prod APK canlı Firebase'e bağlandığı için kurulmadı |
+| N4 | Birim testleri | domain, data, database, composeApp | Gradle test görevleri | Gradle (yerel) | ✅ Geçti | domain 103, data 32, database 4, composeApp 6, hepsi geçti (düzeltmelerden sonra) |
+| N5 | Diyet planı normalizasyonu (sunucu) | `generateDietPlan` öğünlü şema, kalori hedefi | `npm run check:diet` | Firebase emülatörü | ✅ Geçti | "normalizeDietPlan checks passed" (makro dengesi kontrol edilmiyor, H3) |
+| N6 | Firestore güvenlik kuralları | Sahip, alan/kod doğrulaması, sunucuya özel koleksiyonlar kapalı | `firebase/rules-tests`: `npm test` | Firebase emülatörü | ✅ Geçti | 16/16. Emülatörde geçti, canlıda deploy sonrası test edilecek |
+| N7 | iOS simülatör duman testi | Uygulama derlenir, açılır, Welcome görünür | `xcodebuild` iPhone 16 simülatör + `simctl install/launch` | iOS Sim | ✅ Geçti | `xcodebuild` (dev, Debug, iphonesimulator) başarılı; splash sonrası Welcome açıldı (simülatör dili EN): `103_ios_sim_welcome_en.png`. Yalnız duman testi, akışlar Android'de test edildi |
+| N8 | Fiziksel telefon (R5CTA0VPTQY) | Temel akışlar gerçek cihazda | `adb devices` başta ve sonda | Telefon | ⏸ Test edilemedi | Telefon test boyunca bağlı değildi |
+| N9 | Dev flavor AI yönlendirmesi | Dev'de Cloud Functions çağrılmaz (görev notundaki varsayım) | Koç, Bugün Modu, fotoğraf | Emülatör Pixel_9a | ❌ Kaldı | Varsayım doğru değil: `DevPlanAIRepository` yalnız planları yerelde üretiyor; koç, rapor, Bugün Modu, sonraki öğün ve fotoğraf canlı callable'lara gidiyor. Kod hatası değil, sahibin bilmesi gereken davranış; istenirse dev'de tamamen yerel yapılabilir |
