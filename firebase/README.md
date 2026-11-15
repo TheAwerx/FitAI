@@ -128,7 +128,7 @@ Uygulamada onboarding’i bitirince plan üretimi mock yerine Gemini çıktısı
 
 Koleksiyonlar, alanlar, hangi ekrandan geldikleri ve kimin yazdığı: [`SCHEMA.md`](SCHEMA.md).
 `firestore.rules` yalnız sahibine (anonim olmayan giriş) izin verir, alanları doğrular;
-sunucu koleksiyonlarına (`guest_trials`, `plan_quotas`, `device_trials`, `aiUsage`)
+sunucu koleksiyonlarına (`guest_trials`, `plan_quotas`, `device_trials`, `aiUsage`, `notification_state`)
 istemci yazamaz. Kuralları değiştirince emülatörde test et (canlı projeye dokunmaz,
 `demo-fitai` projesi kullanılır; Firestore emülatörü JDK 21 ister):
 
@@ -145,6 +145,39 @@ yazdığı için yeni kurallarla girişte hata alır.
 yaş, boy, kilo, hedef, aktivite, deneyim, engel, odak, gün, süre, ekipman, diyet) ve
 `locale` alır. Prompt'lar `functions/src/plans.ts` içinde; diyet cevabı Mifflin-St Jeor
 referansının ±%20'si içinde tutulur.
+
+## Push bildirimleri (akıllı hatırlatmalar)
+
+Tasarım, tetikleyiciler ve yerel hatırlatmalarla iş bölümü: [`SCHEMA.md`](SCHEMA.md) → "Push notifications".
+Kod `functions/src/notifications/`: 15 dakikada bir `notificationSweep` (yalnız `nextCheckAt` zamanı
+gelen `notification_state/{uid}` belgeleri), Firestore tetikleyicileri `notificationsOn*`.
+
+Canlıya almadan önce (sahibin adımları):
+
+1. **APNs anahtarı**: Apple Developer → Keys → APNs anahtarı (.p8) oluştur; Firebase Console →
+   Project settings → Cloud Messaging → Apple app configuration → anahtarı, Key ID ve Team ID ile yükle.
+   iOS hedefinde Push Notifications yeteneği açık olmalı (`iosApp/iosApp/iosApp.entitlements`,
+   App ID'de Push Notifications). Simülatör gerçek push almaz; cihazda dene.
+2. **Firestore konumu**: tetikleyiciler `us-central1` (`functions/src/notifications/config.ts`,
+   `NOTIFICATIONS_REGION`). Veritabanı `eur3` ise bu bölgeyi Avrupa'ya çevir.
+3. **Cloud Scheduler API** zamanlanmış fonksiyon için açık olmalı (Blaze planı; ilk deploy sorar).
+4. Kurallar, fonksiyonlar ve yeni istemci birlikte deploy edilmeli (yeni `notificationTypes` alanı
+   zorunlu; push açık cihazlarda yerel 12:30 öğün hatırlatması kalkar, fonksiyonlar yoksa öğün
+   hatırlatması gelmez):
+
+```bash
+cd firebase
+firebase deploy --only firestore:rules,functions:notificationSweep,functions:notificationsOnUserWritten,functions:notificationsOnDeviceWritten,functions:notificationsOnPlanWritten,functions:notificationsOnSessionWritten,functions:notificationsOnMealCreated
+```
+
+Testler (canlı projeye dokunmaz, `demo-fitai`):
+
+```bash
+cd firebase/functions
+npm ci
+npm test                       # karar mantığı (birim)
+JAVA_HOME="$HOME/Applications/Android Studio.app/Contents/jbr/Contents/Home" npm run test:emulator   # emülatörde uçtan uca, FCM taklit
+```
 
 ## Mimari
 

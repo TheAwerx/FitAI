@@ -10,6 +10,8 @@ import com.fitai.app.model.SessionExercise
 import com.fitai.app.model.SessionSet
 import com.fitai.app.model.WorkoutPlan
 import com.fitai.app.model.WorkoutSession
+import com.fitai.app.notifications.PushDevice
+import com.fitai.app.notifications.PushNotificationTypes
 import kotlinx.datetime.TimeZone
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.elementNames
@@ -48,7 +50,7 @@ class FirestoreMappersTest {
             daysPerWeek = 4,
             sessionMinutes = 45,
         ),
-        settings = CloudUserSettings("instagram", "2026-11-01T10:05:00Z", true, 7, 15),
+        settings = CloudUserSettings("instagram", "2026-11-01T10:05:00Z", true, 7, 15, PushNotificationTypes(streakRisk = false)),
         language = "en",
         timeZone = "Europe/Istanbul",
     )
@@ -68,6 +70,7 @@ class FirestoreMappersTest {
         assertEquals(45, doc.sessionMinutes)
         assertEquals("instagram", doc.attributionSource)
         assertEquals(7, doc.reminderHour)
+        assertEquals(NotificationTypesDocument(workoutLate = true, mealLogging = true, streakRisk = false, comeback = true), doc.notificationTypes)
         assertEquals("en", doc.language)
         assertEquals("Europe/Istanbul", doc.timeZone)
         assertEquals("2026-11-01T10:00:00Z", doc.createdAt)
@@ -216,10 +219,18 @@ class FirestoreMappersTest {
                 "schemaVersion", "localUserId", "name", "email", "age", "heightCm", "weightKg", "gender",
                 "goal", "activityLevel", "equipment", "dietRestrictions", "experience", "obstacle",
                 "focusAreas", "daysPerWeek", "sessionMinutes", "attributionSource", "commitmentConfirmedAt",
-                "notificationsEnabled", "reminderHour", "reminderMinute", "language", "timeZone",
+                "notificationsEnabled", "notificationTypes", "reminderHour", "reminderMinute", "language", "timeZone",
                 "createdAt", "updatedAt",
             ),
             keys(UserDocument.serializer().descriptor),
+        )
+        assertEquals(
+            setOf("workoutLate", "mealLogging", "streakRisk", "comeback"),
+            keys(NotificationTypesDocument.serializer().descriptor),
+        )
+        assertEquals(
+            setOf("schemaVersion", "platform", "fcmToken", "language", "timeZone", "appVersion", "updatedAt"),
+            keys(DeviceDocument.serializer().descriptor),
         )
         assertEquals(
             setOf("schemaVersion", "id", "title", "description", "daysPerWeek", "kind", "isActive", "createdAt", "updatedAt", "exercises"),
@@ -250,6 +261,30 @@ class FirestoreMappersTest {
             ),
             keys(MeasurementDocument.serializer().descriptor),
         )
+    }
+
+    @Test
+    fun olderUserDocumentsWithoutNotificationTypesTurnEverythingOn() {
+        assertEquals(PushNotificationTypes(), UserDocument().toCloudProfile().settings.pushTypes)
+    }
+
+    @Test
+    fun deviceDocumentIsSanitizedForTheRules() {
+        val doc = PushDevice(
+            token = "t".repeat(5000),
+            platform = "ios",
+            appVersion = "1.0.0-dev+build.123456789012345678901234567890",
+            language = "de",
+            timeZone = "",
+        ).toDocument(now)
+        assertEquals(CLOUD_SCHEMA_VERSION, doc.schemaVersion)
+        assertEquals("ios", doc.platform)
+        assertEquals(CloudLimits.FCM_TOKEN, doc.fcmToken.length)
+        assertEquals(CloudLimits.APP_VERSION, doc.appVersion.length)
+        assertEquals("tr", doc.language)
+        assertEquals("UTC", doc.timeZone)
+        assertEquals(now, doc.updatedAt)
+        assertEquals("android", PushDevice("t", "web", "1", "en", "Europe/Istanbul").toDocument(now).platform)
     }
 
     @Test

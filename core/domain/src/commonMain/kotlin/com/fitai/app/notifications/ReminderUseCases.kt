@@ -12,8 +12,13 @@ import com.fitai.app.util.epochMillis
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-/** Rebuilds and replaces every pending reminder; cancels them all when reminders are off. */
+/**
+ * Rebuilds and replaces every pending reminder; cancels them all when reminders are off. Also syncs the
+ * push registration: while this device receives server pushes, they own the meal reminder and the
+ * fixed local 12:30 one is left out, so the same nudge never arrives twice.
+ */
 class BuildAndScheduleRemindersUseCase(
+    private val syncPushRegistrationUseCase: SyncPushRegistrationUseCase,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val reminderStateRepository: ReminderStateRepository,
     private val reminderScheduler: ReminderScheduler,
@@ -25,8 +30,11 @@ class BuildAndScheduleRemindersUseCase(
     suspend operator fun invoke(texts: ReminderTexts): UseCaseState<Unit> = useCaseCatching {
         if (!userPreferencesRepository.notificationsEnabled) {
             reminderScheduler.cancelAll()
+            syncPushRegistrationUseCase()
             return@useCaseCatching
         }
+        val push = syncPushRegistrationUseCase()
+        val serverOwnsMeals = (push as? UseCaseState.Success)?.data == PushRegistrationStatus.Registered
         val now = epochMillis()
         val anchor = reminderStateRepository.sequenceAnchorEpochMillis
             ?: now.also { reminderStateRepository.sequenceAnchorEpochMillis = it }
@@ -38,6 +46,7 @@ class BuildAndScheduleRemindersUseCase(
             sequenceAnchorMillis = anchor,
             trialExpiresAtMillis = trialExpiresAtMillis(),
             texts = texts,
+            includeMealNudge = userPreferencesRepository.pushNotificationTypes.mealLogging && !serverOwnsMeals,
         )
         reminderScheduler.schedule(schedule)
     }
@@ -63,10 +72,15 @@ class BuildAndScheduleRemindersUseCase(
     }
 }
 
+/** Reminders off: drops local reminders and this device's push registration. */
 class CancelRemindersUseCase(
     private val reminderScheduler: ReminderScheduler,
+    private val pushDeviceRepository: PushDeviceRepository,
 ) {
-    suspend operator fun invoke(): UseCaseState<Unit> = useCaseCatching { reminderScheduler.cancelAll() }
+    suspend operator fun invoke(): UseCaseState<Unit> = useCaseCatching {
+        reminderScheduler.cancelAll()
+        pushDeviceRepository.unregister()
+    }
 }
 
 /** Only stores the flag; follow with [BuildAndScheduleRemindersUseCase] or [CancelRemindersUseCase]. */

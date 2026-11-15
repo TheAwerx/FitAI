@@ -36,7 +36,8 @@ Rules live in `firestore.rules`; tests in `rules-tests/`.
 | `users/{uid}/workout_sessions/{sessionId}` | client | owner, functions |
 | `users/{uid}/meal_logs/{mealId}` | client | owner, functions |
 | `users/{uid}/measurements/{measurementId}` | client | owner, functions |
-| `users/{uid}/devices/{installationId}` | client, *reserved* | owner, functions |
+| `users/{uid}/devices/{installationId}` | client | owner, functions |
+| `notification_state/{uid}` | functions only | nobody (server only) |
 | `plan_quotas/{uid}` | functions only, *reserved* | owner (read-only) |
 | `device_trials/{deviceKey}` | functions only, *reserved* | nobody (server only) |
 | `guest_trials/{uid}` | functions only | owner (read-only) |
@@ -72,6 +73,7 @@ after any synced preference changes (debounced).
 | `attributionSource` | `tiktok` \| `instagram` \| `youtube` \| `friend` \| `gym` \| `search` \| `other` \| null | Onboarding → Kaynak | |
 | `commitmentConfirmedAt` | ISO string \| null | Onboarding → parmak izi taahhüdü | |
 | `notificationsEnabled` | bool | Onboarding → bildirim izni, Settings | |
+| `notificationTypes` | map of exactly `workoutLate`, `mealLogging`, `streakRisk`, `comeback` (bool) | Settings → Akıllı bildirimler | server push types, all `true` by default; see "Push notifications" |
 | `reminderHour` | int 0..23 | Settings | local time |
 | `reminderMinute` | int 0..59 | Settings | local time |
 | `language` | `tr` \| `en` | app language at write time | for server-sent text |
@@ -162,17 +164,29 @@ Written on add or edit, deleted on delete.
 | `measuredAt` | ISO string | |
 | `localDate` | `yyyy-MM-dd` | |
 
-### Reserved for the next features (rules ready, nothing writes yet)
+### `users/{uid}/devices/{installationId}`
 
-**`users/{uid}/devices/{installationId}`**, for push. Owner can write:
-`platform` (`android` \| `ios`), `fcmToken` (string ≤ 4096), `language` (`tr` \| `en`),
-`timeZone` (string ≤ 64), `appVersion` (string ≤ 32), `updatedAt` (ISO string). The
-reminder function would read today's `workout_sessions` / `meal_logs` by `localDate`
-and send to these tokens. Per-user queries such as
-`users/{uid}/meal_logs where localDate == today` use the automatic single-field index. A
-`collectionGroup('workout_sessions')` query across users needs a collection-group index
-in a new `firestore.indexes.json`. Functions must not add fields to `users/{uid}` itself:
-the client overwrites that document and the rules allow only the keys listed above.
+One per app installation that should get server pushes. `installationId` is a random
+32-hex id kept in the app's settings (new after sign-out). Written by
+`SyncPushRegistrationUseCase` on launch, sign-in, token change and when reminders are
+turned on (skipped when nothing changed in the last 7 days); deleted when reminders are
+turned off and before sign-out. Functions delete it when FCM reports the token dead.
+
+| Field | Type | Notes |
+|---|---|---|
+| `schemaVersion` | int | `1` |
+| `platform` | `android` \| `ios` | |
+| `fcmToken` | string 1..4096 | FCM registration token |
+| `language` | `tr` \| `en` | app language at write time |
+| `timeZone` | string 1..64 | device IANA zone |
+| `appVersion` | string ≤ 32 | e.g. `1.0.0-dev` |
+| `updatedAt` | ISO string | |
+
+Functions must not add fields to `users/{uid}` itself: the client overwrites that
+document and the rules allow only the keys listed above. Server state lives in
+`notification_state/{uid}` instead.
+
+### Reserved for the next features (rules ready, nothing writes yet)
 
 **`plan_quotas/{uid}`**, the plan-generation counter. Owner can read; only functions
 write. Suggested fields: `workoutPlansGenerated` (int), `dietPlansGenerated` (int),
@@ -190,6 +204,8 @@ write. Suggested fields: `workoutPlansGenerated` (int), `dietPlansGenerated` (in
 
 **`aiUsage/{uid}/days/{yyyy-mm-dd}`**: one counter per AI function, `updatedAt`, and
 `expiresAt` (TTL). Admin SDK only.
+
+**`notification_state/{uid}`**: push scheduling state, see below. Admin SDK only.
 
 ### Legacy
 
@@ -213,3 +229,71 @@ once these rules are deployed, so deploy the rules together with the new client.
 
 After sign-in each local write queues the matching document write. Writes go out in
 order, and the Firestore SDK holds them while the device is offline.
+
+## Push notifications
+
+Server-sent "smart" nudges: `functions/src/notifications/*`, exported from `index.ts`.
+Tests: `functions/test/rules.test.mjs` (decision logic) and
+`functions/test/emulator/sweep.emulator.test.mjs` (Firestore emulator, stubbed FCM).
+
+### How it runs
+
+- **`notification_state/{uid}`** (server only) holds what the decision needs, so the
+  sweep reads one document per due account: copies of the `users/{uid}` settings
+  (`enabled`, `types`, `language`, `timeZone`, `reminderHour/Minute`, `daysPerWeek`,
+  `createdDate`), the active program's `planTrainingDays`, `deviceCount`, an activity
+  summary (`activeDates` — last 60 local days with a completed session or a meal,
+  `lastWorkoutDate`, `lastMealDate`, `lastMealAt`), the sent log (`sentDate`,
+  `sentKinds`, `lastSentAt`, comeback counter) and **`nextCheckAt`** (Timestamp or null).
+- **Triggers** keep it current: `users/{uid}` (settings), `devices/*` (count),
+  `workout_plans/*` (active program days), `workout_sessions/*` (a session became
+  completed → today is done), `meal_logs/*` created. The first trigger for an account
+  builds the state from the existing documents (one-time read of the last 60 days).
+  All trigger bodies are idempotent; every change recomputes `nextCheckAt`.
+- **`notificationSweep`** runs every 15 minutes and queries only
+  `notification_state where nextCheckAt <= now` (automatic single-field index, paged).
+  No user scan and no time-zone buckets: `nextCheckAt` is the next window start in the
+  user's own zone, so DST and travel are handled by recomputing it. Accounts with
+  notifications off, no device, or nothing left to send have `nextCheckAt = null`.
+- Per due account: evaluate on the state → if a nudge would go out, read today's
+  `workout_sessions` / `meal_logs` (`localDate == today`) to confirm → transaction:
+  re-evaluate on the fresh state, append to the sent log, store the next check → send to
+  every device token → delete devices whose token FCM reports as not registered.
+  At most once per kind per local day even if two runs overlap.
+
+### Nudges (local time of `users/{uid}.timeZone`)
+
+| Kind (`type`) | Switch | Window | Sent when | Opens (`link`) |
+|---|---|---|---|---|
+| `workout_late` | `workoutLate` | reminder time + 90 min, for 2 h (clamped to 08:00–22:00) | training day (active program days, else the `daysPerWeek` spread), no completed session today, no session started in the last 3 h | `workout` |
+| `meal_morning` | `mealLogging` | 11:00–12:00 | no meal logged today | `meal_log` |
+| `meal_afternoon` | `mealLogging` | 15:30–16:30 | nothing logged since 11:00 | `meal_log` |
+| `meal_evening` | `mealLogging` | 20:30–21:30 | nothing logged since 17:00 | `meal_log` |
+| `streak_risk` | `streakRisk` | 20:00–21:30 | today is a required day, nothing done today, streak ≥ 3 days and this week's freeze is already used (same rules as `Streaks.kt`) | `home` |
+| `comeback` | `comeback` | 18:00–19:30 | lapsed (below); first after ≥ 2 missed training days and ≥ 3 days, second after ≥ 7 days and ≥ 4 days after the first, then nothing until new activity | `workout` |
+
+Limits: `notificationsEnabled` must be true and a device registered; quiet hours
+22:00–08:00; at most 2 server pushes a day, at most 1 meal nudge a day, 90 minutes
+between pushes; `streak_risk` replaces `workout_late` and `meal_evening` that day;
+nothing on the sign-up day, no meal nudges on day 1 (the local "snap your lunch" fires),
+no comeback in the first week. **Lapsed** users (no activity today, ≥ 2 planned training
+days missed and ≥ 3 days since the last active day) get only comeback nudges.
+Copy is in Turkish and English by `language` (`functions/src/notifications/copy.ts`).
+Tuning: `functions/src/notifications/config.ts`.
+
+Payload: `notification` (title, body) + `data` `{ type, link, localDate, source: "fitai_push" }`.
+Android uses channel `fitai_smart_nudges` and click action
+`com.fitai.app.action.OPEN_LINK`; APNs gets a collapse id per kind and a TTL to the
+window end (max 2 h).
+
+### Local reminders vs. server pushes
+
+The app keeps scheduling its local reminders (they work offline and fire at exact times):
+the daily workout reminder at the chosen time on training days, the D0–D7 onboarding
+sequence and the trial-end reminder. The server owns only the conditional nudges above.
+The one overlap is the meal reminder: while this device is registered for pushes
+(`PushRegistrationStatus.Registered`) the fixed local 12:30 meal reminder is left out
+and the server's "nothing logged" nudges replace it; without a registration (offline,
+no Firebase, signed out) the local one stays. The `mealLogging` switch turns both off.
+`workout_late` is a follow-up 90 minutes after the local workout reminder, never the
+same message twice.

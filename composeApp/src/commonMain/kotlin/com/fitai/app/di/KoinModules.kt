@@ -7,6 +7,7 @@ fun appModules() = listOf(
     databaseModule(),
     dataRepositoryModule(useRemotePlanGeneration),
     dataUseCaseModule,
+    pushNotificationModule,
     appModule,
     authDataModule,
     authPresentationModule,

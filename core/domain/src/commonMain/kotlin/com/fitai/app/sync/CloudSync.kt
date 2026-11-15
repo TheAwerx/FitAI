@@ -3,6 +3,7 @@ package com.fitai.app.sync
 import com.fitai.app.model.LocalUserProfile
 import com.fitai.app.model.OnboardingAnswers
 import com.fitai.app.model.encodeProfileCodes
+import com.fitai.app.notifications.PushNotificationTypes
 import com.fitai.app.preferences.UserPreferencesRepository
 import com.fitai.app.preferences.onboardingAnswers
 import com.fitai.app.util.appLocale
@@ -31,6 +32,8 @@ data class CloudUserSettings(
     val notificationsEnabled: Boolean,
     val reminderHour: Int,
     val reminderMinute: Int,
+    /** Smart notification switches; restored on a new device like the reminder time. */
+    val pushTypes: PushNotificationTypes = PushNotificationTypes(),
 )
 
 /** Rows copied from the cloud into the device by [UserDataSyncRepository.restoreAll]. */
@@ -67,6 +70,7 @@ fun UserPreferencesRepository.cloudSettings() = CloudUserSettings(
     notificationsEnabled = notificationsEnabled,
     reminderHour = reminderHour,
     reminderMinute = reminderMinute,
+    pushTypes = pushNotificationTypes,
 )
 
 /**
@@ -104,4 +108,5 @@ fun UserPreferencesRepository.applyCloudProfile(cloud: CloudUserProfile) {
     commitmentConfirmedAt = cloud.settings.commitmentConfirmedAt
     reminderHour = cloud.settings.reminderHour
     reminderMinute = cloud.settings.reminderMinute
+    pushNotificationTypes = cloud.settings.pushTypes
 }

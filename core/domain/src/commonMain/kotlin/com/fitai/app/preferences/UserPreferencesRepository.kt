@@ -1,6 +1,7 @@
 package com.fitai.app.preferences
 
 import com.fitai.app.model.OnboardingAnswers
+import com.fitai.app.notifications.PushNotificationTypes
 import com.fitai.app.model.SessionLength
 import com.fitai.app.model.decodeProfileCodes
 
@@ -12,6 +13,8 @@ interface UserPreferencesRepository {
     var reminderHour: Int
     var reminderMinute: Int
     var notificationsEnabled: Boolean
+    /** Settings → Smart notifications; follows the account (`users/{uid}.notificationTypes`). */
+    var pushNotificationTypes: PushNotificationTypes
     /** ISO week key, e.g. "2026-W45" (see `isoWeekKey`). */
     var streakFreezeUsedWeek: String?
     /** Codes from `Gender`, `TrainingExperience`, `TrainingObstacle`; [focusAreas] is comma-joined `FocusArea` codes. */

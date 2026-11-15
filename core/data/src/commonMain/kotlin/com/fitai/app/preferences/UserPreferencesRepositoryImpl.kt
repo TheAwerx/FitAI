@@ -1,5 +1,6 @@
 package com.fitai.app.preferences
 
+import com.fitai.app.notifications.PushNotificationTypes
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
 
@@ -30,6 +31,20 @@ class UserPreferencesRepositoryImpl(
     override var notificationsEnabled: Boolean
         get() = settings.getBoolean(KEY_NOTIFICATIONS_ENABLED, false)
         set(value) = settings.set(KEY_NOTIFICATIONS_ENABLED, value)
+
+    override var pushNotificationTypes: PushNotificationTypes
+        get() = PushNotificationTypes(
+            workoutLate = settings.getBoolean(KEY_PUSH_WORKOUT_LATE, true),
+            mealLogging = settings.getBoolean(KEY_PUSH_MEAL_LOGGING, true),
+            streakRisk = settings.getBoolean(KEY_PUSH_STREAK_RISK, true),
+            comeback = settings.getBoolean(KEY_PUSH_COMEBACK, true),
+        )
+        set(value) {
+            settings[KEY_PUSH_WORKOUT_LATE] = value.workoutLate
+            settings[KEY_PUSH_MEAL_LOGGING] = value.mealLogging
+            settings[KEY_PUSH_STREAK_RISK] = value.streakRisk
+            settings[KEY_PUSH_COMEBACK] = value.comeback
+        }
 
     override var streakFreezeUsedWeek: String?
         get() = settings.getStringOrNull(KEY_STREAK_FREEZE_WEEK)
@@ -75,6 +90,10 @@ class UserPreferencesRepositoryImpl(
         const val KEY_REMINDER_HOUR = "pref_reminder_hour"
         const val KEY_REMINDER_MINUTE = "pref_reminder_minute"
         const val KEY_NOTIFICATIONS_ENABLED = "pref_notifications_enabled"
+        const val KEY_PUSH_WORKOUT_LATE = "pref_push_workout_late"
+        const val KEY_PUSH_MEAL_LOGGING = "pref_push_meal_logging"
+        const val KEY_PUSH_STREAK_RISK = "pref_push_streak_risk"
+        const val KEY_PUSH_COMEBACK = "pref_push_comeback"
         const val KEY_STREAK_FREEZE_WEEK = "pref_streak_freeze_used_week"
         const val KEY_GENDER = "pref_gender"
         const val KEY_EXPERIENCE = "pref_training_experience"

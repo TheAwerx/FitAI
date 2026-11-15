@@ -191,6 +191,11 @@ fun SettingsScreen(
                         },
                     )
                 }
+                if (reminders.enabled) {
+                    SettingsSection(strings.pushSettingsSection) {
+                        SmartNotificationsSection(reminderTexts = reminderTexts, refreshKey = reminders)
+                    }
+                }
             }
             SettingsSection(strings.settingsLanguage) {
                 SupportedLanguages.forEach { code ->

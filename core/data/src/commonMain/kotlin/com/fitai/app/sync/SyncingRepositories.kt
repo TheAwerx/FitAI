@@ -9,6 +9,7 @@ import com.fitai.app.model.GeneratedWorkoutPlan
 import com.fitai.app.model.MealLog
 import com.fitai.app.model.WorkoutPlan
 import com.fitai.app.model.WorkoutSession
+import com.fitai.app.notifications.PushNotificationTypes
 import com.fitai.app.preferences.UserPreferencesRepository
 import com.fitai.app.repository.LocalUserRepository
 import com.fitai.app.repository.NutritionRepository
@@ -166,6 +167,10 @@ internal class SyncingUserPreferencesRepository(
     override var notificationsEnabled: Boolean
         get() = delegate.notificationsEnabled
         set(value) = update(delegate.notificationsEnabled, value) { delegate.notificationsEnabled = it }
+
+    override var pushNotificationTypes: PushNotificationTypes
+        get() = delegate.pushNotificationTypes
+        set(value) = update(delegate.pushNotificationTypes, value) { delegate.pushNotificationTypes = it }
 
     override var gender: String?
         get() = delegate.gender

@@ -3,6 +3,8 @@ package com.fitai.app.auth
 import com.fitai.app.domain.UseCaseState
 import com.fitai.app.domain.useCaseCatching
 import com.fitai.app.notifications.ReminderScheduler
+import com.fitai.app.notifications.SyncPushRegistrationUseCase
+import com.fitai.app.notifications.UnregisterPushDeviceUseCase
 import com.fitai.app.preferences.UserPreferencesRepository
 import com.fitai.app.repository.LocalUserRepository
 import com.fitai.app.session.LocalSessionRepository
@@ -40,8 +42,14 @@ class LinkSignedInAccountUseCase(
     private val localUserRepository: LocalUserRepository,
     private val userDataSyncRepository: UserDataSyncRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val syncPushRegistrationUseCase: SyncPushRegistrationUseCase,
 ) {
-    suspend operator fun invoke(): UseCaseState<SignInOutcome> = useCaseCatching {
+    suspend operator fun invoke(): UseCaseState<SignInOutcome> = useCaseCatching { link() }.also { result ->
+        // Server pushes follow the account: register this installation's token for it (best effort).
+        if (result is UseCaseState.Success) syncPushRegistrationUseCase()
+    }
+
+    private suspend fun link(): SignInOutcome {
         val account = authRepository.currentUserOrNull() ?: error("auth_session_missing")
         val uid = account.uid
         val local = localUserRepository.getLatestUser()
@@ -56,9 +64,9 @@ class LinkSignedInAccountUseCase(
             // Plans and history are best effort: sign-in must not fail on them, later writes sync one by one.
             if (sameAccount) userDataSyncRepository.restoreAll(uid, local.id, keepLocalPlans = true)
             userDataSyncRepository.pushAll(uid, local.id)
-            return@useCaseCatching SignInOutcome.LinkedLocalProfile
+            return SignInOutcome.LinkedLocalProfile
         }
-        val remote = profileSyncRepository.pullProfile(uid).getOrThrow() ?: return@useCaseCatching SignInOutcome.NoProfile
+        val remote = profileSyncRepository.pullProfile(uid).getOrThrow() ?: return SignInOutcome.NoProfile
         val restored = remote.profile
         val localId = restored.id.ifBlank { newLocalUserId() }
         val now = nowIsoTimestamp()
@@ -85,7 +93,7 @@ class LinkSignedInAccountUseCase(
             }
         }
         val summary = userDataSyncRepository.restoreAll(uid, localId, keepLocalPlans = false).getOrNull()
-        if (summary?.hasActivePlans == true) SignInOutcome.RestoredWithPlans else SignInOutcome.RestoredFromCloud
+        return if (summary?.hasActivePlans == true) SignInOutcome.RestoredWithPlans else SignInOutcome.RestoredFromCloud
     }
 
     private fun newLocalUserId(): String = (1..32).joinToString("") { Random.nextInt(0, 16).toString(16) }
@@ -188,8 +196,11 @@ class SignOutUseCase(
     private val localSessionRepository: LocalSessionRepository,
     private val reminderScheduler: ReminderScheduler,
     private val platformAuthSession: PlatformAuthSession,
+    private val unregisterPushDeviceUseCase: UnregisterPushDeviceUseCase,
 ) {
     suspend operator fun invoke(): UseCaseState<Unit> = useCaseCatching {
+        // While still signed in: the owner-only rules allow deleting the device document only now.
+        unregisterPushDeviceUseCase()
         authRepository.signOut()
         localSessionRepository.clear()
         reminderScheduler.cancelAll()

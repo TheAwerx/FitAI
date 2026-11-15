@@ -112,11 +112,16 @@ describe("users/{uid}", () => {
       { createdAt: "yesterday" },
       { schemaVersion: 0 },
       { isAdmin: true },
+      { notificationTypes: { workoutLate: true, mealLogging: true, streakRisk: true } },
+      { notificationTypes: { workoutLate: true, mealLogging: true, streakRisk: true, comeback: true, marketing: true } },
+      { notificationTypes: { workoutLate: "yes", mealLogging: true, streakRisk: true, comeback: true } },
+      { notificationTypes: true },
     ];
     for (const overrides of bad) {
       await failsFor(JSON.stringify(overrides), setDoc(doc(db, "users/alice"), userDoc(overrides)));
     }
     await assertFails(setDoc(doc(db, "users/alice"), omit(userDoc(), "obstacle")));
+    await assertFails(setDoc(doc(db, "users/alice"), omit(userDoc(), "notificationTypes")));
   });
 });
 
@@ -181,6 +186,10 @@ describe("users/{uid} subcollections", () => {
       ["users/alice/measurements/w1", measurementDoc("w1", { bodyFatPct: 95 })],
       ["users/alice/devices/install-1", deviceDoc({ platform: "web" })],
       ["users/alice/devices/install-1", deviceDoc({ fcmToken: "" })],
+      ["users/alice/devices/install-1", omit(deviceDoc(), "schemaVersion")],
+      ["users/alice/devices/install-1", deviceDoc({ language: "de" })],
+      ["users/alice/devices/install-1", deviceDoc({ appVersion: "x".repeat(33) })],
+      ["users/alice/devices/bad.id", deviceDoc()],
       ["users/alice/unknown/x", { a: 1 }],
     ];
     for (const [path, data] of cases) {
@@ -213,6 +222,15 @@ describe("server-only and reserved collections", () => {
     await assertFails(setDoc(doc(db, "device_trials/hash2"), { uids: ["alice"] }));
     await assertFails(getDoc(doc(db, "aiUsage/alice/days/2026-11-15")));
     await assertFails(setDoc(doc(db, "aiUsage/alice/days/2026-11-15"), { coachChat: 0 }));
+  });
+
+  it("notification_state (push schedule and sent log) is closed to clients", async () => {
+    await seed("notification_state/alice", { enabled: true, sentKinds: ["workout_late"], nextCheckAt: null });
+    const db = signedIn("alice");
+    await assertFails(getDoc(doc(db, "notification_state/alice")));
+    await assertFails(setDoc(doc(db, "notification_state/alice"), { sentKinds: [] }));
+    await assertFails(deleteDoc(doc(db, "notification_state/alice")));
+    await assertFails(getDocs(collection(db, "notification_state")));
   });
 
   it("legacy user_profiles is read-only for its owner", async () => {

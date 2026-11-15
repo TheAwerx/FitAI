@@ -1,5 +1,6 @@
 package com.fitai.app.notifications
 
+import com.fitai.app.ui.notifications.NotificationDeepLink
 import com.fitai.app.util.epochMillis
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.Foundation.NSCalendar
@@ -37,6 +38,8 @@ class IosReminderScheduler : ReminderScheduler {
         val body: String,
         val dateComponents: NSDateComponents,
         val repeats: Boolean,
+        /** Screen a tap opens (`userInfo["link"]`, read by the Swift notification delegate). */
+        val link: NotificationDeepLink? = null,
     )
 
     override suspend fun schedule(schedule: ReminderSchedule) {
@@ -50,6 +53,7 @@ class IosReminderScheduler : ReminderScheduler {
                     setTitle(pending.title)
                     setBody(pending.body)
                     setSound(UNNotificationSound.defaultSound)
+                    pending.link?.let { setUserInfo(mapOf<Any?, Any?>(NotificationDeepLink.EXTRA_KEY to it.code)) }
                 }
                 val trigger = UNCalendarNotificationTrigger.triggerWithDateMatchingComponents(
                     pending.dateComponents,
@@ -77,10 +81,10 @@ class IosReminderScheduler : ReminderScheduler {
 
     private fun buildPending(schedule: ReminderSchedule, now: Long): List<Pending> = buildList {
         schedule.workoutReminder?.let { w ->
-            addAll(repeating("$ID_PREFIX.workout", w.days, w.hour, w.minute, w.skipDates, w.title, w.body, now))
+            addAll(repeating("$ID_PREFIX.workout", w.days, w.hour, w.minute, w.skipDates, w.title, w.body, now, NotificationDeepLink.Workout))
         }
         schedule.mealNudge?.let { m ->
-            addAll(repeating("$ID_PREFIX.meal", null, m.hour, m.minute, m.skipDates, m.title, m.body, now))
+            addAll(repeating("$ID_PREFIX.meal", null, m.hour, m.minute, m.skipDates, m.title, m.body, now, NotificationDeepLink.MealLog))
         }
         schedule.onboardingSequence?.let { sequence ->
             sequence.items.forEachIndexed { index, item ->
@@ -102,6 +106,7 @@ class IosReminderScheduler : ReminderScheduler {
         title: String,
         body: String,
         now: Long,
+        link: NotificationDeepLink,
     ): List<Pending> {
         if (ReminderTimes.hasUpcomingSkip(now, skipDates)) {
             return ReminderTimes.occurrences(
@@ -112,25 +117,31 @@ class IosReminderScheduler : ReminderScheduler {
                 skipDates = skipDates,
                 limit = ONE_OFF_EXPANSION_LIMIT,
                 horizonDays = ONE_OFF_EXPANSION_DAYS,
-            ).map { at -> oneOff("$prefix.$at", at, title, body) }
+            ).map { at -> oneOff("$prefix.$at", at, title, body, link) }
         }
         val weekdays = days ?: run {
             val next = ReminderTimes.nextOccurrence(now, hour, minute, days = null) ?: return emptyList()
-            return listOf(Pending(next, "$prefix.daily", title, body, timeComponents(null, hour, minute), repeats = true))
+            return listOf(Pending(next, "$prefix.daily", title, body, timeComponents(null, hour, minute), repeats = true, link = link))
         }
         return weekdays.mapNotNull { isoDay ->
             val next = ReminderTimes.nextOccurrence(now, hour, minute, setOf(isoDay)) ?: return@mapNotNull null
-            Pending(next, "$prefix.$isoDay", title, body, timeComponents(isoDay, hour, minute), repeats = true)
+            Pending(next, "$prefix.$isoDay", title, body, timeComponents(isoDay, hour, minute), repeats = true, link = link)
         }
     }
 
-    private fun oneOff(identifier: String, atMillis: Long, title: String, body: String): Pending {
+    private fun oneOff(
+        identifier: String,
+        atMillis: Long,
+        title: String,
+        body: String,
+        link: NotificationDeepLink? = null,
+    ): Pending {
         val date = NSDate.dateWithTimeIntervalSince1970(atMillis / 1000.0)
         val components = NSCalendar.currentCalendar.components(
             NSCalendarUnitYear or NSCalendarUnitMonth or NSCalendarUnitDay or NSCalendarUnitHour or NSCalendarUnitMinute,
             fromDate = date,
         )
-        return Pending(atMillis, identifier, title, body, components, repeats = false)
+        return Pending(atMillis, identifier, title, body, components, repeats = false, link = link)
     }
 
     private fun timeComponents(isoDay: Int?, hour: Int, minute: Int): NSDateComponents =

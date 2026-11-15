@@ -1,0 +1,4 @@
+<resources>
+    <!-- FitAIColors.Primary; accent of system-shown push notifications. -->
+    <color name="fitai_accent">#46F1C5</color>
+</resources>

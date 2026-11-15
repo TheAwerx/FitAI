@@ -426,6 +426,19 @@ interface Strings {
     val notificationsDay7Body: String
     val notificationsTrialEndTitle: String
     val notificationsTrialEndBody: String
+    // region:push:interface
+    val pushSettingsSection: String
+    val pushSettingsHint: String
+    val pushSettingsNotRegistered: String
+    val pushTypeWorkoutLateTitle: String
+    val pushTypeWorkoutLateBody: String
+    val pushTypeMealTitle: String
+    val pushTypeMealBody: String
+    val pushTypeStreakTitle: String
+    val pushTypeStreakBody: String
+    val pushTypeComebackTitle: String
+    val pushTypeComebackBody: String
+    val pushChannelSmart: String
     // region:funnel:interface
     val languageCode: String
     fun languageName(code: String): String
@@ -1105,6 +1118,19 @@ object StringsTr : Strings {
     override val notificationsDay7Body = "İlk haftan nasıl geçti? Raporuna göz at."
     override val notificationsTrialEndTitle = "Denemen yarın bitiyor"
     override val notificationsTrialEndBody = "Pro özellikler 24 saat sonra kapanır. Devam etmek için planını seç."
+    // region:push:tr
+    override val pushSettingsSection = "Akıllı bildirimler"
+    override val pushSettingsHint = "Yalnızca gerektiğinde gelir: günde en fazla 2 bildirim, 22:00–08:00 arası sessiz."
+    override val pushSettingsNotRegistered = "Bu cihaz henüz akıllı bildirimlere kayıtlı değil. İnternete bağlanınca otomatik kaydolur."
+    override val pushTypeWorkoutLateTitle = "Antrenman gecikince"
+    override val pushTypeWorkoutLateBody = "Hatırlatma saatinden 1,5 saat sonra hâlâ başlamadıysan kısa bir not."
+    override val pushTypeMealTitle = "Öğün kaydı"
+    override val pushTypeMealBody = "Öğün saatlerinde bir şey kaydetmediysen nazik bir hatırlatma."
+    override val pushTypeStreakTitle = "Seri uyarısı"
+    override val pushTypeStreakBody = "Serin bugün bitecekse akşam haber veririm."
+    override val pushTypeComebackTitle = "Geri dönüş"
+    override val pushTypeComebackBody = "Birkaç gün ara verirsen en fazla iki kez hatırlatırım."
+    override val pushChannelSmart = "Akıllı hatırlatmalar"
     // region:funnel:tr
     override val languageCode = "tr"
     override fun languageName(code: String) = funnelLanguageName(code)
@@ -1865,6 +1891,19 @@ object StringsEn : Strings {
     override val notificationsDay7Body = "See how your first week went."
     override val notificationsTrialEndTitle = "Your trial ends tomorrow"
     override val notificationsTrialEndBody = "Pro features end in 24 hours. Pick a plan to keep them."
+    // region:push:en
+    override val pushSettingsSection = "Smart notifications"
+    override val pushSettingsHint = "Only when they help: at most 2 a day, quiet from 22:00 to 08:00."
+    override val pushSettingsNotRegistered = "This device isn't registered for smart notifications yet. It registers once you're online."
+    override val pushTypeWorkoutLateTitle = "Late workout"
+    override val pushTypeWorkoutLateBody = "A short note if you haven't started 90 minutes after your reminder."
+    override val pushTypeMealTitle = "Meal logging"
+    override val pushTypeMealBody = "A gentle reminder when nothing was logged around a mealtime."
+    override val pushTypeStreakTitle = "Streak alert"
+    override val pushTypeStreakBody = "An evening heads-up when today would end your streak."
+    override val pushTypeComebackTitle = "Comeback"
+    override val pushTypeComebackBody = "After a few days off, at most two reminders."
+    override val pushChannelSmart = "Smart nudges"
     // region:funnel:en
     override val languageCode = "en"
     override fun languageName(code: String) = funnelLanguageName(code)

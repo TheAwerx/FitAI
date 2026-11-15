@@ -20,6 +20,8 @@ import com.fitai.app.model.TrainingObstacle
 import com.fitai.app.model.WorkoutPlan
 import com.fitai.app.model.WorkoutSession
 import com.fitai.app.model.decodeProfileCodes
+import com.fitai.app.notifications.PushDevice
+import com.fitai.app.notifications.PushNotificationTypes
 import com.fitai.app.model.encodeProfileCodes
 import com.fitai.app.preferences.AttributionSources
 import kotlinx.datetime.TimeZone
@@ -48,6 +50,8 @@ internal object CloudLimits {
     const val TITLE = 200
     const val TEXT = 2000
     const val MEAL_NAME = 200
+    const val FCM_TOKEN = 4096
+    const val APP_VERSION = 32
     const val PLAN_EXERCISES = 150
     const val SESSION_EXERCISES = 40
     val AGE = 10L..120L
@@ -84,6 +88,7 @@ internal fun CloudUserProfile.toDocument(updatedAt: String): UserDocument = User
     attributionSource = settings.attributionSource?.takeIf { it in AttributionSources.all },
     commitmentConfirmedAt = settings.commitmentConfirmedAt?.takeIf(::isIsoInstant),
     notificationsEnabled = settings.notificationsEnabled,
+    notificationTypes = settings.pushTypes.toDocument(),
     reminderHour = settings.reminderHour.coerceIn(0, 23),
     reminderMinute = settings.reminderMinute.coerceIn(0, 59),
     language = if (language == "en") "en" else "tr",
@@ -130,9 +135,25 @@ internal fun UserDocument.toCloudProfile(): CloudUserProfile = CloudUserProfile(
         notificationsEnabled = notificationsEnabled,
         reminderHour = reminderHour,
         reminderMinute = reminderMinute,
+        pushTypes = notificationTypes.toDomain(),
     ),
     language = language,
     timeZone = timeZone,
+)
+
+internal fun PushNotificationTypes.toDocument() = NotificationTypesDocument(workoutLate, mealLogging, streakRisk, comeback)
+
+internal fun NotificationTypesDocument.toDomain() = PushNotificationTypes(workoutLate, mealLogging, streakRisk, comeback)
+
+// users/{uid}/devices
+
+internal fun PushDevice.toDocument(updatedAt: String) = DeviceDocument(
+    platform = if (platform == "ios") "ios" else "android",
+    fcmToken = token.take(CloudLimits.FCM_TOKEN),
+    language = if (language == "en") "en" else "tr",
+    timeZone = timeZone.take(CloudLimits.TIME_ZONE).ifBlank { "UTC" },
+    appVersion = appVersion.take(CloudLimits.APP_VERSION),
+    updatedAt = updatedAt,
 )
 
 internal fun LegacyUserProfileDocument.toCloudProfile(): CloudUserProfile = CloudUserProfile(
