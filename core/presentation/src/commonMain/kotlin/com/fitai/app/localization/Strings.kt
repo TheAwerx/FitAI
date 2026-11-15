@@ -184,6 +184,7 @@ interface Strings {
     fun quotaRemaining(remaining: Int, total: Int): String
     val quotaExhausted: String
     // region:workout:interface
+    val workoutRestDayHint: String
     fun workoutSuggestedWeight(weight: String, reps: Int): String
     fun workoutSuggestedReps(reps: Int): String
     val workoutReasonIncreaseWeight: String
@@ -918,6 +919,7 @@ object StringsTr : Strings {
     override fun quotaRemaining(remaining: Int, total: Int) = "Bu dönem $remaining/$total hak kaldı"
     override val quotaExhausted = "Ücretsiz hakkın doldu. Sınırsız kullanım için Pro'ya geç."
     // region:workout:tr
+    override val workoutRestDayHint = "Bu gün planında dinlenme günü. Başka bir gün seç ya da Bugün Modu ile kısa bir seans kur."
     override fun workoutSuggestedWeight(weight: String, reps: Int) = "Önerilen: ${weight.replace('.', ',')} kg × $reps"
     override fun workoutSuggestedReps(reps: Int) = "Önerilen: $reps tekrar"
     override val workoutReasonIncreaseWeight = "Geçen sefer tüm setlerde üst sınıra ulaştın"
@@ -1828,6 +1830,7 @@ object StringsEn : Strings {
     override fun quotaRemaining(remaining: Int, total: Int) = "$remaining/$total left this period"
     override val quotaExhausted = "You've used your free uses. Upgrade to Pro for unlimited access."
     // region:workout:en
+    override val workoutRestDayHint = "This is a rest day in your plan. Pick another day, or use Today Mode for a short session."
     override fun workoutSuggestedWeight(weight: String, reps: Int) = "Suggested: $weight kg × $reps"
     override fun workoutSuggestedReps(reps: Int) = "Suggested: $reps reps"
     override val workoutReasonIncreaseWeight = "You hit the top of the range on every set last time"

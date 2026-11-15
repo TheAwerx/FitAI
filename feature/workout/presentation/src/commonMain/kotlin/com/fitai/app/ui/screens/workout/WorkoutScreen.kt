@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -18,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.fitai.app.access.PlanQuota
@@ -84,24 +88,39 @@ fun WorkoutScreen(
                 title = plan.title,
                 subtitle = plan.description,
                 isActive = true,
-                activeLabel = plan.title,
+                activeLabel = strings.workoutActivePlan,
             )
             RegeneratePlanSection(
                 quota = state.planQuota,
                 generating = state.generating,
                 onRegenerate = { viewModel.onIntent(WorkoutIntent.RegeneratePlan) },
             )
+            // Today (e.g. Sunday) can sit past the right edge; keep the selected chip on screen.
+            val selectedChip = remember { BringIntoViewRequester() }
+            LaunchedEffect(state.selectedDay) {
+                withFrameNanos { }
+                selectedChip.bringIntoView()
+            }
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(FitAISpacing.xs),
             ) {
                 (1..7).forEach { day ->
+                    val selected = state.selectedDay == day
                     FilterChip(
-                        selected = state.selectedDay == day,
+                        selected = selected,
                         onClick = { viewModel.onIntent(WorkoutIntent.SelectDay(day)) },
                         label = { Text(strings.weekdayShort(day), maxLines = 1) },
+                        modifier = if (selected) Modifier.bringIntoViewRequester(selectedChip) else Modifier,
                     )
                 }
+            }
+            if (state.dayExercises.isEmpty()) {
+                Text(
+                    text = strings.workoutRestDayHint,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = FitAIColors.OnSurfaceMuted,
+                )
             }
             state.dayExercises.forEach { exercise ->
                 Column(
