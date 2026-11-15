@@ -1,5 +1,6 @@
 package com.fitai.app.billing
 
+import com.fitai.app.util.AppLanguage
 import com.fitai.app.util.deviceLanguageCode
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
@@ -15,7 +16,8 @@ class MockBillingRepository(
 ) : BillingRepository {
 
     override suspend fun getProducts(): Result<List<SubscriptionProduct>> = runCatching {
-        val turkish = deviceLanguageCode() == "tr"
+        // The labels carry "/yıl", "/ay": follow the language picked in the app, not only the device.
+        val turkish = (AppLanguage.override ?: deviceLanguageCode()) == "tr"
         listOf(
             SubscriptionProduct(
                 id = PRODUCT_YEARLY,
