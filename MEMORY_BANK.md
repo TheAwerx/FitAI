@@ -4,6 +4,20 @@ Bu dosya (Memory Bank), proje üzerinde çalışan tüm yapay zeka ajanlarının
 
 ## 📝 Son Değişiklikler (Recent Changes)
 
+## 2026-11-15 — Firestore şeması özelleşti, planlar tüm onboarding cevaplarından
+- Şema `firebase/SCHEMA.md`: `users/{uid}` (profil + tüm onboarding cevapları, dil, saat dilimi) ve alt koleksiyonlar `workout_plans`, `diet_plans`, `workout_sessions`, `meal_logs`, `measurements` (`localDate` ile); ayrılmış `devices`, `device_trials`. Eski `user_profiles` salt okunur, girişte `users/{uid}`'ye taşınır
+- `firestore.rules`: catch-all yok; anonim olmayan sahip, alan/kod/aralık doğrulaması (`hasExactly` — istemciye yeni alan eklenirse kural, `SCHEMA.md`, `FirestoreMappersTest` ve `firebase/rules-tests` birlikte güncellenmeli). Kural testleri emülatörde (JDK 21 gerekir, Android Studio JBR)
+- Senkron: SQLDelight kaynak; girişte tam yükleme veya geri yükleme (`UserDataSyncRepository`, `RestoredWithPlans` → Main), sonra `CloudSyncScheduler` + repository dekoratörleri her yazımı sırayla Firestore'a yansıtır
+- Plan: `UserProfilePayload` engel/odak/`locale` aldı; `functions/src/plans.ts` prompt'ları tüm cevapları kullanır, diyet Mifflin referansının ±%20'si; `StarterPlans`/Mock da engel, odak, vegan protein ve cinsiyet tabanını uygular
+- Kurallar yeni istemciyle birlikte deploy edilmeli (eski build'ler `user_profiles`'a yazar). Deploy yapılmadı
+
+## 2026-11-15 — Antrenman planı yenileme hakkı (3) ve üretim animasyonu
+- "Planı yenile" hesap başına 3 hak (`PlanQuotaPolicy.LIMIT`, opsiyonel sıfırlama; sunucu `PLAN_QUOTA`). Plan kurulumundaki ilk plan ücretsiz (`planPurpose=initial`), hak yalnız başarılı üretimde düşer; Ayarlar'daki "Planı yeniden üret" aynı hakkı kullanır
+- Sunucu: `generateWorkoutPlan` → `withPlanQuota` (`planQuota.ts`), sayaç `plan_quotas/{uid}` (yalnız Admin SDK yazar, sahibi okur), transaction + kilit, bitince `plan_quota_exhausted`. İstek artık `{ profile, planPurpose }`. Deploy yapılmadı
+- İstemci: dev'de ayarlarda yerel sayaç, prod'da Firestore (çevrimdışı yerel kopya). Antrenman sekmesinde "2/3 hak kaldı" çipi, onay diyaloğu, 0'da pasif buton
+- `PlanGenerationOverlay`: kas grubu kartları karılıp Pzt–Paz ızgarasına dağılıyor, 3 adım, en az 4,5 sn, azaltılmış harekette statik
+- `assembleDevDebug/ProdDebug`, domain+data testleri, functions build, iOS link, kural testleri (14/14) başarılı; emülatörde 3→0 hak ve animasyon doğrulandı
+
 ## 2026-11-15 — Eksik AI callable'ları deploy edildi
 - `suggestNextMeal`, `adaptTodaySession`, `coachChat`, `weeklyCoachReport` → `fitai-1e8a4` / `us-central1`, Node.js 24
 - Node.js 20 decommission (2026-10-30) yüzünden `functions/package.json` `engines.node` 24 oldu
