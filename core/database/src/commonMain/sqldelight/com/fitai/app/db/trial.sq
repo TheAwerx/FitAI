@@ -1,0 +1,25 @@
+CREATE TABLE guest_trials (
+    user_id TEXT NOT NULL PRIMARY KEY,
+    trial_started_at TEXT NOT NULL,
+    trial_expires_at TEXT NOT NULL,
+    has_subscription INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+selectGuestTrial:
+SELECT * FROM guest_trials WHERE user_id = ?;
+
+insertGuestTrial:
+INSERT INTO guest_trials (user_id, trial_started_at, trial_expires_at, has_subscription)
+VALUES (?, ?, ?, ?);
+
+updateGuestTrial:
+UPDATE guest_trials
+SET trial_started_at = ?, trial_expires_at = ?, has_subscription = ?
+WHERE user_id = ?;
+
+updateGuestTrialSubscription:
+UPDATE guest_trials SET has_subscription = ? WHERE user_id = ?;
+
+deleteGuestTrial:
+DELETE FROM guest_trials WHERE user_id = ?;

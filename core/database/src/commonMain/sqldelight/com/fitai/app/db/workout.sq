@@ -1,0 +1,207 @@
+CREATE TABLE workout_plans (
+    id TEXT NOT NULL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    days_per_week INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE exercises (
+    id TEXT NOT NULL PRIMARY KEY,
+    plan_id TEXT NOT NULL,
+    day_of_week INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    sets INTEGER NOT NULL,
+    reps TEXT NOT NULL,
+    rest_seconds INTEGER NOT NULL,
+    muscle_group TEXT NOT NULL,
+    notes TEXT,
+    FOREIGN KEY (plan_id) REFERENCES workout_plans(id)
+);
+
+CREATE TABLE workout_sessions (
+    id TEXT NOT NULL PRIMARY KEY,
+    plan_id TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    completed_at TEXT,
+    duration_minutes INTEGER,
+    notes TEXT,
+    FOREIGN KEY (plan_id) REFERENCES workout_plans(id)
+);
+
+CREATE TABLE session_exercises (
+    id TEXT NOT NULL PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    exercise_id TEXT NOT NULL,
+    order_index INTEGER NOT NULL,
+    FOREIGN KEY (session_id) REFERENCES workout_sessions(id),
+    FOREIGN KEY (exercise_id) REFERENCES exercises(id)
+);
+
+CREATE TABLE session_sets (
+    id TEXT NOT NULL PRIMARY KEY,
+    session_exercise_id TEXT NOT NULL,
+    set_number INTEGER NOT NULL,
+    target_reps TEXT NOT NULL,
+    actual_reps TEXT,
+    weight_kg REAL,
+    completed INTEGER NOT NULL DEFAULT 0,
+    completed_at TEXT,
+    FOREIGN KEY (session_exercise_id) REFERENCES session_exercises(id)
+);
+
+selectAllPlans:
+SELECT * FROM workout_plans;
+
+selectPlansForUser:
+SELECT * FROM workout_plans WHERE user_id = ? ORDER BY created_at DESC;
+
+selectActivePlan:
+SELECT * FROM workout_plans WHERE user_id = ? AND is_active = 1 LIMIT 1;
+
+selectPlanById:
+SELECT * FROM workout_plans WHERE id = ?;
+
+-- Archived exercises (see archiveExercise) have day_of_week <= 0 and are excluded.
+selectExercisesForPlan:
+SELECT * FROM exercises WHERE plan_id = ? AND day_of_week > 0 ORDER BY day_of_week, name;
+
+selectExercisesForPlanDay:
+SELECT * FROM exercises WHERE plan_id = ? AND day_of_week = ? ORDER BY name;
+
+selectExerciseById:
+SELECT * FROM exercises WHERE id = ?;
+
+insertPlan:
+INSERT INTO workout_plans (id, user_id, title, description, days_per_week, created_at, is_active)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+deactivatePlansForUser:
+UPDATE workout_plans SET is_active = 0 WHERE user_id = ?;
+
+insertExercise:
+INSERT INTO exercises (id, plan_id, day_of_week, name, sets, reps, rest_seconds, muscle_group, notes)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteExercisesForPlan:
+DELETE FROM exercises WHERE plan_id = ?;
+
+insertSession:
+INSERT INTO workout_sessions (id, plan_id, started_at, completed_at, duration_minutes, notes)
+VALUES (?, ?, ?, ?, ?, ?);
+
+updateSessionComplete:
+UPDATE workout_sessions
+SET completed_at = ?, duration_minutes = ?, notes = ?
+WHERE id = ?;
+
+selectSessionById:
+SELECT * FROM workout_sessions WHERE id = ?;
+
+selectSessionsForPlan:
+SELECT * FROM workout_sessions WHERE plan_id = ? ORDER BY started_at DESC;
+
+insertSessionExercise:
+INSERT INTO session_exercises (id, session_id, exercise_id, order_index)
+VALUES (?, ?, ?, ?);
+
+selectSessionExercises:
+SELECT * FROM session_exercises WHERE session_id = ? ORDER BY order_index;
+
+insertSessionSet:
+INSERT INTO session_sets (id, session_exercise_id, set_number, target_reps, actual_reps, weight_kg, completed, completed_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+selectSessionSets:
+SELECT * FROM session_sets WHERE session_exercise_id = ? ORDER BY set_number;
+
+updateSessionSet:
+UPDATE session_sets
+SET actual_reps = ?, weight_kg = ?, completed = ?, completed_at = ?
+WHERE id = ?;
+
+selectSessionsForUser:
+SELECT workout_sessions.*
+FROM workout_sessions
+INNER JOIN workout_plans ON workout_sessions.plan_id = workout_plans.id
+WHERE workout_plans.user_id = ?
+ORDER BY workout_sessions.started_at DESC;
+
+selectLatestSessionForUser:
+SELECT workout_sessions.*
+FROM workout_sessions
+INNER JOIN workout_plans ON workout_sessions.plan_id = workout_plans.id
+WHERE workout_plans.user_id = ?
+ORDER BY workout_sessions.started_at DESC
+LIMIT 1;
+
+selectCompletedSessionsForUserInRange:
+SELECT workout_sessions.*
+FROM workout_sessions
+INNER JOIN workout_plans ON workout_sessions.plan_id = workout_plans.id
+WHERE workout_plans.user_id = ?
+    AND workout_sessions.completed_at IS NOT NULL
+    AND workout_sessions.started_at >= ?
+    AND workout_sessions.started_at < ?
+ORDER BY workout_sessions.started_at DESC;
+
+selectCompletedVolumeForUserInRange:
+SELECT CAST(COALESCE(SUM(
+    COALESCE(session_sets.weight_kg, 0) *
+    CAST(COALESCE(session_sets.actual_reps, session_sets.target_reps) AS REAL)
+), 0) AS REAL) AS volume_kg
+FROM session_sets
+INNER JOIN session_exercises ON session_sets.session_exercise_id = session_exercises.id
+INNER JOIN workout_sessions ON session_exercises.session_id = workout_sessions.id
+INNER JOIN workout_plans ON workout_sessions.plan_id = workout_plans.id
+WHERE workout_plans.user_id = ?
+    AND session_sets.completed = 1
+    AND workout_sessions.started_at >= ?
+    AND workout_sessions.started_at < ?;
+
+selectCompletedSetHistoryForUser:
+SELECT
+    session_sets.set_number,
+    session_sets.target_reps,
+    session_sets.actual_reps,
+    session_sets.weight_kg,
+    session_sets.completed_at,
+    session_exercises.id AS session_exercise_id,
+    workout_sessions.id AS session_id,
+    workout_sessions.started_at,
+    exercises.name AS exercise_name,
+    exercises.muscle_group
+FROM session_sets
+INNER JOIN session_exercises ON session_sets.session_exercise_id = session_exercises.id
+INNER JOIN workout_sessions ON session_exercises.session_id = workout_sessions.id
+INNER JOIN workout_plans ON workout_sessions.plan_id = workout_plans.id
+INNER JOIN exercises ON session_exercises.exercise_id = exercises.id
+WHERE workout_plans.user_id = ?
+    AND session_sets.completed = 1
+ORDER BY workout_sessions.started_at DESC, session_sets.set_number;
+
+updateExerciseNameAndNotes:
+UPDATE exercises SET name = ?, notes = ? WHERE id = ?;
+
+countSessionReferencesForExercise:
+SELECT COUNT(*) FROM session_exercises WHERE exercise_id = ?;
+
+-- Keeps the row for session history but hides it from every plan-day query.
+archiveExercise:
+UPDATE exercises SET day_of_week = -ABS(day_of_week) WHERE id = ?;
+
+updateSessionExerciseExercise:
+UPDATE session_exercises SET exercise_id = ? WHERE id = ?;
+
+CREATE INDEX idx_workout_plans_user_active ON workout_plans(user_id, is_active);
+
+CREATE INDEX idx_exercises_plan_day ON exercises(plan_id, day_of_week);
+
+CREATE INDEX idx_workout_sessions_plan_started ON workout_sessions(plan_id, started_at DESC);
+
+CREATE INDEX idx_session_exercises_session ON session_exercises(session_id, order_index);
+
+CREATE INDEX idx_session_sets_exercise ON session_sets(session_exercise_id, set_number);

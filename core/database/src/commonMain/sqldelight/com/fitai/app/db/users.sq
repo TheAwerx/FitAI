@@ -1,0 +1,70 @@
+CREATE TABLE users (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    age INTEGER NOT NULL,
+    height_cm REAL NOT NULL,
+    weight_kg REAL NOT NULL,
+    goal TEXT NOT NULL,
+    activity_level TEXT NOT NULL,
+    equipment TEXT NOT NULL,
+    diet_restrictions TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    firebase_uid TEXT,
+    updated_at TEXT NOT NULL
+);
+
+selectAll:
+SELECT * FROM users;
+
+selectById:
+SELECT * FROM users WHERE id = ?;
+
+selectLatestUser:
+SELECT * FROM users ORDER BY created_at DESC LIMIT 1;
+
+insertUser:
+INSERT INTO users (
+    id,
+    name,
+    email,
+    age,
+    height_cm,
+    weight_kg,
+    goal,
+    activity_level,
+    equipment,
+    diet_restrictions,
+    created_at,
+    firebase_uid,
+    updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateUserProfile:
+UPDATE users
+SET
+    name = ?,
+    email = ?,
+    age = ?,
+    height_cm = ?,
+    weight_kg = ?,
+    goal = ?,
+    activity_level = ?,
+    equipment = ?,
+    diet_restrictions = ?,
+    updated_at = ?
+WHERE id = ?;
+
+updateFirebaseUid:
+UPDATE users
+SET firebase_uid = ?, updated_at = ?
+WHERE id = ?;
+
+selectByFirebaseUid:
+SELECT * FROM users WHERE firebase_uid = ? LIMIT 1;
+
+deleteUser:
+DELETE FROM users WHERE id = ?;
+
+CREATE INDEX idx_users_firebase_uid ON users(firebase_uid);

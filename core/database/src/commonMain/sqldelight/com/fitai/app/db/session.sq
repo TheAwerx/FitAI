@@ -1,0 +1,29 @@
+deleteAllSessionSets:
+DELETE FROM session_sets;
+
+deleteAllSessionExercises:
+DELETE FROM session_exercises;
+
+deleteAllWorkoutSessions:
+DELETE FROM workout_sessions;
+
+deleteAllExercises:
+DELETE FROM exercises;
+
+deleteAllWorkoutPlans:
+DELETE FROM workout_plans;
+
+deleteAllMealLogs:
+DELETE FROM meal_logs;
+
+deleteAllDietPlans:
+DELETE FROM diet_plans;
+
+deleteAllMeasurements:
+DELETE FROM body_measurements;
+
+deleteAllGuestTrials:
+DELETE FROM guest_trials;
+
+deleteAllUsers:
+DELETE FROM users;

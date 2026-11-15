@@ -1,0 +1,77 @@
+CREATE TABLE diet_plans (
+    id TEXT NOT NULL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    daily_calories INTEGER NOT NULL,
+    protein_g INTEGER NOT NULL,
+    carbs_g INTEGER NOT NULL,
+    fat_g INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE meal_logs (
+    id TEXT NOT NULL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    meal_name TEXT NOT NULL,
+    calories INTEGER NOT NULL,
+    protein_g REAL NOT NULL,
+    carbs_g REAL NOT NULL,
+    fat_g REAL NOT NULL,
+    photo_url TEXT,
+    logged_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+selectActiveDiet:
+SELECT * FROM diet_plans WHERE user_id = ? AND is_active = 1 LIMIT 1;
+
+selectPlansForUser:
+SELECT * FROM diet_plans WHERE user_id = ? ORDER BY created_at DESC;
+
+selectDietPlanById:
+SELECT * FROM diet_plans WHERE id = ?;
+
+insertDietPlan:
+INSERT INTO diet_plans (id, user_id, daily_calories, protein_g, carbs_g, fat_g, created_at, is_active)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+deactivateDietPlansForUser:
+UPDATE diet_plans SET is_active = 0 WHERE user_id = ?;
+
+selectMealsForUser:
+SELECT * FROM meal_logs WHERE user_id = ? ORDER BY logged_at DESC;
+
+selectMealsForUserOnDate:
+SELECT * FROM meal_logs
+WHERE user_id = ? AND logged_at >= ? AND logged_at < ?
+ORDER BY logged_at DESC;
+
+insertMealLog:
+INSERT INTO meal_logs (id, user_id, meal_name, calories, protein_g, carbs_g, fat_g, photo_url, logged_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteMealLog:
+DELETE FROM meal_logs WHERE id = ?;
+
+selectMealLogById:
+SELECT * FROM meal_logs WHERE id = ?;
+
+updateMealPhotoUrl:
+UPDATE meal_logs SET photo_url = ? WHERE id = ?;
+
+updateMealLog:
+UPDATE meal_logs
+SET
+    meal_name = ?,
+    calories = ?,
+    protein_g = ?,
+    carbs_g = ?,
+    fat_g = ?,
+    photo_url = ?,
+    logged_at = ?
+WHERE id = ?;
+
+CREATE INDEX idx_meal_logs_user_logged ON meal_logs(user_id, logged_at DESC);
+
+CREATE INDEX idx_diet_plans_user_active ON diet_plans(user_id, is_active);
