@@ -1,13 +1,16 @@
 package com.fitai.app.training
 
 import com.fitai.app.model.ActivityLevel
+import com.fitai.app.model.DietRestriction
 import com.fitai.app.model.EquipmentOption
 import com.fitai.app.model.FitnessGoal
+import com.fitai.app.model.FocusArea
 import com.fitai.app.model.Gender
 import com.fitai.app.model.GeneratedDietPlan
 import com.fitai.app.model.GeneratedExercise
 import com.fitai.app.model.GeneratedWorkoutPlan
 import com.fitai.app.model.TrainingExperience
+import com.fitai.app.model.TrainingObstacle
 import com.fitai.app.model.UserProfilePayload
 import com.fitai.app.model.decodeProfileCodes
 import com.fitai.app.model.SessionLength
@@ -15,7 +18,9 @@ import kotlin.math.roundToInt
 
 /**
  * Rule-based plans for users without the personal AI plan, and the offline stand-in for AI generation.
- * Exercise names come from [ExerciseAlternativesCatalog] so "Replace" keeps working on them.
+ * Every onboarding answer counts: days, session length, equipment, experience, goal, obstacle, focus,
+ * gender, activity, body size and diet. Exercise names come from [ExerciseAlternativesCatalog] so
+ * "Replace" keeps working on them.
  */
 object StarterPlans {
 
@@ -27,13 +32,21 @@ object StarterPlans {
         val minutes = profile.sessionMinutes ?: SessionLength.DEFAULT
         val equipment = decodeProfileCodes(profile.equipment)
         val library = libraryFor(equipment)
-        val advanced = profile.experience == TrainingExperience.Intermediate.code ||
-            profile.experience == TrainingExperience.Advanced.code
+        val obstacle = TrainingObstacle.fromCode(profile.obstacle)
+        val focus = profile.focusAreas.orEmpty().mapNotNull(FocusArea::fromCode).toSet()
+        val advanced = obstacle != TrainingObstacle.NeverTried && (
+            profile.experience == TrainingExperience.Intermediate.code ||
+                profile.experience == TrainingExperience.Advanced.code
+            )
         val split = splitFor(days, advanced, library)
-        val perSession = exercisesPerSession(minutes)
-        val prescription = prescriptionFor(profile.goal, profile.experience)
+        val perSession = exercisesPerSession(minutes).let {
+            if (obstacle == TrainingObstacle.Motivation) (it - 1).coerceAtLeast(MIN_EXERCISES) else it
+        }
+        val prescription = prescriptionFor(profile.goal, profile.experience, obstacle)
+        val en = locale == "en"
+        val leadNote = leadExerciseNote(obstacle, focus, en)
         val exercises = split.zip(TRAINING_DAYS.getValue(days)).flatMap { (template, dayOfWeek) ->
-            template.take(perSession).map { move ->
+            template.take(perSession).mapIndexed { index, move ->
                 GeneratedExercise(
                     dayOfWeek = dayOfWeek,
                     name = move.name(locale),
@@ -41,10 +54,10 @@ object StarterPlans {
                     reps = prescription.reps,
                     restSeconds = prescription.restSeconds,
                     muscleGroup = muscleLabel(move.muscle, locale),
+                    notes = if (index == 0) leadNote else null,
                 )
             }
         }
-        val en = locale == "en"
         return GeneratedWorkoutPlan(
             title = when {
                 personal && en -> "Your FitAI plan · $days days"
@@ -52,19 +65,18 @@ object StarterPlans {
                 en -> "Starter program · $days days"
                 else -> "Başlangıç programı · $days gün"
             },
-            description = if (en) {
-                "$days days a week, about $minutes min per session."
-            } else {
-                "Haftada $days gün, seans başı yaklaşık $minutes dk."
-            },
+            description = (
+                if (en) "$days days a week, about $minutes min per session." else "Haftada $days gün, seans başı yaklaşık $minutes dk."
+                ) + obstacleSummary(obstacle, en).orEmpty(),
             daysPerWeek = days,
             exercises = exercises,
         )
     }
 
-    /** Mifflin-St Jeor with the onboarding activity level and a goal adjustment. */
+    /** Mifflin-St Jeor with the onboarding activity level and a goal adjustment; vegan protein is raised 10%. */
     fun diet(profile: UserProfilePayload): GeneratedDietPlan {
-        val genderOffset = if (profile.gender == Gender.Female.code) -161 else 5
+        val female = profile.gender == Gender.Female.code
+        val genderOffset = if (female) -161 else 5
         val bmr = 10 * profile.weightKg + 6.25 * profile.heightCm - 5 * profile.age + genderOffset
         val multiplier = when (ActivityLevel.fromCode(profile.activityLevel)) {
             ActivityLevel.Sedentary -> 1.2
@@ -79,12 +91,14 @@ object StarterPlans {
             FitnessGoal.BuildMuscle -> 300
             FitnessGoal.GetStronger -> 200
             else -> 0
-        }).roundToInt().coerceAtLeast(MIN_CALORIES)
+        }).roundToInt().coerceAtLeast(if (profile.gender == Gender.Male.code) MIN_CALORIES_MALE else MIN_CALORIES)
         val proteinPerKg = when (goal) {
             FitnessGoal.BuildMuscle, FitnessGoal.GetStronger, FitnessGoal.LoseFat -> 2.0
             else -> 1.6
         }
-        val protein = (profile.weightKg * proteinPerKg).roundToInt()
+        // Plant protein is less digestible, so vegans get a slightly higher target.
+        val vegan = DietRestriction.Vegan.code in decodeProfileCodes(profile.dietRestrictions)
+        val protein = (profile.weightKg * proteinPerKg * if (vegan) VEGAN_PROTEIN_FACTOR else 1.0).roundToInt()
         val fat = (calories * 0.25 / 9).roundToInt()
         val carbs = ((calories - protein * 4 - fat * 9) / 4.0).roundToInt().coerceAtLeast(0)
         return GeneratedDietPlan(dailyCalories = calories, proteinG = protein, carbsG = carbs, fatG = fat)
@@ -106,15 +120,60 @@ object StarterPlans {
 
     private data class Prescription(val sets: Int, val reps: String, val restSeconds: Int)
 
-    private fun prescriptionFor(goal: String, experience: String?): Prescription {
-        val base = when (FitnessGoal.fromCode(goal)) {
+    private fun prescriptionFor(goal: String, experience: String?, obstacle: TrainingObstacle?): Prescription {
+        var prescription = when (FitnessGoal.fromCode(goal)) {
             FitnessGoal.GetStronger -> Prescription(5, "4-6", 150)
             FitnessGoal.BuildMuscle -> Prescription(4, "8-12", 90)
             FitnessGoal.LoseFat, FitnessGoal.ImproveEndurance -> Prescription(3, "12-15", 60)
             FitnessGoal.StayHealthy, null -> Prescription(3, "10-12", 75)
         }
-        val novice = experience == TrainingExperience.None.code || experience == TrainingExperience.Beginner.code
-        return if (novice) base.copy(sets = (base.sets - 1).coerceAtLeast(2)) else base
+        val novice = experience == TrainingExperience.None.code || experience == TrainingExperience.Beginner.code ||
+            obstacle == TrainingObstacle.NeverTried
+        if (novice || obstacle == TrainingObstacle.Injury) {
+            prescription = prescription.copy(sets = (prescription.sets - 1).coerceAtLeast(2))
+        }
+        if (obstacle == TrainingObstacle.Injury && prescription.reps == "4-6") {
+            // No near-maximal loads while something hurts.
+            prescription = prescription.copy(reps = "6-8")
+        }
+        if (obstacle == TrainingObstacle.Time) {
+            prescription = prescription.copy(restSeconds = (prescription.restSeconds * 3 / 4).coerceAtLeast(MIN_REST_SECONDS))
+        }
+        return prescription
+    }
+
+    /** Note on each day's first exercise, from the obstacle and the focus areas picked in onboarding. */
+    private fun leadExerciseNote(obstacle: TrainingObstacle?, focus: Set<FocusArea>, en: Boolean): String? {
+        val notes = buildList {
+            when (obstacle) {
+                TrainingObstacle.Injury -> add(
+                    if (en) "Stop any movement that hurts; work in a pain-free range with control."
+                    else "Ağrı yapan harekete devam etme; eklemi zorlamayan aralıkta, kontrollü çalış.",
+                )
+                TrainingObstacle.Knowledge, TrainingObstacle.NeverTried -> add(
+                    if (en) "Learn the technique first: light weight, slow and controlled in week one."
+                    else "Önce tekniği oturt: ilk hafta hafif ağırlıkla, yavaş ve kontrollü çalış.",
+                )
+                else -> Unit
+            }
+            if (FocusArea.SmartOverload in focus || FocusArea.LogLifts in focus) {
+                add(
+                    if (en) "When every set hits the top of the rep range, add 2.5–5% next session."
+                    else "Tüm setlerde üst tekrar sayısına ulaşınca sonraki seansta ağırlığı %2,5–5 artır.",
+                )
+            }
+        }
+        return notes.takeIf { it.isNotEmpty() }?.joinToString(" ")
+    }
+
+    private fun obstacleSummary(obstacle: TrainingObstacle?, en: Boolean): String? = when (obstacle) {
+        TrainingObstacle.Time -> if (en) " Shorter rests, compound lifts first." else " Dinlenmeler kısa, çok eklemli hareketler önde."
+        TrainingObstacle.Motivation -> if (en) " Sessions are kept short and quick." else " Seanslar kısa ve hızlı tutuldu."
+        TrainingObstacle.Injury -> if (en) " Lower volume and joint-friendly rep ranges." else " Düşük hacim, eklem dostu tekrar aralıkları."
+        TrainingObstacle.Knowledge, TrainingObstacle.NeverTried ->
+            if (en) " Simple moves with technique notes." else " Basit hareketler ve teknik notları."
+        TrainingObstacle.Equipment -> if (en) " Built around the equipment you have." else " Elindeki ekipmana göre kuruldu."
+        null -> null
     }
 
     private val TRAINING_DAYS = mapOf(
@@ -406,4 +465,8 @@ object StarterPlans {
     }
 
     private const val MIN_CALORIES = 1200
+    private const val MIN_CALORIES_MALE = 1500
+    private const val VEGAN_PROTEIN_FACTOR = 1.1
+    private const val MIN_EXERCISES = 3
+    private const val MIN_REST_SECONDS = 45
 }

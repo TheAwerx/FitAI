@@ -16,13 +16,17 @@ import com.fitai.app.model.WeeklyReportRequest
 import com.fitai.app.training.StarterPlans
 import com.fitai.app.util.appLocale
 
+/**
+ * Offline / dev stand-in. Plans come from [StarterPlans], which uses every onboarding answer in the payload
+ * (days, session length, equipment, experience, goal, obstacle, focus, gender, activity, body, diet).
+ */
 class MockAIRepository : AIRepository {
 
     override suspend fun generateWorkoutPlan(
         profile: UserProfilePayload,
         purpose: PlanGenerationPurpose,
     ): Result<GeneratedWorkoutPlan> =
-        runCatching { StarterPlans.workout(profile, appLocale(), personal = true) }
+        runCatching { StarterPlans.workout(profile, profile.locale ?: appLocale(), personal = true) }
 
     override suspend fun generateDietPlan(profile: UserProfilePayload): Result<GeneratedDietPlan> =
         runCatching { StarterPlans.diet(profile) }

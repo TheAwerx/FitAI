@@ -2,7 +2,6 @@ package com.fitai.app.repository
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
-import com.fitai.app.db.Body_measurements
 import com.fitai.app.db.FitAiDatabase
 import com.fitai.app.model.BodyMeasurement
 import kotlinx.coroutines.Dispatchers
@@ -75,19 +74,6 @@ class ProgressRepositoryImpl(
         database.progressQueries.deleteMeasurement(id)
         Unit
     }
-
-    private fun Body_measurements.toDomain(): BodyMeasurement = BodyMeasurement(
-        id = id,
-        userId = user_id,
-        weightKg = weight_kg,
-        bodyFatPct = body_fat_pct,
-        chestCm = chest_cm,
-        waistCm = waist_cm,
-        hipCm = hip_cm,
-        armCm = arm_cm,
-        photoUrl = photo_url,
-        measuredAt = measured_at,
-    )
 
     private fun newId(): String = buildString {
         repeat(16) { append(Random.nextInt(16).toString(16)) }

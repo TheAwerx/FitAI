@@ -3,10 +3,14 @@ package com.fitai.app.auth
 import com.fitai.app.domain.UseCaseState
 import com.fitai.app.domain.useCaseCatching
 import com.fitai.app.notifications.ReminderScheduler
+import com.fitai.app.preferences.UserPreferencesRepository
 import com.fitai.app.repository.LocalUserRepository
 import com.fitai.app.session.LocalSessionRepository
-import com.fitai.app.sync.PlanSyncRepository
+import com.fitai.app.sync.UserDataSyncRepository
+import com.fitai.app.sync.applyCloudProfile
+import com.fitai.app.sync.buildCloudUserProfile
 import com.fitai.app.util.nowIsoTimestamp
+import kotlin.random.Random
 
 /** What happened to the on-device profile after a successful sign-in. */
 enum class SignInOutcome {
@@ -14,6 +18,8 @@ enum class SignInOutcome {
     LinkedLocalProfile,
     /** No profile on this device; the account's cloud profile was restored and still needs plans. */
     RestoredFromCloud,
+    /** No profile on this device; profile, answers, active plans and history all came back from the cloud. */
+    RestoredWithPlans,
     /** Neither this device nor the account has a profile; the user must go through onboarding. */
     NoProfile,
 }
@@ -24,40 +30,65 @@ class IsFirebaseAvailableUseCase(
     operator fun invoke(): Boolean = authRepository.isFirebaseAvailable
 }
 
-/** Shared post-sign-in step: link and push the local profile, or restore it from the cloud. */
+/**
+ * Shared post-sign-in step (see `firebase/SCHEMA.md`, "Sign-in sync flow"): link and upload the device
+ * profile, or restore the account's cloud copy onto an empty device.
+ */
 class LinkSignedInAccountUseCase(
     private val authRepository: AuthRepository,
     private val profileSyncRepository: ProfileSyncRepository,
     private val localUserRepository: LocalUserRepository,
-    private val planSyncRepository: PlanSyncRepository,
+    private val userDataSyncRepository: UserDataSyncRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
 ) {
     suspend operator fun invoke(): UseCaseState<SignInOutcome> = useCaseCatching {
-        val uid = authRepository.currentUserOrNull()?.uid ?: error("auth_session_missing")
+        val account = authRepository.currentUserOrNull() ?: error("auth_session_missing")
+        val uid = account.uid
         val local = localUserRepository.getLatestUser()
         if (local != null) {
-            localUserRepository.linkFirebaseUid(local.id, uid, nowIsoTimestamp())
-            profileSyncRepository.pushLocalProfile(uid, local).getOrThrow()
-            planSyncRepository.pushPlansToFirestore(uid, local.id).getOrThrow()
+            val now = nowIsoTimestamp()
+            // Older history is merged only into the same (or a not yet linked) account, never across accounts.
+            val sameAccount = local.firebaseUid == null || local.firebaseUid == uid
+            localUserRepository.linkFirebaseUid(local.id, uid, now)
+            val linked = local.copy(firebaseUid = uid, updatedAt = now)
+            profileSyncRepository.pushProfile(uid, buildCloudUserProfile(linked, userPreferencesRepository, account.email))
+                .getOrThrow()
+            // Plans and history are best effort: sign-in must not fail on them, later writes sync one by one.
+            if (sameAccount) userDataSyncRepository.restoreAll(uid, local.id, keepLocalPlans = true)
+            userDataSyncRepository.pushAll(uid, local.id)
             return@useCaseCatching SignInOutcome.LinkedLocalProfile
         }
         val remote = profileSyncRepository.pullProfile(uid).getOrThrow() ?: return@useCaseCatching SignInOutcome.NoProfile
+        val restored = remote.profile
+        val localId = restored.id.ifBlank { newLocalUserId() }
+        val now = nowIsoTimestamp()
         localUserRepository.insertGuestProfile(
-            id = remote.id,
-            name = remote.name,
-            email = remote.email,
-            age = remote.age,
-            heightCm = remote.heightCm,
-            weightKg = remote.weightKg,
-            goal = remote.goal,
-            activityLevel = remote.activityLevel,
-            equipment = remote.equipment,
-            dietRestrictions = remote.dietRestrictions,
-            createdAt = remote.createdAt,
-            updatedAt = nowIsoTimestamp(),
+            id = localId,
+            name = restored.name,
+            email = restored.email.ifBlank { account.email.orEmpty() },
+            age = restored.age,
+            heightCm = restored.heightCm,
+            weightKg = restored.weightKg,
+            goal = restored.goal,
+            activityLevel = restored.activityLevel,
+            equipment = restored.equipment,
+            dietRestrictions = restored.dietRestrictions,
+            createdAt = restored.createdAt.ifBlank { now },
+            updatedAt = now,
         )
-        localUserRepository.linkFirebaseUid(remote.id, uid, nowIsoTimestamp())
-        SignInOutcome.RestoredFromCloud
+        localUserRepository.linkFirebaseUid(localId, uid, now)
+        userPreferencesRepository.applyCloudProfile(remote)
+        if (remote.legacy) {
+            // One-time move of the old `user_profiles/{uid}` document into `users/{uid}`.
+            localUserRepository.getLatestUser()?.let { migrated ->
+                profileSyncRepository.pushProfile(uid, buildCloudUserProfile(migrated, userPreferencesRepository, account.email))
+            }
+        }
+        val summary = userDataSyncRepository.restoreAll(uid, localId, keepLocalPlans = false).getOrNull()
+        if (summary?.hasActivePlans == true) SignInOutcome.RestoredWithPlans else SignInOutcome.RestoredFromCloud
     }
+
+    private fun newLocalUserId(): String = (1..32).joinToString("") { Random.nextInt(0, 16).toString(16) }
 }
 
 class AuthenticateWithEmailUseCase(
@@ -109,14 +140,22 @@ class SendPasswordResetUseCase(
     }
 }
 
-class SyncPlansToFirestoreUseCase(
-    private val planSyncRepository: PlanSyncRepository,
+/** Full upload of the device account (profile, answers, plans, history) to `users/{uid}`. */
+class SyncUserDataToCloudUseCase(
+    private val authRepository: AuthRepository,
+    private val profileSyncRepository: ProfileSyncRepository,
+    private val userDataSyncRepository: UserDataSyncRepository,
     private val localUserRepository: LocalUserRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
 ) {
-    suspend operator fun invoke(uid: String): UseCaseState<Unit> =
+    suspend operator fun invoke(): UseCaseState<Unit> =
         useCaseCatching {
+            val account = authRepository.currentUserOrNull()?.takeUnless { it.isAnonymous } ?: error("auth_session_missing")
             val user = localUserRepository.getLatestUser() ?: error("no_user")
-            planSyncRepository.pushPlansToFirestore(uid, user.id).getOrThrow()
+            check(user.firebaseUid == account.uid) { "account_not_linked" }
+            profileSyncRepository.pushProfile(account.uid, buildCloudUserProfile(user, userPreferencesRepository, account.email))
+                .getOrThrow()
+            userDataSyncRepository.pushAll(account.uid, user.id).getOrThrow()
         }
 }
 

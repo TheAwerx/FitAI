@@ -1,5 +1,6 @@
 package com.fitai.app.repository
 
+import com.fitai.app.db.Body_measurements
 import com.fitai.app.db.Diet_plans
 import com.fitai.app.db.Exercises
 import com.fitai.app.db.Meal_logs
@@ -7,6 +8,7 @@ import com.fitai.app.db.Session_exercises
 import com.fitai.app.db.Session_sets
 import com.fitai.app.db.Workout_plans
 import com.fitai.app.db.Workout_sessions
+import com.fitai.app.model.BodyMeasurement
 import com.fitai.app.model.DietPlan
 import com.fitai.app.model.Exercise
 import com.fitai.app.model.MealLog
@@ -73,6 +75,19 @@ internal fun Diet_plans.toDomain(): DietPlan = DietPlan(
     fatG = fat_g.toInt(),
     createdAt = created_at,
     isActive = is_active == 1L,
+)
+
+internal fun Body_measurements.toDomain(): BodyMeasurement = BodyMeasurement(
+    id = id,
+    userId = user_id,
+    weightKg = weight_kg,
+    bodyFatPct = body_fat_pct,
+    chestCm = chest_cm,
+    waistCm = waist_cm,
+    hipCm = hip_cm,
+    armCm = arm_cm,
+    photoUrl = photo_url,
+    measuredAt = measured_at,
 )
 
 internal fun Meal_logs.toDomain(): MealLog = MealLog(

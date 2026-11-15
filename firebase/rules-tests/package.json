@@ -1,0 +1,13 @@
+{
+  "name": "fitai-rules-tests",
+  "description": "Firestore security rules tests for FitAI (runs against the local emulator only)",
+  "private": true,
+  "scripts": {
+    "test": "firebase emulators:exec --config ../firebase.json --only firestore --project demo-fitai \"node --test test/*.test.mjs\"",
+    "test:only": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.2",
+    "firebase": "12.19.0"
+  }
+}

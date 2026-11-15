@@ -96,7 +96,8 @@ class SetupInitialPlansUseCase(
         onProgress: suspend (Float) -> Unit = {},
     ): UseCaseState<PlanKind> = useCaseCatching {
         val user = localUserRepository.getLatestUser() ?: error("no_user")
-        val payload = user.toProfilePayload(userPreferencesRepository.onboardingAnswers())
+        val locale = appLocale()
+        val payload = user.toProfilePayload(userPreferencesRepository.onboardingAnswers(), locale)
         val personal = !forceStarter && entitlementRepository.currentTier() == AccessTier.Pro
         onProgress(0.15f)
         if (personal) {
@@ -106,7 +107,7 @@ class SetupInitialPlansUseCase(
             val diet = aiRepository.generateDietPlan(payload).getOrThrow()
             nutritionRepository.saveGeneratedDiet(user.id, diet)
         } else {
-            workoutRepository.saveGeneratedPlan(user.id, StarterPlans.workout(payload, appLocale()))
+            workoutRepository.saveGeneratedPlan(user.id, StarterPlans.workout(payload, locale))
             onProgress(0.6f)
             nutritionRepository.saveGeneratedDiet(user.id, StarterPlans.diet(payload))
         }

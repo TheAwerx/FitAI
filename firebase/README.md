@@ -124,6 +124,28 @@ erişimi vermez. Eski kayıtları otomatik silmek için Firestore TTL politikas�
 Uygulamada onboarding’i bitirince plan üretimi mock yerine Gemini çıktısı döner.
 `google-services.json` yoksa veya Firebase init başarısızsa mock’a düşülür.
 
+## Firestore şeması ve kurallar
+
+Koleksiyonlar, alanlar, hangi ekrandan geldikleri ve kimin yazdığı: [`SCHEMA.md`](SCHEMA.md).
+`firestore.rules` yalnız sahibine (anonim olmayan giriş) izin verir, alanları doğrular;
+sunucu koleksiyonlarına (`guest_trials`, `plan_quotas`, `device_trials`, `aiUsage`)
+istemci yazamaz. Kuralları değiştirince emülatörde test et (canlı projeye dokunmaz,
+`demo-fitai` projesi kullanılır; Firestore emülatörü JDK 21 ister):
+
+```bash
+cd firebase/rules-tests
+npm install
+JAVA_HOME="$HOME/Applications/Android Studio.app/Contents/jbr/Contents/Home" npm test
+```
+
+Kurallar yeni istemciyle birlikte deploy edilmeli: eski sürümler `user_profiles/{uid}`
+yazdığı için yeni kurallarla girişte hata alır.
+
+`generateWorkoutPlan` / `generateDietPlan` tüm onboarding cevaplarını kullanır (cinsiyet,
+yaş, boy, kilo, hedef, aktivite, deneyim, engel, odak, gün, süre, ekipman, diyet) ve
+`locale` alır. Prompt'lar `functions/src/plans.ts` içinde; diyet cevabı Mifflin-St Jeor
+referansının ±%20'si içinde tutulur.
+
 ## Mimari
 
 ```
