@@ -1,0 +1,45 @@
+---
+description: Ktor ApiRequest, Remote/Local DataSource, Repository Single Source of Truth
+globs: data/**/*.kt,database/**/*.kt
+alwaysApply: false
+---
+
+# Data & Network Integration (Core)
+
+All HTTP calls use **Ktor Client** with the project **`ApiRequest`** wrapper (reference: `data/auth`).
+
+## ApiRequest Definition
+
+```kotlin
+internal object AuthApi {
+    fun getLogin(request: LoginRequest) = ApiRequest<LoginResponse>(
+        url = ApiConstants.BASE_URL,
+        method = ApiMethod.POST,
+        path = "/ZWFM_FM_GET_USER",
+        requestBody = request
+    )
+}
+```
+
+## Data Sources
+
+| Type | Responsibility |
+|------|----------------|
+| `RemoteDataSource` | Pass `ApiRequest` objects to Ktor |
+| `LocalDataSource` | Room / SQLDelight reads and writes |
+
+## Repository (Single Source of Truth)
+
+```kotlin
+// ❌ BAD — UseCase calls data source directly
+class GetCategoriesUseCase(private val remote: CategoryRemoteDataSource)
+
+// ✅ GOOD — RepositoryImpl merges sources
+// fetch remote → persist local → read local → return to UseCase
+class CategoryRepositoryImpl(
+    private val remote: CategoryRemoteDataSource,
+    private val local: CategoryLocalDataSource,
+) : CategoryRepository
+```
+
+UseCases must **never** call DataSources directly — only Repository interfaces.

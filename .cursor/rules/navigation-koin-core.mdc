@@ -1,0 +1,42 @@
+---
+description: Route registration, NavigationRoot entry, Koin module wiring
+globs: composeApp/**/navigation/**/*.kt,**/Module.kt,composeApp/**/di/**/*.kt
+alwaysApply: false
+---
+
+# Navigation & Koin (Core)
+
+New screens must be wired into both navigation and DI or the app will fail at runtime.
+
+## Navigation Checklist
+
+```kotlin
+// 1. Route.kt
+@Serializable
+data class EditCategory(val id: Int) : Route
+
+// 2. NavigationRoot.kt — NavDisplay → entryProvider
+entry<EditCategory> { route ->
+    EditCategoryScreen(categoryId = route.id)
+}
+```
+
+Missing `entry<...>` → screen is unreachable.
+
+## Koin Registration
+
+```kotlin
+// Feature Module.kt
+val editCategoryModule = module {
+    includes(domainCategoryModule)
+    viewModelOf(::EditCategoryViewModel)
+}
+
+// Domain Module.kt
+factoryOf(::GetCategoryUseCase)
+
+// Root app module — MUST include new feature module
+includes(editCategoryModule)
+```
+
+Register every new UseCase, Repository, DataSource, and ViewModel. Omitting registration → runtime crash on injection.

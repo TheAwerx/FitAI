@@ -1,0 +1,30 @@
+---
+description: PROJECT_GOALS and MEMORY_BANK — required reading and updates for AI agents
+alwaysApply: true
+---
+
+# AI Memory & Vision (Core)
+
+Before writing code, read project context documents.
+
+## Required Reading
+
+| File | Purpose |
+|------|---------|
+| `PROJECT_GOALS.md` | Why the app exists, story, main goals — ensure feature aligns with vision |
+| `MEMORY_BANK.md` | Latest changes, critical fixes, added features |
+
+## Update Obligation
+
+After every significant milestone, AI agents **must** update `MEMORY_BANK.md`:
+
+- Add a dated summary at the **top** of the file
+- Include what changed and why
+
+```markdown
+## 2026-06-29 — Added EditCategory screen
+- Domain: GetCategoryUseCase + UpdateCategoryUseCase
+- UI: MVI screen with Route wired in NavigationRoot
+```
+
+Do not start coding without reading both files when they exist in the repo.

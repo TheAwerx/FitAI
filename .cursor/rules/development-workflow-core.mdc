@@ -1,0 +1,26 @@
+---
+description: Incremental screen-by-screen development and build discipline
+alwaysApply: true
+---
+
+# Development Workflow (Core)
+
+**Rule: build screen by screen, run, test, then continue.**
+
+Do not write large code blocks in one pass and break the build.
+
+## Step-by-Step
+
+1. Complete one logical step (e.g. UI layout, then ViewModel wiring)
+2. Build: `./gradlew :composeApp:assembleDebug`
+3. Fix all compile errors before moving on
+4. Repeat for the next step or screen
+
+## Do / Don't
+
+```
+❌ BAD — write Domain + Data + UI + Navigation in one batch, ignore build errors
+✅ GOOD — UI shell → build → ViewModel + UseCase → build → Route → build
+```
+
+Never ignore a build failure and keep coding. Stabilize the project first.

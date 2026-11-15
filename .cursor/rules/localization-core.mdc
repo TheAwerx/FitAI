@@ -1,0 +1,36 @@
+---
+description: Strings localization — no hardcoded UI text, duplicate key prevention
+globs: composeApp/**/localization/**/*.kt,composeApp/**/feature/**/*Screen.kt
+alwaysApply: false
+---
+
+# Localization (Core)
+
+**Never** hardcode user-facing text in Compose UI files.
+
+## Structure
+
+```
+localization/Strings.kt    — shared property interface
+localization/StringsTr.kt  — Turkish implementation
+localization/StringsEn.kt  — English implementation
+```
+
+## Usage
+
+```kotlin
+// ❌ BAD
+Text("Giriş Yap")
+
+// ✅ GOOD
+val strings = LocalStrings.current
+Text(strings.loginButton)
+```
+
+## Adding a New String
+
+1. Add property to `Strings.kt`
+2. Add translation to `StringsTr.kt` **and** `StringsEn.kt`
+3. **Check all three files** — duplicate property names cause Kotlin compile conflicts
+
+Before adding, grep/search whether the key already exists in any of the three files.

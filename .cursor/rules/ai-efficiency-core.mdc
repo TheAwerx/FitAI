@@ -1,0 +1,23 @@
+---
+description: Token and context efficiency rules for AI agents
+alwaysApply: true
+---
+
+# AI Efficiency (Core)
+
+Follow strictly to reduce token waste and stay focused.
+
+## Rules
+
+| Rule | Do | Don't |
+|------|----|-------|
+| Communication | Act first (Code > Talk); summarize changes in 1–2 sentences | Long explanations before coding |
+| Edits | Targeted diff/replace on changed lines only | Rewrite entire files for small fixes |
+| Context | Read minimum files needed for the task | Open unrelated files to "explore" |
+
+```
+❌ BAD — read 20 files, rewrite LoginScreen.kt from scratch for one Text change
+✅ GOOD — read LoginScreen.kt, apply 3-line StrReplace, build
+```
+
+Apply the same discipline when updating rules or docs — minimal scope, maximum relevance.

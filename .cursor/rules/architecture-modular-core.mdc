@@ -1,0 +1,35 @@
+---
+description: Clean Architecture modular structure — domain, data, database modules
+globs: domain/**/*.kt,data/**/*.kt,database/**/*.kt
+alwaysApply: false
+---
+
+# Modular Architecture (Core)
+
+Project follows layered **Clean Architecture**. Reference existing modules (`Login`, `Document`) when adding features.
+
+## Module Layout
+
+```
+domain/{feature}/     — UseCase, domain model, mapper, di/Module.kt
+data/{feature}/       — Api, DTO, RemoteDataSource, RepositoryImpl, di/Module.kt
+database/             — Room entity, DAO, LocalDataSource, DbRepository
+```
+
+## Rules
+
+- One **domain module** per business feature (`domain/auth`, `domain/document`, `domain/category`)
+- Database and remote access live in **separate modules**, not inside domain
+- Copy structure from an existing feature before inventing a new layout
+
+## Do / Don't
+
+```kotlin
+// ❌ BAD — business logic + HTTP in composeApp
+class LoginViewModel(private val ktor: HttpClient) { ... }
+
+// ✅ GOOD — feature split across layers
+// domain/auth/usecase/GetLoginUseCase.kt
+// data/auth/repository/LoginRepositoryImpl.kt
+// database/repository/LoginDbRepositoryImpl.kt
+```

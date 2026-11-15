@@ -1,0 +1,47 @@
+---
+description: UseCase and ViewModel rules — UseCaseState, no direct Repository in VM
+globs: domain/**/*.kt,composeApp/**/*ViewModel.kt
+alwaysApply: false
+---
+
+# UseCase & ViewModel (Core) — CRITICAL
+
+ViewModels perform data work **only through UseCases**. Never inject Repository into ViewModel.
+
+## UseCase Return Type
+
+Always wrap results in **`UseCaseState`**. Never return raw types or throw for expected failures.
+
+```kotlin
+// ❌ BAD
+suspend operator fun invoke(): List<Category>
+suspend operator fun invoke(): List<Category> = repository.getAll() // throws
+
+// ✅ GOOD
+suspend operator fun invoke(): UseCaseState<List<Category>> {
+    return try {
+        when (val result = repository.getAll()) {
+            is Result.Success -> UseCaseState.Success(result.data)
+            is Result.Error -> UseCaseState.Error(result.error.getMessage())
+        }
+    } catch (e: Exception) {
+        UseCaseState.Error(e.message ?: "Unknown error")
+    }
+}
+```
+
+## ViewModel
+
+```kotlin
+// ❌ BAD
+internal class CategoryViewModel(
+    private val categoryRepository: CategoryRepository,
+)
+
+// ✅ GOOD
+internal class CategoryViewModel(
+    private val getCategoriesUseCase: GetCategoriesUseCase,
+) : BaseViewModel<CategoryState, CategoryIntent, CategoryEffect>(savedStateHandle)
+```
+
+Handle results via `UseCaseState.Success` / `UseCaseState.Error` — do not rely on uncaught exceptions.

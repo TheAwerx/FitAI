@@ -1,0 +1,82 @@
+---
+description: Shared UI components, Stitch fidelity, and the onboarding flow design language
+globs: "{composeApp,feature,core}/**/*.kt"
+alwaysApply: false
+---
+
+# UI & Design System (Core)
+
+DRY and design consistency are core project values.
+
+## Shared Locations
+
+| What | Where |
+|------|-------|
+| Reusable UI (Button, TextField, Card) | `ui/components` |
+| Extension helpers (String, Date, Modifier) | `util/extensions` |
+
+```kotlin
+// ❌ BAD — copy-paste TextField in every screen file
+// ✅ GOOD — ui/components/BtcTextField.kt reused across features
+```
+
+## Stitch MCP
+
+When implementing Stitch designs: match colors, padding, typography, and theme **exactly**. Reuse `MaterialTheme` and existing `ui/components` — do not reinvent tokens.
+
+## Compose Best Practices
+
+```kotlin
+// ❌ BAD — pass ViewModel to child
+@Composable fun LoginForm(viewModel: LoginViewModel)
+
+// ✅ GOOD — state hoisting
+@Composable fun LoginForm(
+    state: LoginState,
+    onUsernameChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+)
+```
+
+Keep composables small and readable. Avoid deeply nested layout code.
+
+## Adaptive / Responsive Layout
+
+Follow Google & Kotlin KMP adaptive guidance — **never override `LocalDensity` for responsive scaling**.
+
+| Do | Don't |
+|----|-------|
+| `ProvideAdaptiveLayout` + `LocalWindowSizeClass` at app root | Emulator baseline (448×998) linear scale |
+| `LocalDimensions` / `LocalPadding` bucket tokens (default vs compact width) | Global `fontScale` manipulation |
+| `BoxWithConstraints` + `rememberVerticalSpace()` on tight screens (Login, PostLoginSync) | Device-specific hardcoded layout decisions |
+| `MaterialTheme.typography` tokens | Hardcoded `fontSize = 14.sp` in screens |
+| `NavigationSuiteScaffold` for top-level nav | Custom bottom bar without window size awareness |
+
+Read `WindowSizeClass` once at root via `currentWindowAdaptiveInfo()`. Pass spacing/typography through composition locals, not ViewModels.
+
+## Onboarding flow design language
+
+Welcome, onboarding steps, plan generation, and paywall are one flow. Match the screens in `feature/onboarding`, not a generic Material list. Tokens live in `FitAIColors`, `FitAISpacing`, `FitAIShapes`, and `MaterialTheme.typography` (Sora headlines, Lexend body). Mint is `#46F1C5` (`FitAIColors.Primary`).
+
+| Region | Spec |
+|--------|------|
+| Canvas | `fillMaxSize` + `FitAIColors.Background`. Horizontal padding `lg`. Scroll the middle; pin the action bar. `statusBarsPadding` on the top chrome, `navigationBarsPadding` on the bottom bar. |
+| Top bar | Height `64.dp`. Back `IconButton` `40.dp`, tint `Primary` on later steps, otherwise `OnSurfaceMuted`. Centered title `headlineMedium` + Bold, color `Primary` or `OnBackground`. Balance the back button with a `40.dp` spacer. |
+| Progress | Track `SurfaceVariant`, fill `Primary`. Thin bar `4.dp` rectangle, or thick bar `8.dp` with `CircleShape`. |
+| Title block | Title `displayMedium` (`displayLarge` only for a hero line), color `OnSurface`. Subtitle `bodyLarge`, color `OnSurfaceMuted`. Gap `sm`. Center short steps; start-align list steps. |
+| Selection card | Shape `FitAIShapes.button`. Unselected: fill `Surface`, border `2.dp` `SurfaceVariant`. Selected: fill `Primary` at 5% alpha, border `2.dp` `Primary`. Padding `md`, gap `md`. |
+| Icon well | `48.dp` circle. Selected: `Primary` at 20% alpha, icon `Primary` `24.dp`. Unselected: `SurfaceVariant`, icon `OnSurface`. |
+| Radio | `24.dp` circle. Selected: fill `Primary`, `Check` in `OnPrimary`. Unselected: transparent, border `2.dp` `OnSurfaceMuted` at 50% alpha. |
+| Card type | Title `titleMedium` `OnSurface`. Meta `labelSmall` `OnSurfaceMuted`. |
+| Chip / segment | Selected fill `Primary`, text `OnPrimary`. Unselected fill `SurfaceVariant`. Segment track is `SurfaceVariant` with `FitAIShapes.chip` and `xs` padding. |
+| Bottom bar | Container `Background` at 95% alpha, or `Surface` on picker steps. Padding horizontal `lg`, vertical `md`, gap `md`. Secondary (optional `ChevronLeft`) + one Primary (`ChevronRight`, or `ArrowForward` when the step is a forward commit). |
+
+```kotlin
+// ❌ BAD — paywall title in Primary, flat feature slabs, four equal buttons in the scroll
+Text(strings.paywallTitle, color = FitAIColors.Primary)
+
+// ✅ GOOD — OnSurface title, selection card for the chosen plan, one Primary in the pinned bar
+Text(strings.paywallTitle, style = MaterialTheme.typography.displayMedium, color = FitAIColors.OnSurface)
+```
+
+Mint is for the brand mark, progress, selected border, icon well, and the single primary button. Do not paint the screen title in `Primary`, invent a new radius, or stack competing filled CTAs. Reuse `OnboardingTopBar`, `OnboardingProgressBar`, and `OnboardingBottomBar` when the screen is a stepped flow.

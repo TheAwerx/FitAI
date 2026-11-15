@@ -1,0 +1,31 @@
+---
+description: End-to-end AI agent workflow checklist for new features
+alwaysApply: true
+---
+
+# AI Agent Workflow (Core)
+
+Follow this order for every feature or screen.
+
+## Checklist
+
+1. Read `PROJECT_GOALS.md` and `MEMORY_BANK.md`
+2. Review requested feature and Stitch design (if provided)
+3. **Domain/Data missing?** Create UseCase + Repository per Clean Architecture; set `UseCaseState` returns and Koin bindings
+4. **UI:** Design `[Feature]Contract.kt` (State, Intent, Effect), write ViewModel; register in Koin
+5. **Compose:** Build screen — Stitch/theme fidelity, `LocalStrings`, no hardcoded text. Welcome, onboarding steps, generation, and paywall share the onboarding design language in `ui-design-system-core`
+6. Add `Route` and `entry<...>` in `NavigationRoot.kt`
+7. **Build** after each logical step (`./gradlew :composeApp:assembleDebug`); fix errors before continuing
+8. When done and tests pass, append summary to `MEMORY_BANK.md`
+
+## Layer Rules (file-scoped)
+
+| Topic | Rule file |
+|-------|-----------|
+| Modules | `architecture-modular-core` |
+| UseCase / ViewModel | `usecase-viewmodel-core` |
+| Ktor / Repository | `data-network-core` |
+| MVI | `mvi-presentation-core` |
+| UI / Stitch | `ui-design-system-core` |
+| Strings | `localization-core` |
+| Route / Koin | `navigation-koin-core` |

@@ -1,0 +1,48 @@
+---
+description: MVI pattern — Contract (State, Intent, Effect), ViewModel responsibilities
+globs: composeApp/**/feature/**/*.kt
+alwaysApply: false
+---
+
+# MVI Presentation (Core)
+
+UI layer uses **Model-View-Intent (MVI)**.
+
+## File Naming
+
+Each screen: `[FeatureName]Screen.kt`, `[FeatureName]ViewModel.kt`, `[FeatureName]Contract.kt`
+
+## Contract.kt
+
+```kotlin
+// LoginContract.kt — single file for all three
+data class LoginState(val username: String = "", val isLoading: Boolean = false)
+
+sealed class LoginIntent {
+    data class UsernameChanged(val value: String) : LoginIntent()
+    data object Submit : LoginIntent()
+}
+
+sealed class LoginEffect {
+    data object NavigateToHome : LoginEffect()
+    data class ShowError(val message: String) : LoginEffect()
+}
+```
+
+| Type | Role | Flow |
+|------|------|------|
+| `State` | Current UI snapshot | `StateFlow` |
+| `Intent` | User actions | ViewModel `onIntent()` |
+| `Effect` | One-shot events (nav, toast, snackbar) | `SharedFlow` / `Channel` |
+
+## ViewModel Flow
+
+1. Receive `Intent` → 2. Call UseCase → 3. Update `State` → 4. Emit `Effect` if needed
+
+```kotlin
+// ❌ BAD — navigation flag in State
+data class LoginState(val navigateHome: Boolean = false)
+
+// ✅ GOOD
+setEffect(LoginEffect.NavigateToHome)
+```
