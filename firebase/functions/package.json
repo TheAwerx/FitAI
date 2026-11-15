@@ -4,7 +4,8 @@
   "scripts": {
     "build": "tsc",
     "serve": "firebase emulators:start --only functions",
-    "deploy": "firebase deploy --only functions,firestore:rules"
+    "deploy": "firebase deploy --only functions,firestore:rules",
+    "check:diet": "npm run build && node scripts/check-diet-plan.js"
   },
   "engines": {
     "node": "24"

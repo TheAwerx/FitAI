@@ -29,6 +29,7 @@ import {
   weeklyReportSchema,
 } from "./coach";
 import {
+  DIET_MAX_OUTPUT_TOKENS,
   dietPlanPrompt,
   dietReference,
   dietSchema,
@@ -81,6 +82,7 @@ async function callGemini(
   parts: object[],
   responseSchema: object,
   systemInstruction?: string,
+  maxOutputTokens = 8192,
 ): Promise<unknown> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const response = await fetch(url, {
@@ -96,7 +98,7 @@ async function callGemini(
         responseMimeType: "application/json",
         responseSchema,
         temperature: 0.6,
-        maxOutputTokens: 8192,
+        maxOutputTokens,
       },
     }),
   });
@@ -173,17 +175,21 @@ export const generateWorkoutPlan = onCall(geminiCallable, withPlanQuota(async (r
   return normalizeWorkoutPlan(parsed, profile, locale);
 }));
 
-export const generateDietPlan = onCall(geminiCallable, async (request) => {
+// The detailed diet (three options per meal) is a long answer; the app waits up to 240 s for it.
+export const generateDietPlan = onCall({ ...geminiCallable, timeoutSeconds: 300 }, async (request) => {
   requireAuth(request);
   const profile = parseProfile(request.data);
+  const locale = parseLocale(asRecord(request.data).locale);
   const reference = dietReference(profile);
   const parsed = await callGemini(
     geminiApiKey.value(),
     GEMINI_PLAN_MODEL,
-    [{ text: dietPlanPrompt(profile, reference) }],
+    [{ text: dietPlanPrompt(profile, reference, locale) }],
     dietSchema,
+    undefined,
+    DIET_MAX_OUTPUT_TOKENS,
   );
-  return normalizeDietPlan(parsed, reference);
+  return normalizeDietPlan(parsed, reference, profile);
 });
 
 export const analyzeMealPhoto = onCall(geminiCallable, async (request) => {

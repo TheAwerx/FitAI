@@ -10,6 +10,7 @@ import {
   normalizeExercise,
   splitCodes,
 } from "./common";
+import { PlanMeal, mealPromptRules, normalizeMeals, planMealSchema } from "./dietMeals";
 
 // Plan prompts for generateWorkoutPlan / generateDietPlan. Every onboarding answer the app sends is used:
 // goal, gender, age, height, weight, activity, experience, obstacle, focus areas, days per week,
@@ -244,9 +245,13 @@ export const dietSchema = {
     proteinG: { type: "INTEGER" },
     carbsG: { type: "INTEGER" },
     fatG: { type: "INTEGER" },
+    meals: { type: "ARRAY", items: planMealSchema },
   },
-  required: ["dailyCalories", "proteinG", "carbsG", "fatG"],
+  required: ["dailyCalories", "proteinG", "carbsG", "fatG", "meals"],
 };
+
+/** Output budget for the detailed diet (targets plus three options per meal). */
+export const DIET_MAX_OUTPUT_TOKENS = 32768;
 
 export interface DietReference {
   bmr: number;
@@ -280,11 +285,11 @@ export function dietReference(profile: UserProfilePayload): DietReference {
   return { bmr: Math.round(bmr), tdee: Math.round(tdee), calories, proteinG, carbsG, fatG, minCalories };
 }
 
-export function dietPlanPrompt(profile: UserProfilePayload, reference: DietReference): string {
+export function dietPlanPrompt(profile: UserProfilePayload, reference: DietReference, locale: Locale = "tr"): string {
   const days = trainingDays(profile);
   const minutes = sessionMinutes(profile);
   return [
-    "You are a sports nutritionist. Set this user's daily calorie and macro targets as JSON.",
+    "You are a sports nutritionist. Set this user's daily calorie and macro targets and plan their meals as JSON.",
     "User:",
     ...profileFacts(profile),
     `Reference (Mifflin-St Jeor): BMR ${reference.bmr} kcal, maintenance ${reference.tdee} kcal, ` +
@@ -299,6 +304,9 @@ export function dietPlanPrompt(profile: UserProfilePayload, reference: DietRefer
     "- Fat at least 20% of calories. Carbohydrates fill the rest; more for endurance or many training days.",
     "- The targets must be reachable with the diet restrictions (e.g. vegan, gluten-free, halal).",
     "- calories must match the macros: protein 4, carbs 4, fat 9 kcal per gram (within 5%).",
+    ...mealPromptRules(
+      reference.calories, reference.proteinG, profile.goal, splitCodes(profile.dietRestrictions), locale,
+    ),
     "- " + SAFETY_RULES,
   ].join("\n");
 }
@@ -306,8 +314,14 @@ export function dietPlanPrompt(profile: UserProfilePayload, reference: DietRefer
 /**
  * Keeps the AI answer near [reference]: calories within 20%, protein within -20%/+25% and at most 45% of
  * calories, fat 20-40% of calories. Carbs are recomputed when the macros don't add up to the calories.
+ * With the [profile], the meals are cleaned and scaled to the final calories (see `normalizeMeals`); they
+ * come back empty when unusable, and the app then builds them from its food database.
  */
-export function normalizeDietPlan(parsed: unknown, reference: DietReference) {
+export function normalizeDietPlan(
+  parsed: unknown,
+  reference: DietReference,
+  profile?: UserProfilePayload,
+): { dailyCalories: number; proteinG: number; carbsG: number; fatG: number; meals: PlanMeal[] } {
   const p = asRecord(parsed);
   const calories = clamp(
     asInt(p.dailyCalories, reference.calories),
@@ -324,5 +338,6 @@ export function normalizeDietPlan(parsed: unknown, reference: DietReference) {
   if (Math.abs(fromMacros - calories) > calories * 0.05) {
     carbsG = Math.max(0, Math.round((calories - proteinG * 4 - fatG * 9) / 4));
   }
-  return { dailyCalories: calories, proteinG, carbsG, fatG };
+  const meals = profile ? normalizeMeals(p.meals, calories, proteinG, profile.dietRestrictions) : [];
+  return { dailyCalories: calories, proteinG, carbsG, fatG, meals };
 }
