@@ -51,6 +51,8 @@ npm install
 cd ..
 firebase functions:secrets:set GEMINI_API_KEY
 # yapıştır → Enter
+# Deneme (trial) cihaz anahtarı için HMAC sırrı: bir kez oluştur, sonra asla değiştirme
+openssl rand -hex 32 | firebase functions:secrets:set TRIAL_DEVICE_PEPPER --data-file=-
 firebase deploy --only functions,firestore:rules
 ```
 
@@ -64,7 +66,7 @@ Firebase Console → Functions listesinde şunlar `us-central1` bölgesinde olma
 - `generateWorkoutPlan`
 - `generateDietPlan`
 - `analyzeMealPhoto`
-- `initGuestTrial`
+- `startTrial`
 - `getTrialStatus`
 - `suggestNextMeal`
 - `adaptTodaySession`
@@ -128,13 +130,26 @@ Uygulamada onboarding’i bitirince plan üretimi mock yerine Gemini çıktısı
 
 Koleksiyonlar, alanlar, hangi ekrandan geldikleri ve kimin yazdığı: [`SCHEMA.md`](SCHEMA.md).
 `firestore.rules` yalnız sahibine (anonim olmayan giriş) izin verir, alanları doğrular;
-sunucu koleksiyonlarına (`guest_trials`, `plan_quotas`, `device_trials`, `aiUsage`)
+sunucu koleksiyonlarına (`trials`, `device_trials`, `guest_trials`, `plan_quotas`, `aiUsage`)
 istemci yazamaz. Kuralları değiştirince emülatörde test et (canlı projeye dokunmaz,
 `demo-fitai` projesi kullanılır; Firestore emülatörü JDK 21 ister):
 
 ```bash
 cd firebase/rules-tests
 npm install
+JAVA_HOME="$HOME/Applications/Android Studio.app/Contents/jbr/Contents/Home" npm test
+```
+
+## Ücretsiz deneme (hesap + cihaz başına bir kez)
+
+`startTrial` / `getTrialStatus` (`functions/src/trial.ts`): 7 gün, hesap başına ve cihaz
+başına bir kez, sunucu saatiyle. Tasarım, açıklar ve yayın adımları: [`docs/trial.md`](../docs/trial.md).
+`TRIAL_DEVICE_PEPPER` yoksa `startTrial` deneme başlatmaz. `initGuestTrial` kaldırıldı;
+deploy sırasında CLI silmeyi sorar, onayla. Testler Firestore emülatöründe (port 8181):
+
+```bash
+cd firebase/functions
+npm ci
 JAVA_HOME="$HOME/Applications/Android Studio.app/Contents/jbr/Contents/Home" npm test
 ```
 

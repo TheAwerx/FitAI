@@ -205,8 +205,20 @@ describe("server-only and reserved collections", () => {
     await assertFails(setDoc(doc(signedIn("alice"), "plan_quotas/alice"), { workoutPlansGenerated: 0 }));
   });
 
+  it("trials is closed to clients, even the owner", async () => {
+    await seed("trials/alice", { schemaVersion: 1, trialDays: 7, deviceHash: "hash1", platform: "android" });
+    await assertFails(getDoc(doc(signedIn("alice"), "trials/alice")));
+    await assertFails(setDoc(doc(signedIn("alice"), "trials/alice"), { trialDays: 365 }));
+    await assertFails(setDoc(doc(signedIn("bob"), "trials/bob"), { trialDays: 7 }));
+    await assertFails(deleteDoc(doc(signedIn("alice"), "trials/alice")));
+    await assertFails(getDocs(collection(signedIn("alice"), "trials")));
+    await assertFails(getDoc(doc(anonymous("alice"), "trials/alice")));
+  });
+
   it("device_trials and aiUsage are closed to clients", async () => {
-    await seed("device_trials/hash1", { uids: ["alice"] });
+    await seed("device_trials/hash1", { firstUid: "alice", platform: "android", keyVersion: 1 });
+    await assertFails(deleteDoc(doc(signedIn("alice"), "device_trials/hash1")));
+    await assertFails(getDocs(collection(signedIn("alice"), "device_trials")));
     await seed("aiUsage/alice/days/2026-11-15", { coachChat: 3 });
     const db = signedIn("alice");
     await assertFails(getDoc(doc(db, "device_trials/hash1")));

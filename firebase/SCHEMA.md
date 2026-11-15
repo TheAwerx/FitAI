@@ -38,8 +38,9 @@ Rules live in `firestore.rules`; tests in `rules-tests/`.
 | `users/{uid}/measurements/{measurementId}` | client | owner, functions |
 | `users/{uid}/devices/{installationId}` | client, *reserved* | owner, functions |
 | `plan_quotas/{uid}` | functions only, *reserved* | owner (read-only) |
-| `device_trials/{deviceKey}` | functions only, *reserved* | nobody (server only) |
-| `guest_trials/{uid}` | functions only | owner (read-only) |
+| `trials/{uid}` | functions only (`startTrial`) | nobody (server only) |
+| `device_trials/{deviceHash}` | functions only (`startTrial`) | nobody (server only) |
+| `guest_trials/{uid}` | *legacy, frozen* | owner (read-only) |
 | `aiUsage/{uid}/days/{yyyy-mm-dd}` | functions only | nobody (server only) |
 | `user_profiles/{uid}` | *legacy, frozen* | owner (read-only) |
 
@@ -80,7 +81,7 @@ after any synced preference changes (debounced).
 | `updatedAt` | ISO string | device | last write |
 
 Device-only (not synced): streak freeze week, starter-challenge flags, funnel stage,
-`requires_login`. The app language is stored per device.
+`requires_login`, the cached trial answer and the "trial requested before sign-up" flag. The app language is stored per device.
 
 ### `users/{uid}/workout_plans/{planId}`
 
@@ -178,15 +179,46 @@ the client overwrites that document and the rules allow only the keys listed abo
 write. Suggested fields: `workoutPlansGenerated` (int), `dietPlansGenerated` (int),
 `periodStart` (timestamp), `limit` (int), `updatedAt` (timestamp).
 
-**`device_trials/{deviceKey}`** keeps device-based trial tracking. No client access.
-`deviceKey` is a server-side hash of a device identifier. Suggested fields: `firstSeenAt`,
-`trialStartedAt`, `trialExpiresAt` (timestamps), `uids` (list of string).
-
 ### Server-only today
 
-**`guest_trials/{uid}`**: `trialStartedAt`, `trialExpiresAt` (ISO strings),
-`daysRemaining` (int), `isActive`, `hasSubscription` (bool). Written by
-`initGuestTrial` / `getTrialStatus`; the client only reads it.
+**Free trial** (7 days, once per account and once per device; `functions/src/trial.ts`,
+design and known gaps in [`docs/trial.md`](../docs/trial.md)). Only the `startTrial`
+callable writes, in one transaction over both documents. The app never reads them: it calls
+`getTrialStatus`, which answers with server time.
+
+`trials/{uid}`, the account's trial. Written once and never restarted:
+
+| Field | Type | Notes |
+|---|---|---|
+| `schemaVersion` | int | `1` |
+| `startedAt`, `endsAt` | timestamp | `endsAt = startedAt + 7 days`, server time |
+| `trialDays` | int | `7` |
+| `deviceHash` | string | id of the `device_trials` document it was started on |
+| `platform` | `android` \| `ios` | |
+| `createdAt` | timestamp | server timestamp |
+
+`device_trials/{deviceHash}`, the device a trial was started on. A second account on the
+same device is refused. `deviceHash = HMAC-SHA256(TRIAL_DEVICE_PEPPER,
+"fitai-trial-device:v1:" + deviceKey)` as hex; the app's `deviceKey` is itself a SHA-256 of
+`ANDROID_ID` (Android) or a Keychain UUID (iOS), so no raw device id is stored or sent.
+
+| Field | Type | Notes |
+|---|---|---|
+| `schemaVersion` | int | `1` |
+| `keyVersion` | int | `1`; bump with the hash input if the device key changes |
+| `firstUid` | string | the account that started the trial here |
+| `startedAt`, `endsAt` | timestamp | copy of the account's trial |
+| `platform` | `android` \| `ios` | |
+| `createdAt` | timestamp | server timestamp |
+
+The callables answer `{ state: eligible | active | expired | used, started, trialDays,
+startedAt, endsAt, serverTime, daysRemaining }` plus the old `trialStartedAt`,
+`trialExpiresAt`, `isActive`, `hasSubscription` fields for app builds from before this change.
+
+**`guest_trials/{uid}`** (legacy): the old 3-day trial that `initGuestTrial` /
+`getTrialStatus` created for any session, anonymous ones included. Nothing writes or reads it
+any more and it doesn't count as a used trial. Rules keep it read-only; delete the
+collection once old builds are gone.
 
 **`aiUsage/{uid}/days/{yyyy-mm-dd}`**: one counter per AI function, `updatedAt`, and
 `expiresAt` (TTL). Admin SDK only.

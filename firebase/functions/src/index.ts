@@ -40,10 +40,12 @@ import {
 import { withDailyQuota } from "./rateLimit";
 import { withPlanQuota } from "./planQuota";
 
+// One free trial per account and per device (trial.ts). `initGuestTrial` was removed with it.
+export { getTrialStatus, startTrial } from "./trial";
+
 admin.initializeApp();
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
-const TRIAL_DAYS = 3;
 const GEMINI_PLAN_MODEL = "gemini-3.1-pro-preview";
 const GEMINI_VISION_MODEL = "gemini-3.5-flash";
 const FUNCTIONS_REGION = "us-central1";
@@ -55,12 +57,6 @@ const geminiCallable = {
   cors: true,
   invoker: "public" as const,
   secrets: [geminiApiKey],
-};
-
-const authCallable = {
-  region: FUNCTIONS_REGION,
-  cors: true,
-  invoker: "public" as const,
 };
 
 const mealSchema = {
@@ -138,22 +134,6 @@ function normalizeMeal(parsed: Record<string, unknown>) {
     proteinG: Math.max(0, asNumber(parsed.proteinG, 0)),
     carbsG: Math.max(0, asNumber(parsed.carbsG, 0)),
     fatG: Math.max(0, asNumber(parsed.fatG, 0)),
-  };
-}
-
-function trialStatus(startedAt: Date, hasSubscription = false) {
-  const expiresAt = new Date(startedAt);
-  expiresAt.setDate(expiresAt.getDate() + TRIAL_DAYS);
-  const now = new Date();
-  const msRemaining = expiresAt.getTime() - now.getTime();
-  const daysRemaining = Math.max(0, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)));
-  const isActive = msRemaining > 0 || hasSubscription;
-  return {
-    trialStartedAt: startedAt.toISOString(),
-    trialExpiresAt: expiresAt.toISOString(),
-    daysRemaining,
-    isActive,
-    hasSubscription,
   };
 }
 
@@ -276,32 +256,4 @@ export const weeklyCoachReport = onCall(geminiCallable, async (request) => {
     );
     return normalizeWeeklyReport(parsed, input);
   });
-});
-
-export const initGuestTrial = onCall(authCallable, async (request) => {
-  const uid = requireAuth(request);
-  const ref = admin.firestore().collection("guest_trials").doc(uid);
-  const existing = await ref.get();
-  if (existing.exists) {
-    const data = existing.data()!;
-    return trialStatus(new Date(data.trialStartedAt), data.hasSubscription ?? false);
-  }
-  const startedAt = new Date();
-  const status = trialStatus(startedAt);
-  await ref.set(status);
-  return status;
-});
-
-export const getTrialStatus = onCall(authCallable, async (request) => {
-  const uid = requireAuth(request);
-  const ref = admin.firestore().collection("guest_trials").doc(uid);
-  const doc = await ref.get();
-  if (!doc.exists) {
-    const startedAt = new Date();
-    const status = trialStatus(startedAt);
-    await ref.set(status);
-    return status;
-  }
-  const data = doc.data()!;
-  return trialStatus(new Date(data.trialStartedAt), data.hasSubscription ?? false);
 });

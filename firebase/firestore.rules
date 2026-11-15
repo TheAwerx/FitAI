@@ -290,10 +290,15 @@ service cloud.firestore {
 
     // ---------- Written only by Cloud Functions ----------
 
-    // initGuestTrial / getTrialStatus; the app reads the trial of its own (possibly anonymous) session.
+    // Legacy 3-day guest trial (initGuestTrial, removed). Frozen; the app no longer reads it.
     match /guest_trials/{uid} {
       allow get: if isOwner(uid);
       allow list, write: if false;
+    }
+
+    // One trial per account (trial.ts: startTrial / getTrialStatus). The app gets its status from the callable.
+    match /trials/{uid} {
+      allow read, write: if false;
     }
 
     // Plan regeneration rights (planQuota.ts); only the generateWorkoutPlan callable writes here.
@@ -302,8 +307,8 @@ service cloud.firestore {
       allow list, write: if false;
     }
 
-    // Reserved: device-based trial tracking. Server only.
-    match /device_trials/{deviceKey} {
+    // Device that started a trial, keyed by HMAC of the device key (trial.ts). Server only.
+    match /device_trials/{deviceHash} {
       allow read, write: if false;
     }
 

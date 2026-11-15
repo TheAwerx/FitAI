@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTrialStatus = exports.initGuestTrial = exports.weeklyCoachReport = exports.coachChat = exports.adaptTodaySession = exports.suggestNextMeal = exports.analyzeMealPhoto = exports.generateDietPlan = exports.generateWorkoutPlan = void 0;
+exports.weeklyCoachReport = exports.coachChat = exports.adaptTodaySession = exports.suggestNextMeal = exports.analyzeMealPhoto = exports.generateDietPlan = exports.generateWorkoutPlan = exports.startTrial = exports.getTrialStatus = void 0;
 const admin = __importStar(require("firebase-admin"));
 const https_1 = require("firebase-functions/v2/https");
 const params_1 = require("firebase-functions/params");
@@ -42,9 +42,12 @@ const coach_1 = require("./coach");
 const plans_1 = require("./plans");
 const rateLimit_1 = require("./rateLimit");
 const planQuota_1 = require("./planQuota");
+// One free trial per account and per device (trial.ts). `initGuestTrial` was removed with it.
+var trial_1 = require("./trial");
+Object.defineProperty(exports, "getTrialStatus", { enumerable: true, get: function () { return trial_1.getTrialStatus; } });
+Object.defineProperty(exports, "startTrial", { enumerable: true, get: function () { return trial_1.startTrial; } });
 admin.initializeApp();
 const geminiApiKey = (0, params_1.defineSecret)("GEMINI_API_KEY");
-const TRIAL_DAYS = 3;
 const GEMINI_PLAN_MODEL = "gemini-3.1-pro-preview";
 const GEMINI_VISION_MODEL = "gemini-3.5-flash";
 const FUNCTIONS_REGION = "us-central1";
@@ -55,11 +58,6 @@ const geminiCallable = {
     cors: true,
     invoker: "public",
     secrets: [geminiApiKey],
-};
-const authCallable = {
-    region: FUNCTIONS_REGION,
-    cors: true,
-    invoker: "public",
 };
 const mealSchema = {
     type: "OBJECT",
@@ -121,21 +119,6 @@ function normalizeMeal(parsed) {
         proteinG: Math.max(0, (0, common_1.asNumber)(parsed.proteinG, 0)),
         carbsG: Math.max(0, (0, common_1.asNumber)(parsed.carbsG, 0)),
         fatG: Math.max(0, (0, common_1.asNumber)(parsed.fatG, 0)),
-    };
-}
-function trialStatus(startedAt, hasSubscription = false) {
-    const expiresAt = new Date(startedAt);
-    expiresAt.setDate(expiresAt.getDate() + TRIAL_DAYS);
-    const now = new Date();
-    const msRemaining = expiresAt.getTime() - now.getTime();
-    const daysRemaining = Math.max(0, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)));
-    const isActive = msRemaining > 0 || hasSubscription;
-    return {
-        trialStartedAt: startedAt.toISOString(),
-        trialExpiresAt: expiresAt.toISOString(),
-        daysRemaining,
-        isActive,
-        hasSubscription,
     };
 }
 // Both plan callables take the app's UserProfilePayload (all onboarding answers) plus `locale`.
@@ -211,33 +194,5 @@ exports.weeklyCoachReport = (0, https_1.onCall)(geminiCallable, async (request) 
         const parsed = await callGemini(geminiApiKey.value(), GEMINI_VISION_MODEL, [{ text: (0, coach_1.weeklyReportPrompt)(input) }], coach_1.weeklyReportSchema);
         return (0, coach_1.normalizeWeeklyReport)(parsed, input);
     });
-});
-exports.initGuestTrial = (0, https_1.onCall)(authCallable, async (request) => {
-    var _a;
-    const uid = requireAuth(request);
-    const ref = admin.firestore().collection("guest_trials").doc(uid);
-    const existing = await ref.get();
-    if (existing.exists) {
-        const data = existing.data();
-        return trialStatus(new Date(data.trialStartedAt), (_a = data.hasSubscription) !== null && _a !== void 0 ? _a : false);
-    }
-    const startedAt = new Date();
-    const status = trialStatus(startedAt);
-    await ref.set(status);
-    return status;
-});
-exports.getTrialStatus = (0, https_1.onCall)(authCallable, async (request) => {
-    var _a;
-    const uid = requireAuth(request);
-    const ref = admin.firestore().collection("guest_trials").doc(uid);
-    const doc = await ref.get();
-    if (!doc.exists) {
-        const startedAt = new Date();
-        const status = trialStatus(startedAt);
-        await ref.set(status);
-        return status;
-    }
-    const data = doc.data();
-    return trialStatus(new Date(data.trialStartedAt), (_a = data.hasSubscription) !== null && _a !== void 0 ? _a : false);
 });
 //# sourceMappingURL=index.js.map
