@@ -9,7 +9,7 @@ import com.fitai.app.auth.SendPasswordResetUseCase
 import com.fitai.app.auth.SignInWithAppleUseCase
 import com.fitai.app.auth.SignInWithGoogleUseCase
 import com.fitai.app.auth.SignOutUseCase
-import com.fitai.app.auth.SyncPlansToFirestoreUseCase
+import com.fitai.app.auth.SyncUserDataToCloudUseCase
 import org.koin.core.module.dsl.factoryOf
 import org.koin.dsl.module
 
@@ -19,7 +19,7 @@ val authDomainModule = module {
     factoryOf(::LinkExistingSessionUseCase)
     factoryOf(::AuthenticateWithEmailUseCase)
     factoryOf(::SendPasswordResetUseCase)
-    factoryOf(::SyncPlansToFirestoreUseCase)
+    factoryOf(::SyncUserDataToCloudUseCase)
     factoryOf(::SignInWithGoogleUseCase)
     factoryOf(::SignInWithAppleUseCase)
     factoryOf(::SignOutUseCase)

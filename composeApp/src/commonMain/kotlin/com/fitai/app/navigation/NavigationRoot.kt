@@ -105,6 +105,12 @@ fun NavigationRoot(
                             preferences.onboardingCompleted = false
                             navController.replaceAll(OnboardingRoute)
                         }
+                        outcome == SignInOutcome.RestoredWithPlans -> {
+                            preferences.welcomeSeen = true
+                            preferences.onboardingCompleted = true
+                            preferences.funnelStage = null
+                            navController.replaceAll(MainTabRoute)
+                        }
                         outcome == SignInOutcome.RestoredFromCloud || !preferences.onboardingCompleted -> {
                             preferences.funnelStage = FunnelStage.PlanSetup
                             navController.replaceAll(PlanSetupRoute)

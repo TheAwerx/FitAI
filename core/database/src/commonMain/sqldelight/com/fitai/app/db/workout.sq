@@ -69,6 +69,10 @@ SELECT * FROM workout_plans WHERE id = ?;
 selectExercisesForPlan:
 SELECT * FROM exercises WHERE plan_id = ? AND day_of_week > 0 ORDER BY day_of_week, name;
 
+-- Includes archived exercises; used by the cloud copy so session history keeps its exercises.
+selectAllExercisesForPlan:
+SELECT * FROM exercises WHERE plan_id = ? ORDER BY day_of_week, name;
+
 selectExercisesForPlanDay:
 SELECT * FROM exercises WHERE plan_id = ? AND day_of_week = ? ORDER BY name;
 

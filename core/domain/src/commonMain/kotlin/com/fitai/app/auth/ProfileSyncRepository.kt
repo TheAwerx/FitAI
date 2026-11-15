@@ -1,10 +1,15 @@
 package com.fitai.app.auth
 
-import com.fitai.app.model.LocalUserProfile
+import com.fitai.app.sync.CloudUserProfile
 
+/** The account document `users/{uid}` (see `firebase/SCHEMA.md`). */
 interface ProfileSyncRepository {
     val isFirebaseAvailable: Boolean
-    suspend fun pushLocalProfile(uid: String, local: LocalUserProfile): Result<Unit>
-    /** Cloud copy written by [pushLocalProfile]; null when the account has none. */
-    suspend fun pullProfile(uid: String): Result<LocalUserProfile?>
+    suspend fun pushProfile(uid: String, profile: CloudUserProfile): Result<Unit>
+
+    /**
+     * `users/{uid}`, else the legacy `user_profiles/{uid}` ([CloudUserProfile.legacy]); null when the
+     * account has neither.
+     */
+    suspend fun pullProfile(uid: String): Result<CloudUserProfile?>
 }

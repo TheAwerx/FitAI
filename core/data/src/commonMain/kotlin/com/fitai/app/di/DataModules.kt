@@ -65,9 +65,17 @@ import com.fitai.app.repository.NutritionRepositoryImpl
 import com.fitai.app.repository.UserLocalDataSource
 import com.fitai.app.repository.WorkoutRepository
 import com.fitai.app.repository.WorkoutRepositoryImpl
-import com.fitai.app.sync.FirestorePlanSyncRepository
-import com.fitai.app.sync.NoOpPlanSyncRepository
-import com.fitai.app.sync.PlanSyncRepository
+import com.fitai.app.sync.CloudSyncLocalDataSource
+import com.fitai.app.sync.CloudSyncScheduler
+import com.fitai.app.sync.FirestoreSyncRemoteDataSource
+import com.fitai.app.sync.FirestoreUserDataSyncRepository
+import com.fitai.app.sync.NoOpUserDataSyncRepository
+import com.fitai.app.sync.SyncingLocalUserRepository
+import com.fitai.app.sync.SyncingNutritionRepository
+import com.fitai.app.sync.SyncingProgressRepository
+import com.fitai.app.sync.SyncingUserPreferencesRepository
+import com.fitai.app.sync.SyncingWorkoutRepository
+import com.fitai.app.sync.UserDataSyncRepository
 import com.fitai.app.trial.FirestoreTrialRepository
 import com.fitai.app.trial.LocalTrialRepository
 import com.fitai.app.trial.TrialRepository
@@ -84,9 +92,14 @@ fun databaseModule() = module {
 fun dataRepositoryModule(useRemotePlanGeneration: Boolean) = module {
     single { HttpClientFactory.create() }
     single { UserLocalDataSource(get()) }
-    single<WorkoutRepository> { WorkoutRepositoryImpl(get()) }
-    single<NutritionRepository> { NutritionRepositoryImpl(get()) }
-    single<LocalUserRepository> { LocalUserRepositoryImpl(get()) }
+    // Cloud copy (firebase/SCHEMA.md): device writes go to SQLDelight first, then the scheduler mirrors them.
+    single { CloudSyncLocalDataSource(get()) }
+    single { FirestoreSyncRemoteDataSource() }
+    single { UserPreferencesRepositoryImpl(get()) }
+    single { CloudSyncScheduler(get(), get(), get<UserPreferencesRepositoryImpl>()) }
+    single<WorkoutRepository> { SyncingWorkoutRepository(WorkoutRepositoryImpl(get()), get()) }
+    single<NutritionRepository> { SyncingNutritionRepository(NutritionRepositoryImpl(get()), get()) }
+    single<LocalUserRepository> { SyncingLocalUserRepository(LocalUserRepositoryImpl(get()), get()) }
     single { AiRemoteDataSource() }
     single<AIRepository> {
         val localPlans = MockAIRepository()
@@ -99,19 +112,19 @@ fun dataRepositoryModule(useRemotePlanGeneration: Boolean) = module {
     single<TrialRepository> {
         if (FirebaseBootstrap.ensureInitialized()) FirestoreTrialRepository() else LocalTrialRepository()
     }
-    single<PlanSyncRepository> {
+    single<UserDataSyncRepository> {
         if (FirebaseBootstrap.ensureInitialized()) {
-            FirestorePlanSyncRepository(get(), get())
+            FirestoreUserDataSyncRepository(get(), get())
         } else {
-            NoOpPlanSyncRepository()
+            NoOpUserDataSyncRepository()
         }
     }
-    single<ProfileSyncRepository> { FirestoreProfileSyncRepository() }
-    single<ProgressRepository> { ProgressRepositoryImpl(get()) }
+    single<ProfileSyncRepository> { FirestoreProfileSyncRepository(get()) }
+    single<ProgressRepository> { SyncingProgressRepository(ProgressRepositoryImpl(get()), get()) }
     single<EntitlementRepository> { EntitlementRepositoryImpl(get(), get()) }
     single<UsageLimitRepository> { UsageLimitRepositoryImpl(get()) }
     single<AnalyticsTracker> { LogAnalyticsTracker() }
-    single<UserPreferencesRepository> { UserPreferencesRepositoryImpl(get()) }
+    single<UserPreferencesRepository> { SyncingUserPreferencesRepository(get<UserPreferencesRepositoryImpl>(), get()) }
     single<LocalSessionRepository> { LocalSessionRepositoryImpl(get(), get()) }
     single<BillingRepository> { MockBillingRepository(get()) }
     single<ReminderStateRepository> { ReminderStateRepositoryImpl(get()) }
