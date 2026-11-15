@@ -9,6 +9,8 @@ import kotlinx.datetime.plus
 /**
  * Builds the full schedule from plain inputs. Onboarding messages fire instead of (not in addition to)
  * the repeating workout / meal reminder on the same day; that is what the skip dates encode.
+ * [includeMealNudge] is false when the meal reminder is switched off, or when server pushes own it
+ * (they only fire when nothing was logged; see firebase/SCHEMA.md, "Push notifications").
  */
 object ReminderPlanner {
     const val MEAL_NUDGE_HOUR = 12
@@ -32,6 +34,7 @@ object ReminderPlanner {
         trialExpiresAtMillis: Long?,
         texts: ReminderTexts,
         timeZone: TimeZone = TimeZone.currentSystemDefault(),
+        includeMealNudge: Boolean = true,
     ): ReminderSchedule {
         val workoutSkips = mutableSetOf<String>()
         val mealSkips = mutableSetOf<String>()
@@ -66,7 +69,11 @@ object ReminderPlanner {
             workoutReminder = trainingDays.takeIf { it.isNotEmpty() }?.let { days ->
                 WorkoutReminder(days, reminderHour, reminderMinute, texts.workout.title, texts.workout.body, workoutSkips)
             },
-            mealNudge = MealNudge(MEAL_NUDGE_HOUR, MEAL_NUDGE_MINUTE, texts.meal.title, texts.meal.body, mealSkips),
+            mealNudge = if (includeMealNudge) {
+                MealNudge(MEAL_NUDGE_HOUR, MEAL_NUDGE_MINUTE, texts.meal.title, texts.meal.body, mealSkips)
+            } else {
+                null
+            },
             onboardingSequence = upcoming.takeIf { it.isNotEmpty() }?.let { OnboardingSequence(sequenceAnchorMillis, it) },
             trialEndReminder = trialExpiresAtMillis
                 ?.let { trialReminderAt(it, nowMillis, timeZone) }

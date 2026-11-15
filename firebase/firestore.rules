@@ -102,6 +102,16 @@ service cloud.firestore {
       return ['personal_plan', 'smart_overload', 'plate_photo', 'log_lifts', 'streak', 'ai_coach'];
     }
 
+    // Settings → Smart notifications; read by the push functions (functions/src/notifications).
+    function validNotificationTypes(t) {
+      return t is map
+        && hasExactly(t, ['workoutLate', 'mealLogging', 'streakRisk', 'comeback'])
+        && t.workoutLate is bool
+        && t.mealLogging is bool
+        && t.streakRisk is bool
+        && t.comeback is bool;
+    }
+
     // ---------- Documents ----------
 
     function validUser(d) {
@@ -109,7 +119,7 @@ service cloud.firestore {
           'schemaVersion', 'localUserId', 'name', 'email', 'age', 'heightCm', 'weightKg', 'gender',
           'goal', 'activityLevel', 'equipment', 'dietRestrictions', 'experience', 'obstacle',
           'focusAreas', 'daysPerWeek', 'sessionMinutes', 'attributionSource', 'commitmentConfirmedAt',
-          'notificationsEnabled', 'reminderHour', 'reminderMinute', 'language', 'timeZone',
+          'notificationsEnabled', 'notificationTypes', 'reminderHour', 'reminderMinute', 'language', 'timeZone',
           'createdAt', 'updatedAt'
         ])
         && isVersioned(d)
@@ -132,6 +142,7 @@ service cloud.firestore {
         && isOptCode(d.attributionSource, ['tiktok', 'instagram', 'youtube', 'friend', 'gym', 'search', 'other'])
         && isOptIso(d.commitmentConfirmedAt)
         && d.notificationsEnabled is bool
+        && validNotificationTypes(d.notificationTypes)
         && isIntIn(d.reminderHour, 0, 23)
         && isIntIn(d.reminderMinute, 0, 59)
         && d.language in ['tr', 'en']
@@ -235,9 +246,10 @@ service cloud.firestore {
         && isIso(d.updatedAt);
     }
 
-    // Reserved for push notifications; nothing writes it yet.
+    // Push token of one app installation (`installationId` is a random per-install id).
     function validDevice(d) {
-      return hasExactly(d, ['platform', 'fcmToken', 'language', 'timeZone', 'appVersion', 'updatedAt'])
+      return hasExactly(d, ['schemaVersion', 'platform', 'fcmToken', 'language', 'timeZone', 'appVersion', 'updatedAt'])
+        && isVersioned(d)
         && d.platform in ['android', 'ios']
         && isNonEmptyStr(d.fcmToken, 4096)
         && d.language in ['tr', 'en']
@@ -314,6 +326,11 @@ service cloud.firestore {
 
     // Daily AI quota counters (rateLimit.ts). Server only.
     match /aiUsage/{uid}/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Push scheduling state and sent log (functions/src/notifications/state.ts). Server only.
+    match /notification_state/{uid} {
       allow read, write: if false;
     }
 

@@ -25,6 +25,7 @@ export function userDoc(overrides = {}) {
     attributionSource: "instagram",
     commitmentConfirmedAt: "2026-11-01T10:05:00Z",
     notificationsEnabled: true,
+    notificationTypes: { workoutLate: true, mealLogging: true, streakRisk: false, comeback: true },
     reminderHour: 18,
     reminderMinute: 0,
     language: "tr",
@@ -138,6 +139,7 @@ export function measurementDoc(id, overrides = {}) {
 
 export function deviceDoc(overrides = {}) {
   return {
+    schemaVersion: 1,
     platform: "android",
     fcmToken: "fcm-token-123",
     language: "tr",
@@ -154,3 +156,4 @@ export const DIET_PLAN_KEYS = Object.keys(dietPlanDoc("d"));
 export const SESSION_KEYS = Object.keys(sessionDoc("s"));
 export const MEAL_KEYS = Object.keys(mealDoc("m"));
 export const MEASUREMENT_KEYS = Object.keys(measurementDoc("w"));
+export const DEVICE_KEYS = Object.keys(deviceDoc());

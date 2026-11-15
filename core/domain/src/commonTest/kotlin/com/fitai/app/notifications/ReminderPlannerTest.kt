@@ -45,6 +45,15 @@ class ReminderPlannerTest {
     }
 
     @Test
+    fun mealNudgeIsLeftOutWhenServerPushOwnsIt() {
+        val schedule = ReminderPlanner.plan(mondayMorning, 18, 0, setOf(1, 3, 5), mondayMorning, null, texts, utc, includeMealNudge = false)
+        assertNull(schedule.mealNudge)
+        // The fixed workout reminder and the onboarding sequence stay local.
+        assertEquals(setOf(1, 3, 5), schedule.workoutReminder!!.days)
+        assertEquals(listOf(0, 1, 2, 3, 5, 7), schedule.onboardingSequence!!.items.map { it.dayOffset })
+    }
+
+    @Test
     fun weeklyOccurrencesHonourSkipDates() {
         val next = ReminderTimes.nextOccurrence(mondayMorning, 18, 0, setOf(1, 3), setOf("2026-11-09"), utc)
         assertEquals(ReminderTimes.epochMillisAt(LocalDate(2026, 11, 11), 18, 0, utc), next)

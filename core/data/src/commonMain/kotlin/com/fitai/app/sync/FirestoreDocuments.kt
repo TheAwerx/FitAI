@@ -15,6 +15,7 @@ internal object FirestorePaths {
     const val WORKOUT_SESSIONS = "workout_sessions"
     const val MEAL_LOGS = "meal_logs"
     const val MEASUREMENTS = "measurements"
+    const val DEVICES = "devices"
 }
 
 internal const val CLOUD_SCHEMA_VERSION = 1
@@ -41,6 +42,7 @@ internal data class UserDocument(
     val attributionSource: String? = null,
     val commitmentConfirmedAt: String? = null,
     val notificationsEnabled: Boolean = false,
+    val notificationTypes: NotificationTypesDocument = NotificationTypesDocument(),
     val reminderHour: Int = DEFAULT_REMINDER_HOUR,
     val reminderMinute: Int = 0,
     val language: String = "tr",
@@ -53,6 +55,28 @@ internal data class UserDocument(
         const val DEFAULT_REMINDER_HOUR = 18
     }
 }
+
+/** `users/{uid}.notificationTypes`: Settings → Smart notifications (server push types). */
+@Serializable
+internal data class NotificationTypesDocument(
+    val workoutLate: Boolean = true,
+    val mealLogging: Boolean = true,
+    val streakRisk: Boolean = true,
+    val comeback: Boolean = true,
+)
+
+/** `users/{uid}/devices/{installationId}`: where server pushes for the account go. */
+@Serializable
+internal data class DeviceDocument(
+    val schemaVersion: Int = CLOUD_SCHEMA_VERSION,
+    /** `android` | `ios` */
+    val platform: String = "",
+    val fcmToken: String = "",
+    val language: String = "tr",
+    val timeZone: String = "UTC",
+    val appVersion: String = "",
+    val updatedAt: String = "",
+)
 
 /** Pre-schema `user_profiles/{uid}`; read once on sign-in and moved into [UserDocument]. */
 @Serializable

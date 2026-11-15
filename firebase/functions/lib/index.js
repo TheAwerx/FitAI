@@ -33,13 +33,22 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.weeklyCoachReport = exports.coachChat = exports.adaptTodaySession = exports.suggestNextMeal = exports.analyzeMealPhoto = exports.generateDietPlan = exports.generateWorkoutPlan = exports.startTrial = exports.getTrialStatus = void 0;
+exports.weeklyCoachReport = exports.coachChat = exports.adaptTodaySession = exports.suggestNextMeal = exports.analyzeMealPhoto = exports.generateDietPlan = exports.generateWorkoutPlan = exports.startTrial = exports.getTrialStatus = exports.notificationsOnMealCreated = exports.notificationsOnSessionWritten = exports.notificationsOnPlanWritten = exports.notificationsOnDeviceWritten = exports.notificationsOnUserWritten = exports.notificationSweep = void 0;
 const admin = __importStar(require("firebase-admin"));
 const https_1 = require("firebase-functions/v2/https");
 const params_1 = require("firebase-functions/params");
 const common_1 = require("./common");
 const coach_1 = require("./coach");
 const plans_1 = require("./plans");
+// Dynamic push notifications (src/notifications, firebase/SCHEMA.md "Push notifications").
+// The handlers use admin lazily, so exporting before initializeApp() below is fine.
+var notifications_1 = require("./notifications");
+Object.defineProperty(exports, "notificationSweep", { enumerable: true, get: function () { return notifications_1.notificationSweep; } });
+Object.defineProperty(exports, "notificationsOnUserWritten", { enumerable: true, get: function () { return notifications_1.notificationsOnUserWritten; } });
+Object.defineProperty(exports, "notificationsOnDeviceWritten", { enumerable: true, get: function () { return notifications_1.notificationsOnDeviceWritten; } });
+Object.defineProperty(exports, "notificationsOnPlanWritten", { enumerable: true, get: function () { return notifications_1.notificationsOnPlanWritten; } });
+Object.defineProperty(exports, "notificationsOnSessionWritten", { enumerable: true, get: function () { return notifications_1.notificationsOnSessionWritten; } });
+Object.defineProperty(exports, "notificationsOnMealCreated", { enumerable: true, get: function () { return notifications_1.notificationsOnMealCreated; } });
 const rateLimit_1 = require("./rateLimit");
 const planQuota_1 = require("./planQuota");
 // One free trial per account and per device (trial.ts). `initGuestTrial` was removed with it.

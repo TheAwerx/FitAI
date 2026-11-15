@@ -3,6 +3,7 @@ package com.fitai.app.sync
 import com.fitai.app.model.LocalUserProfile
 import com.fitai.app.model.OnboardingAnswers
 import com.fitai.app.model.toProfilePayload
+import com.fitai.app.notifications.PushNotificationTypes
 import com.fitai.app.preferences.UserPreferencesRepository
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -72,6 +73,7 @@ class CloudSyncTest {
             sessionMinutes = 60
             notificationsEnabled = true
             reminderHour = 20
+            pushNotificationTypes = PushNotificationTypes(workoutLate = false, comeback = false)
         }
         val cloud = buildCloudUserProfile(local, source, null, language = "tr", timeZone = "UTC")
         val target = FakePreferences()
@@ -84,6 +86,7 @@ class CloudSyncTest {
         assertEquals(5, target.commitmentDaysPerWeek)
         assertEquals(60, target.sessionMinutes)
         assertEquals(20, target.reminderHour)
+        assertEquals(PushNotificationTypes(workoutLate = false, comeback = false), target.pushNotificationTypes)
         assertFalse(target.notificationsEnabled)
     }
 
@@ -119,6 +122,7 @@ private class FakePreferences : UserPreferencesRepository {
     override var reminderHour: Int = 18
     override var reminderMinute: Int = 0
     override var notificationsEnabled: Boolean = false
+    override var pushNotificationTypes: PushNotificationTypes = PushNotificationTypes()
     override var streakFreezeUsedWeek: String? = null
     override var gender: String? = null
     override var trainingExperience: String? = null

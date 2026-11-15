@@ -12,6 +12,8 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +26,8 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.fitai.app.localization.LocalStrings
 import com.fitai.app.navigation.MainTab
+import com.fitai.app.ui.notifications.NotificationDeepLink
+import com.fitai.app.ui.notifications.PendingNotificationLinks
 import com.fitai.app.ui.screens.challenge.StarterChallengeHost
 import com.fitai.app.ui.screens.coach.CoachEntryCard
 import com.fitai.app.ui.screens.coach.CoachScreen
@@ -82,6 +86,26 @@ fun MainTabShell(
     fun openTab(tab: MainTab) {
         selectedTab = tab
         challengeRefresh++
+    }
+
+    // Notification taps (local reminders and server pushes); a running session is never dropped.
+    val pendingLink by PendingNotificationLinks.pending.collectAsState()
+    LaunchedEffect(pendingLink) {
+        when (PendingNotificationLinks.consume() ?: return@LaunchedEffect) {
+            NotificationDeepLink.Workout -> {
+                if (workoutStack !is WorkoutStack.ActiveSession) workoutStack = WorkoutStack.List
+                openTab(MainTab.Workout)
+            }
+            NotificationDeepLink.MealLog -> {
+                openTab(MainTab.Nutrition)
+                showMealLog = true
+            }
+            NotificationDeepLink.Home -> {
+                showCoach = false
+                showStreak = false
+                openTab(MainTab.Home)
+            }
+        }
     }
 
     val fullScreenFlow = showStreak || showCoach ||

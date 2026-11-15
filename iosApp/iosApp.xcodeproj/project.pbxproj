@@ -15,6 +15,7 @@
 		4297F5433010AEB00074D90D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 4297F5423010AEB00074D90D /* FirebaseAuth */; };
 		4297F5453010AEB00074D90D /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 4297F5443010AEB00074D90D /* FirebaseFunctions */; };
 		4297F5473010AEB00074D90D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 4297F5463010AEB00074D90D /* FirebaseFirestore */; };
+		4297F5493010AEB00074D90D /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 4297F5483010AEB00074D90D /* FirebaseMessaging */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +27,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				iosApp.entitlements,
 			);
 			target = 9BE45A215DD65BA61B012812 /* iosApp */;
 		};
@@ -60,6 +62,7 @@
 				4297F5433010AEB00074D90D /* FirebaseAuth in Frameworks */,
 				4297F5453010AEB00074D90D /* FirebaseFunctions in Frameworks */,
 				4297F5473010AEB00074D90D /* FirebaseFirestore in Frameworks */,
+				4297F5493010AEB00074D90D /* FirebaseMessaging in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +115,7 @@
 				4297F5423010AEB00074D90D /* FirebaseAuth */,
 				4297F5443010AEB00074D90D /* FirebaseFunctions */,
 				4297F5463010AEB00074D90D /* FirebaseFirestore */,
+				4297F5483010AEB00074D90D /* FirebaseMessaging */,
 			);
 			productName = iosApp;
 			productReference = 2018EA5E3D9743523E528071 /* FitAI.app */;
@@ -261,6 +265,7 @@
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
@@ -354,6 +359,7 @@
 				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
@@ -450,6 +456,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4297F5373010AEB00074D90D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
+		};
+		4297F5483010AEB00074D90D /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4297F5373010AEB00074D90D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

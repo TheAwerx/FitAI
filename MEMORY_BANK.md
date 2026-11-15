@@ -4,6 +4,13 @@ Bu dosya (Memory Bank), proje üzerinde çalışan tüm yapay zeka ajanlarının
 
 ## 📝 Son Değişiklikler (Recent Changes)
 
+## 2026-11-15 — Firebase dinamik bildirimler (FCM) ve tetikleyiciler
+- Sunucu `functions/src/notifications`: 15 dk'da bir `notificationSweep` yalnız `notification_state/{uid}.nextCheckAt` zamanı gelenleri okur (sunucuya özel belge); tetikleyiciler kullanıcı, cihaz, plan, seans ve öğün yazımlarında durumu günceller. Türler: antrenman gecikti (hatırlatma +90 dk), öğün kaydı (11:00 / 15:30 / 20:30), seri riski (20:00), geri dönüş (en fazla 2). TR/EN, 22:00–08:00 sessiz, günde en fazla 2, aynı tür günde 1 kez, ölü token silinir. Ayarlar `config.ts`
+- İstemci: FCM token `users/{uid}/devices/{installationId}` (açılış, giriş, token yenileme; kapatma ve çıkışta silinir). Android yerel FCM + `fitai_smart_nudges` kanalı, iOS SPM FirebaseMessaging + `PushBridge` + `aps-environment`. Bildirime dokununca Antrenman / Öğün kaydı / Ana sayfa açılır (yerel hatırlatmalar da)
+- Ayarlar → Akıllı bildirimler: 4 anahtar, `users/{uid}.notificationTypes`. Push kayıtlıyken yerel 12:30 öğün hatırlatması düşer, sunucu yalnız kayıt yoksa gönderir; günlük antrenman hatırlatması ve D0–D7 dizisi yerelde kalır
+- Deploy öncesi: APNs anahtarı (.p8) yüklenmeli, Firestore bölgesi `NOTIFICATIONS_REGION` (us-central1) ile eşleşmeli, Cloud Scheduler açık olmalı; kurallar + fonksiyonlar istemciyle birlikte deploy edilmeli. Deploy yapılmadı
+- Testler: functions 50/50 + emülatör 4/4 (FCM taklit), kurallar 16/16, Gradle, iOS link ve xcodebuild simülatör başarılı
+
 ## 2026-11-15 — Deneme süresi hesap + cihaz başına bir kez
 - 7 günlük deneme sunucuda: `startTrial` / `getTrialStatus` (`functions/src/trial.ts`), `trials/{uid}` + `device_trials/{HMAC(deviceKey)}` tek transaction; aynı cihazda ikinci hesap `used`, aynı hesap başka cihazda denemesini korur, süre sunucu saatiyle. `initGuestTrial` ve herkese verilen 3 günlük `guest_trials` kaldırıldı (eski koleksiyon salt okunur)
 - Cihaz anahtarı: Android `ANDROID_ID`, iOS Keychain UUID (`ThisDeviceOnly`, iCloud yok); istemcide SHA-256, sunucuda `TRIAL_DEVICE_PEPPER` ile HMAC. Secret deploy'dan önce bir kez oluşturulmalı, asla değişmemeli
