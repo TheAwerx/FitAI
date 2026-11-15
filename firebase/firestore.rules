@@ -102,6 +102,17 @@ service cloud.firestore {
       return ['personal_plan', 'smart_overload', 'plate_photo', 'log_lifts', 'streak', 'ai_coach'];
     }
 
+    // ---------- Food codes (core/domain/.../model/FoodModels.kt: MealSlot, FoodUnits) ----------
+
+    function mealSlots() {
+      return ['breakfast', 'morning_snack', 'lunch', 'afternoon_snack', 'dinner', 'evening_snack'];
+    }
+
+    function foodUnits() {
+      return ['g', 'ml', 'piece', 'slice', 'portion', 'bowl', 'glass', 'tea_glass', 'cup', 'mug', 'tbsp', 'dsp',
+        'tsp', 'handful', 'ladle', 'can', 'pack', 'scoop'];
+    }
+
     // ---------- Documents ----------
 
     function validUser(d) {
@@ -159,10 +170,11 @@ service cloud.firestore {
         && d.exercises is list && d.exercises.size() <= 150;
     }
 
+    // meals: detailed plan (slot, time, selected, options of title/note/foods); checked for type and size only.
     function validDietPlan(d, planId) {
       return hasExactly(d, [
           'schemaVersion', 'id', 'dailyCalories', 'proteinG', 'carbsG', 'fatG', 'isActive',
-          'createdAt', 'updatedAt'
+          'createdAt', 'updatedAt', 'meals'
         ])
         && isVersioned(d)
         && d.id == planId
@@ -172,7 +184,8 @@ service cloud.firestore {
         && isIntIn(d.fatG, 0, 2000)
         && d.isActive is bool
         && isIso(d.createdAt)
-        && isIso(d.updatedAt);
+        && isIso(d.updatedAt)
+        && d.meals is list && d.meals.size() <= 8;
     }
 
     function validSession(d, sessionId) {
@@ -197,10 +210,12 @@ service cloud.firestore {
         && isIso(d.updatedAt);
     }
 
+    // slot / foodId / servingUnit / servingAmount / grams: food database and plan entries; null otherwise.
     function validMeal(d, mealId) {
       return hasExactly(d, [
           'schemaVersion', 'id', 'mealName', 'calories', 'proteinG', 'carbsG', 'fatG', 'source',
-          'photoUrl', 'loggedAt', 'localDate', 'updatedAt'
+          'photoUrl', 'loggedAt', 'localDate', 'updatedAt', 'slot', 'foodId', 'servingUnit',
+          'servingAmount', 'grams'
         ])
         && isVersioned(d)
         && d.id == mealId
@@ -213,6 +228,29 @@ service cloud.firestore {
         && isOptStr(d.photoUrl, 2048)
         && isIso(d.loggedAt)
         && isLocalDate(d.localDate)
+        && isIso(d.updatedAt)
+        && isOptCode(d.slot, mealSlots())
+        && (d.foodId == null || isDocId(d.foodId))
+        && isOptCode(d.servingUnit, foodUnits())
+        && isOptNumIn(d.servingAmount, 0, 5000)
+        && isOptNumIn(d.grams, 0, 5000);
+    }
+
+    function validCustomFood(d, foodId) {
+      return hasExactly(d, [
+          'schemaVersion', 'id', 'name', 'kcalPer100g', 'proteinPer100g', 'carbsPer100g', 'fatPer100g',
+          'servingUnit', 'servingGrams', 'createdAt', 'updatedAt'
+        ])
+        && isVersioned(d)
+        && d.id == foodId
+        && isNonEmptyStr(d.name, 80)
+        && isNumIn(d.kcalPer100g, 0, 900)
+        && isNumIn(d.proteinPer100g, 0, 100)
+        && isNumIn(d.carbsPer100g, 0, 100)
+        && isNumIn(d.fatPer100g, 0, 100)
+        && d.servingUnit in foodUnits()
+        && isNumIn(d.servingGrams, 0, 5000)
+        && isIso(d.createdAt)
         && isIso(d.updatedAt);
     }
 
@@ -280,6 +318,11 @@ service cloud.firestore {
       match /measurements/{measurementId} {
         allow read, delete: if isAccountOwner(uid);
         allow create, update: if isAccountOwner(uid) && validMeasurement(request.resource.data, measurementId);
+      }
+
+      match /custom_foods/{foodId} {
+        allow read, delete: if isAccountOwner(uid);
+        allow create, update: if isAccountOwner(uid) && isDocId(foodId) && validCustomFood(request.resource.data, foodId);
       }
 
       match /devices/{installationId} {
