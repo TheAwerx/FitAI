@@ -1,5 +1,6 @@
 package com.fitai.app.di
 
-import org.koin.core.module.Module
+import com.fitai.app.data.DatabaseDriverFactory
+import org.koin.dsl.module
 
-expect fun platformDriverModule(): Module
+expect fun platformDriverModule(): org.koin.core.module.Module

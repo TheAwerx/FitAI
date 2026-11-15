@@ -3,5 +3,8 @@ TEAM_ID=
 PRODUCT_NAME=FitAI
 PRODUCT_BUNDLE_IDENTIFIER=org.fitai.project.FitAI$(TEAM_ID)
 
+// dev = local workout/diet plans. Set to prod to call generateWorkoutPlan / generateDietPlan.
+FITAI_ENVIRONMENT=dev
+
 CURRENT_PROJECT_VERSION=1
 MARKETING_VERSION=1.0

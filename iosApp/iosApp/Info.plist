@@ -4,5 +4,20 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>FITAI_ENVIRONMENT</key>
+	<string>$(FITAI_ENVIRONMENT)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>FitAI, tabağının fotoğrafını çekip makrolarını hesaplamak için kameraya erişir.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>FitAI, seçtiğin öğün fotoğrafını analiz etmek için fotoğraflarına erişir.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.529662166222-uo7o3emefe3qarja6nntnr1ok9r9h8l4</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
