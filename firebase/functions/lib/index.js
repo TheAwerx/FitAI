@@ -79,7 +79,7 @@ const mealSchema = {
     },
     required: ["mealName", "calories", "proteinG", "carbsG", "fatG"],
 };
-async function callGemini(apiKey, model, parts, responseSchema, systemInstruction) {
+async function callGemini(apiKey, model, parts, responseSchema, systemInstruction, maxOutputTokens = 8192) {
     var _a, _b, _c, _d, _e;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
     const response = await fetch(url, {
@@ -92,7 +92,7 @@ async function callGemini(apiKey, model, parts, responseSchema, systemInstructio
                 responseMimeType: "application/json",
                 responseSchema,
                 temperature: 0.6,
-                maxOutputTokens: 8192,
+                maxOutputTokens,
             } })),
     });
     const bodyText = await response.text();
@@ -140,12 +140,14 @@ exports.generateWorkoutPlan = (0, https_1.onCall)(geminiCallable, (0, planQuota_
     const parsed = await callGemini(geminiApiKey.value(), GEMINI_PLAN_MODEL, [{ text: (0, plans_1.workoutPlanPrompt)(profile, locale) }], plans_1.workoutSchema);
     return (0, plans_1.normalizeWorkoutPlan)(parsed, profile, locale);
 }));
-exports.generateDietPlan = (0, https_1.onCall)(geminiCallable, async (request) => {
+// The detailed diet (three options per meal) is a long answer; the app waits up to 240 s for it.
+exports.generateDietPlan = (0, https_1.onCall)(Object.assign(Object.assign({}, geminiCallable), { timeoutSeconds: 300 }), async (request) => {
     requireAuth(request);
     const profile = (0, common_1.parseProfile)(request.data);
+    const locale = (0, common_1.parseLocale)((0, common_1.asRecord)(request.data).locale);
     const reference = (0, plans_1.dietReference)(profile);
-    const parsed = await callGemini(geminiApiKey.value(), GEMINI_PLAN_MODEL, [{ text: (0, plans_1.dietPlanPrompt)(profile, reference) }], plans_1.dietSchema);
-    return (0, plans_1.normalizeDietPlan)(parsed, reference);
+    const parsed = await callGemini(geminiApiKey.value(), GEMINI_PLAN_MODEL, [{ text: (0, plans_1.dietPlanPrompt)(profile, reference, locale) }], plans_1.dietSchema, undefined, plans_1.DIET_MAX_OUTPUT_TOKENS);
+    return (0, plans_1.normalizeDietPlan)(parsed, reference, profile);
 });
 exports.analyzeMealPhoto = (0, https_1.onCall)(geminiCallable, async (request) => {
     requireAuth(request);

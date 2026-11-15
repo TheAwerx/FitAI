@@ -43,6 +43,7 @@ data class CloudRestoreSummary(
     val sessions: Int = 0,
     val meals: Int = 0,
     val measurements: Int = 0,
+    val customFoods: Int = 0,
     val activeWorkoutPlanRestored: Boolean = false,
     val activeDietPlanRestored: Boolean = false,
 ) {

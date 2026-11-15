@@ -12,10 +12,13 @@ import com.fitai.app.model.BodyMeasurement
 import com.fitai.app.model.DietPlan
 import com.fitai.app.model.Exercise
 import com.fitai.app.model.MealLog
+import com.fitai.app.model.PlanMeal
 import com.fitai.app.model.SessionExercise
 import com.fitai.app.model.SessionSet
 import com.fitai.app.model.WorkoutPlan
 import com.fitai.app.model.WorkoutSession
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 
 internal fun Workout_plans.toDomain(): WorkoutPlan = WorkoutPlan(
     id = id,
@@ -75,6 +78,7 @@ internal fun Diet_plans.toDomain(): DietPlan = DietPlan(
     fatG = fat_g.toInt(),
     createdAt = created_at,
     isActive = is_active == 1L,
+    meals = PlanMealsJson.decode(meals_json),
 )
 
 internal fun Body_measurements.toDomain(): BodyMeasurement = BodyMeasurement(
@@ -100,4 +104,20 @@ internal fun Meal_logs.toDomain(): MealLog = MealLog(
     fatG = fat_g,
     photoUrl = photo_url,
     loggedAt = logged_at,
+    slot = slot,
+    foodId = food_id,
+    servingUnit = serving_unit,
+    servingAmount = serving_amount,
+    grams = grams,
 )
+
+/** `diet_plans.meals_json`: the detailed meals of a plan; unreadable JSON reads as a target-only plan. */
+internal object PlanMealsJson {
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+    private val serializer = ListSerializer(PlanMeal.serializer())
+
+    fun encode(meals: List<PlanMeal>): String? = if (meals.isEmpty()) null else json.encodeToString(serializer, meals)
+
+    fun decode(raw: String?): List<PlanMeal> =
+        if (raw.isNullOrBlank()) emptyList() else runCatching { json.decodeFromString(serializer, raw) }.getOrDefault(emptyList())
+}

@@ -1,11 +1,15 @@
 package com.fitai.app.sync
 
+import com.fitai.app.db.Custom_foods
 import com.fitai.app.model.BodyMeasurement
 import com.fitai.app.model.DietPlan
 import com.fitai.app.model.Exercise
 import com.fitai.app.model.LocalUserProfile
 import com.fitai.app.model.MealLog
 import com.fitai.app.model.OnboardingAnswers
+import com.fitai.app.model.PlanFood
+import com.fitai.app.model.PlanMeal
+import com.fitai.app.model.PlanMealOption
 import com.fitai.app.model.SessionExercise
 import com.fitai.app.model.SessionSet
 import com.fitai.app.model.WorkoutPlan
@@ -237,8 +241,14 @@ class FirestoreMappersTest {
             keys(WorkoutPlanDocument.serializer().descriptor),
         )
         assertEquals(
-            setOf("schemaVersion", "id", "dailyCalories", "proteinG", "carbsG", "fatG", "isActive", "createdAt", "updatedAt"),
+            setOf("schemaVersion", "id", "dailyCalories", "proteinG", "carbsG", "fatG", "isActive", "createdAt", "updatedAt", "meals"),
             keys(DietPlanDocument.serializer().descriptor),
+        )
+        assertEquals(setOf("slot", "time", "selected", "options"), keys(DietMealEntry.serializer().descriptor))
+        assertEquals(setOf("title", "note", "foods"), keys(DietMealOptionEntry.serializer().descriptor))
+        assertEquals(
+            setOf("foodId", "name", "amount", "unit", "grams", "calories", "proteinG", "carbsG", "fatG"),
+            keys(DietFoodEntry.serializer().descriptor),
         )
         assertEquals(
             setOf(
@@ -250,9 +260,16 @@ class FirestoreMappersTest {
         assertEquals(
             setOf(
                 "schemaVersion", "id", "mealName", "calories", "proteinG", "carbsG", "fatG", "source",
-                "photoUrl", "loggedAt", "localDate", "updatedAt",
+                "photoUrl", "loggedAt", "localDate", "updatedAt", "slot", "foodId", "servingUnit", "servingAmount", "grams",
             ),
             keys(MealLogDocument.serializer().descriptor),
+        )
+        assertEquals(
+            setOf(
+                "schemaVersion", "id", "name", "kcalPer100g", "proteinPer100g", "carbsPer100g", "fatPer100g",
+                "servingUnit", "servingGrams", "createdAt", "updatedAt",
+            ),
+            keys(CustomFoodDocument.serializer().descriptor),
         )
         assertEquals(
             setOf(
@@ -285,6 +302,72 @@ class FirestoreMappersTest {
         assertEquals("UTC", doc.timeZone)
         assertEquals(now, doc.updatedAt)
         assertEquals("android", PushDevice("t", "web", "1", "en", "Europe/Istanbul").toDocument(now).platform)
+    }
+
+    @Test
+    fun foodDatabaseEntriesKeepSlotAndServing() {
+        val meal = MealLog(
+            "m2", "u", "Beyaz peynir", 79, 4.5, 0.8, 6.5, null, "2026-11-15T05:00:00Z",
+            slot = "breakfast", foodId = "cheese_white", servingUnit = "slice", servingAmount = 1.0, grams = 30.0,
+        )
+        val doc = meal.toDocument(now, istanbul)
+        assertEquals(MealLogDocument.SOURCE_MANUAL, doc.source)
+        assertEquals("breakfast", doc.slot)
+        assertEquals("cheese_white", doc.foodId)
+        assertEquals(meal, doc.toMealLog("u"))
+        // Unknown codes and odd ids are dropped rather than rejected by the rules.
+        val messy = meal.copy(slot = "brunch", foodId = "../x", servingUnit = "bucket").toDocument(now, istanbul)
+        assertNull(messy.slot)
+        assertNull(messy.foodId)
+        assertNull(messy.servingUnit)
+    }
+
+    @Test
+    fun dietPlanMealsRoundTripAndAreClamped() {
+        val food = PlanFood("cheese_white", "Beyaz peynir", 1.0, "slice", 30.0, 79, 4.5, 0.8, 6.5)
+        val meals = listOf(
+            PlanMeal(
+                slot = "breakfast",
+                time = "08:00",
+                selected = 1,
+                options = listOf(
+                    PlanMealOption("Klasik", "Çayı şekersiz iç.", listOf(food)),
+                    PlanMealOption("Omlet", "", listOf(food.copy(foodId = null, name = "Omlet", unit = "bucket"))),
+                ),
+            ),
+        )
+        val doc = DietPlan("d1", "u", 2000, 120, 220, 70, "2026-11-10T08:00:00Z", true, meals).toDocument(now)
+        assertEquals(1, doc.meals.size)
+        assertEquals(1, doc.meals[0].selected)
+        assertEquals("g", doc.meals[0].options[1].foods[0].unit)
+        val back = doc.toPlanMeals()
+        assertEquals(meals[0].options[0], back[0].options[0])
+        assertEquals("Omlet", back[0].options[1].foods[0].name)
+        assertEquals(1, back[0].selected)
+
+        val many = DietPlan(
+            "d2", "u", 2000, 120, 220, 70, "2026-11-10T08:00:00Z", true,
+            List(12) { meals[0].copy(options = List(5) { PlanMealOption("x", "n".repeat(500), List(20) { food }) }) },
+        ).toDocument(now)
+        assertEquals(CloudLimits.PLAN_MEALS, many.meals.size)
+        assertEquals(CloudLimits.MEAL_OPTIONS, many.meals[0].options.size)
+        assertEquals(CloudLimits.OPTION_FOODS, many.meals[0].options[0].foods.size)
+        assertEquals(CloudLimits.MEAL_NOTE, many.meals[0].options[0].note.length)
+    }
+
+    @Test
+    fun customFoodsRoundTrip() {
+        val row = Custom_foods(
+            "custom_0123456789abcdef", "u", "Annemin keki", 380.0, 6.0, 50.0, 17.0, "slice", 60.0,
+            "2026-11-14T10:00:00Z", "2026-11-14T10:00:00Z",
+        )
+        val doc = row.toDocument(now)
+        assertEquals("slice", doc.servingUnit)
+        assertEquals(now, doc.updatedAt)
+        assertEquals("2026-11-14T10:00:00Z", doc.createdAt)
+        assertEquals(row.copy(user_id = "u2", updated_at = now), doc.toRow("u2"))
+        assertTrue(isFoodId(row.id))
+        assertFalse(isFoodId("a/b"))
     }
 
     @Test

@@ -26,6 +26,11 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.sqldelight.native.driver)
         }
+        androidUnitTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlin.testJunit)
+            implementation(libs.sqldelight.sqlite.driver)
+        }
     }
 }
 
@@ -46,6 +51,11 @@ sqldelight {
         create("FitAiDatabase") {
             packageName.set("com.fitai.app.db")
             srcDirs("src/commonMain/sqldelight")
+            // Schema snapshots (`<version>.db`). After adding `migrations/<n>.sqm`, run
+            // generateCommonMainFitAiDatabaseSchema and commit the new snapshot. Migrations are verified by
+            // DatabaseMigrationTest (old snapshot + migrate == fresh schema, rows kept); SQLDelight's own
+            // verifyMigrations task diffs the whole catalog and runs for many minutes on this schema.
+            schemaOutputDirectory.set(file("src/commonMain/sqldelight/databases"))
         }
     }
 }

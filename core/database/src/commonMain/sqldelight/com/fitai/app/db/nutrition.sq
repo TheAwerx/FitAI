@@ -7,6 +7,8 @@ CREATE TABLE diet_plans (
     fat_g INTEGER NOT NULL,
     created_at TEXT NOT NULL,
     is_active INTEGER NOT NULL DEFAULT 1,
+    -- v2 (1.sqm): detailed meals as JSON (List<PlanMeal>); NULL for target-only plans.
+    meals_json TEXT,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
@@ -20,6 +22,12 @@ CREATE TABLE meal_logs (
     fat_g REAL NOT NULL,
     photo_url TEXT,
     logged_at TEXT NOT NULL,
+    -- v2 (1.sqm): MealSlot code, and the serving for food-database / plan entries. NULL on older rows.
+    slot TEXT,
+    food_id TEXT,
+    serving_unit TEXT,
+    serving_amount REAL,
+    grams REAL,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
@@ -33,8 +41,11 @@ selectDietPlanById:
 SELECT * FROM diet_plans WHERE id = ?;
 
 insertDietPlan:
-INSERT INTO diet_plans (id, user_id, daily_calories, protein_g, carbs_g, fat_g, created_at, is_active)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO diet_plans (id, user_id, daily_calories, protein_g, carbs_g, fat_g, created_at, is_active, meals_json)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateDietPlanMeals:
+UPDATE diet_plans SET meals_json = ? WHERE id = ?;
 
 deactivateDietPlansForUser:
 UPDATE diet_plans SET is_active = 0 WHERE user_id = ?;
@@ -48,8 +59,11 @@ WHERE user_id = ? AND logged_at >= ? AND logged_at < ?
 ORDER BY logged_at DESC;
 
 insertMealLog:
-INSERT INTO meal_logs (id, user_id, meal_name, calories, protein_g, carbs_g, fat_g, photo_url, logged_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO meal_logs (
+    id, user_id, meal_name, calories, protein_g, carbs_g, fat_g, photo_url, logged_at,
+    slot, food_id, serving_unit, serving_amount, grams
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 deleteMealLog:
 DELETE FROM meal_logs WHERE id = ?;
@@ -69,9 +83,40 @@ SET
     carbs_g = ?,
     fat_g = ?,
     photo_url = ?,
-    logged_at = ?
+    logged_at = ?,
+    slot = ?,
+    food_id = ?,
+    serving_unit = ?,
+    serving_amount = ?,
+    grams = ?
 WHERE id = ?;
+
+-- Recent and frequent foods for the food search (FoodRepository).
+selectRecentFoodIds:
+SELECT food_id, MAX(logged_at) AS last_logged_at
+FROM meal_logs
+WHERE user_id = ? AND food_id IS NOT NULL
+GROUP BY food_id
+ORDER BY last_logged_at DESC
+LIMIT ?;
+
+selectFrequentFoodIds:
+SELECT food_id, COUNT(*) AS uses, MAX(logged_at) AS last_logged_at
+FROM meal_logs
+WHERE user_id = ? AND food_id IS NOT NULL
+GROUP BY food_id
+ORDER BY uses DESC, last_logged_at DESC
+LIMIT ?;
+
+selectLastServingForFood:
+SELECT serving_unit, serving_amount
+FROM meal_logs
+WHERE user_id = ? AND food_id = ? AND serving_unit IS NOT NULL AND serving_amount IS NOT NULL
+ORDER BY logged_at DESC
+LIMIT 1;
 
 CREATE INDEX idx_meal_logs_user_logged ON meal_logs(user_id, logged_at DESC);
 
 CREATE INDEX idx_diet_plans_user_active ON diet_plans(user_id, is_active);
+
+CREATE INDEX idx_meal_logs_user_food ON meal_logs(user_id, food_id);

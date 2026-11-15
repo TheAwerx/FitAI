@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dietSchema = exports.workoutSchema = exports.TRAINING_DAY_PATTERNS = void 0;
+exports.DIET_MAX_OUTPUT_TOKENS = exports.dietSchema = exports.workoutSchema = exports.TRAINING_DAY_PATTERNS = void 0;
 exports.trainingDays = trainingDays;
 exports.sessionMinutes = sessionMinutes;
 exports.workoutPlanPrompt = workoutPlanPrompt;
@@ -10,6 +10,7 @@ exports.dietPlanPrompt = dietPlanPrompt;
 exports.normalizeDietPlan = normalizeDietPlan;
 const https_1 = require("firebase-functions/v2/https");
 const common_1 = require("./common");
+const dietMeals_1 = require("./dietMeals");
 // Plan prompts for generateWorkoutPlan / generateDietPlan. Every onboarding answer the app sends is used:
 // goal, gender, age, height, weight, activity, experience, obstacle, focus areas, days per week,
 // session length, equipment and diet restrictions. Rule-based twin on the device: StarterPlans.kt.
@@ -226,9 +227,12 @@ exports.dietSchema = {
         proteinG: { type: "INTEGER" },
         carbsG: { type: "INTEGER" },
         fatG: { type: "INTEGER" },
+        meals: { type: "ARRAY", items: dietMeals_1.planMealSchema },
     },
-    required: ["dailyCalories", "proteinG", "carbsG", "fatG"],
+    required: ["dailyCalories", "proteinG", "carbsG", "fatG", "meals"],
 };
+/** Output budget for the detailed diet (targets plus three options per meal). */
+exports.DIET_MAX_OUTPUT_TOKENS = 32768;
 const GOAL_CALORIE_DELTA = {
     lose_fat: -450,
     build_muscle: 300,
@@ -250,11 +254,11 @@ function dietReference(profile) {
     const carbsG = Math.max(0, Math.round((calories - proteinG * 4 - fatG * 9) / 4));
     return { bmr: Math.round(bmr), tdee: Math.round(tdee), calories, proteinG, carbsG, fatG, minCalories };
 }
-function dietPlanPrompt(profile, reference) {
+function dietPlanPrompt(profile, reference, locale = "tr") {
     const days = trainingDays(profile);
     const minutes = sessionMinutes(profile);
     return [
-        "You are a sports nutritionist. Set this user's daily calorie and macro targets as JSON.",
+        "You are a sports nutritionist. Set this user's daily calorie and macro targets and plan their meals as JSON.",
         "User:",
         ...profileFacts(profile),
         `Reference (Mifflin-St Jeor): BMR ${reference.bmr} kcal, maintenance ${reference.tdee} kcal, ` +
@@ -269,14 +273,17 @@ function dietPlanPrompt(profile, reference) {
         "- Fat at least 20% of calories. Carbohydrates fill the rest; more for endurance or many training days.",
         "- The targets must be reachable with the diet restrictions (e.g. vegan, gluten-free, halal).",
         "- calories must match the macros: protein 4, carbs 4, fat 9 kcal per gram (within 5%).",
+        ...(0, dietMeals_1.mealPromptRules)(reference.calories, reference.proteinG, profile.goal, (0, common_1.splitCodes)(profile.dietRestrictions), locale),
         "- " + SAFETY_RULES,
     ].join("\n");
 }
 /**
  * Keeps the AI answer near [reference]: calories within 20%, protein within -20%/+25% and at most 45% of
  * calories, fat 20-40% of calories. Carbs are recomputed when the macros don't add up to the calories.
+ * With the [profile], the meals are cleaned and scaled to the final calories (see `normalizeMeals`); they
+ * come back empty when unusable, and the app then builds them from its food database.
  */
-function normalizeDietPlan(parsed, reference) {
+function normalizeDietPlan(parsed, reference, profile) {
     const p = (0, common_1.asRecord)(parsed);
     const calories = (0, common_1.clamp)((0, common_1.asInt)(p.dailyCalories, reference.calories), Math.max(reference.minCalories, Math.round(reference.calories * 0.8)), Math.round(reference.calories * 1.2));
     const proteinG = Math.min((0, common_1.clamp)((0, common_1.asInt)(p.proteinG, reference.proteinG), Math.round(reference.proteinG * 0.8), Math.round(reference.proteinG * 1.25)), Math.round((calories * 0.45) / 4));
@@ -286,6 +293,7 @@ function normalizeDietPlan(parsed, reference) {
     if (Math.abs(fromMacros - calories) > calories * 0.05) {
         carbsG = Math.max(0, Math.round((calories - proteinG * 4 - fatG * 9) / 4));
     }
-    return { dailyCalories: calories, proteinG, carbsG, fatG };
+    const meals = profile ? (0, dietMeals_1.normalizeMeals)(p.meals, calories, proteinG, profile.dietRestrictions) : [];
+    return { dailyCalories: calories, proteinG, carbsG, fatG, meals };
 }
 //# sourceMappingURL=plans.js.map

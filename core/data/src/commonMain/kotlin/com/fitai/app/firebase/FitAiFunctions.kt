@@ -24,13 +24,16 @@ internal object FitAiFunctions {
     const val REGION = "us-central1"
     private val timeout = 120.seconds
 
+    /** The detailed diet plan (meals with alternatives) takes longer to generate. */
+    private val dietTimeout = 240.seconds
+
     fun client(): FirebaseFunctions = Firebase.functions(REGION)
 
     suspend fun generateWorkoutPlan(request: WorkoutPlanCallableRequest): GeneratedWorkoutPlan =
         call("generateWorkoutPlan", request)
 
     suspend fun generateDietPlan(profile: UserProfilePayload): GeneratedDietPlan =
-        call("generateDietPlan", profile)
+        client().httpsCallable("generateDietPlan", dietTimeout).invoke(profile).data()
 
     suspend fun analyzeMealPhoto(imageBase64: String, mimeType: String, locale: String): MealAnalysisResult =
         call("analyzeMealPhoto", MealPhotoCallableRequest(imageBase64, mimeType, locale))

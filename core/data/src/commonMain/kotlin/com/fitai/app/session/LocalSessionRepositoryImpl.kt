@@ -19,6 +19,7 @@ class LocalSessionRepositoryImpl(
             database.sessionQueries.deleteAllExercises()
             database.sessionQueries.deleteAllWorkoutPlans()
             database.sessionQueries.deleteAllMealLogs()
+            database.sessionQueries.deleteAllCustomFoods()
             database.sessionQueries.deleteAllDietPlans()
             database.sessionQueries.deleteAllMeasurements()
             database.sessionQueries.deleteAllGuestTrials()

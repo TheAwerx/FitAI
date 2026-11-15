@@ -1,0 +1,29 @@
+-- Schema 1 -> 2: detailed diet plans, meal slots and servings on diary entries, custom foods.
+-- Only additive changes: existing rows keep their values and the new columns start as NULL.
+
+ALTER TABLE diet_plans ADD COLUMN meals_json TEXT;
+
+ALTER TABLE meal_logs ADD COLUMN slot TEXT;
+ALTER TABLE meal_logs ADD COLUMN food_id TEXT;
+ALTER TABLE meal_logs ADD COLUMN serving_unit TEXT;
+ALTER TABLE meal_logs ADD COLUMN serving_amount REAL;
+ALTER TABLE meal_logs ADD COLUMN grams REAL;
+
+CREATE INDEX idx_meal_logs_user_food ON meal_logs(user_id, food_id);
+
+CREATE TABLE custom_foods (
+    id TEXT NOT NULL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    kcal_per_100g REAL NOT NULL,
+    protein_per_100g REAL NOT NULL,
+    carbs_per_100g REAL NOT NULL,
+    fat_per_100g REAL NOT NULL,
+    serving_unit TEXT NOT NULL,
+    serving_grams REAL NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE INDEX idx_custom_foods_user ON custom_foods(user_id, name);

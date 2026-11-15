@@ -6,8 +6,10 @@ import com.fitai.app.model.GeneratedDietPlan
 import com.fitai.app.model.GeneratedWorkoutPlan
 import com.fitai.app.model.MealAnalysisResult
 import com.fitai.app.model.toProfilePayload
+import com.fitai.app.nutrition.withDetailedMeals
 import com.fitai.app.preferences.UserPreferencesRepository
 import com.fitai.app.preferences.onboardingAnswers
+import com.fitai.app.repository.FoodRepository
 import com.fitai.app.repository.LocalUserRepository
 import com.fitai.app.repository.NutritionRepository
 import com.fitai.app.repository.WorkoutRepository
@@ -41,13 +43,16 @@ class GenerateDietPlanUseCase(
     private val localUserRepository: LocalUserRepository,
     private val trialRepository: TrialRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val foodRepository: FoodRepository,
 ) {
     suspend operator fun invoke(): UseCaseState<GeneratedDietPlan> = useCaseCatching {
         trialRepository.ensureAnonymousAuth().getOrThrow()
         check(trialRepository.canAccessAiFeatures().getOrThrow()) { "trial_expired" }
         val user = localUserRepository.getLatestUser() ?: error("no_user")
-        val payload = user.toProfilePayload(userPreferencesRepository.onboardingAnswers(), appLocale())
+        val locale = appLocale()
+        val payload = user.toProfilePayload(userPreferencesRepository.onboardingAnswers(), locale)
         val generated = aiRepository.generateDietPlan(payload).getOrThrow()
+            .withDetailedMeals(foodRepository, payload, locale)
         nutritionRepository.saveGeneratedDiet(user.id, generated)
         generated
     }
@@ -78,6 +83,7 @@ class LogMealUseCase(
         carbsG: Double,
         fatG: Double,
         loggedAt: String = com.fitai.app.util.nowIsoTimestamp(),
+        slot: String? = null,
     ): UseCaseState<Unit> = useCaseCatching {
         val user = localUserRepository.getLatestUser() ?: error("no_user")
         nutritionRepository.logMeal(
@@ -88,6 +94,7 @@ class LogMealUseCase(
             carbsG = carbsG,
             fatG = fatG,
             loggedAt = loggedAt,
+            slot = slot,
         )
     }
 }

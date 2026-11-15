@@ -11,8 +11,10 @@ import com.fitai.app.model.FocusArea
 import com.fitai.app.model.OnboardingAnswers
 import com.fitai.app.model.encodeProfileCodes
 import com.fitai.app.model.toProfilePayload
+import com.fitai.app.nutrition.withDetailedMeals
 import com.fitai.app.preferences.UserPreferencesRepository
 import com.fitai.app.preferences.onboardingAnswers
+import com.fitai.app.repository.FoodRepository
 import com.fitai.app.repository.LocalUserRepository
 import com.fitai.app.repository.NutritionRepository
 import com.fitai.app.repository.WorkoutRepository
@@ -90,6 +92,7 @@ class SetupInitialPlansUseCase(
     private val workoutRepository: WorkoutRepository,
     private val nutritionRepository: NutritionRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val foodRepository: FoodRepository,
 ) {
     suspend operator fun invoke(
         forceStarter: Boolean = false,
@@ -105,11 +108,12 @@ class SetupInitialPlansUseCase(
             workoutRepository.saveGeneratedPlan(user.id, workout)
             onProgress(0.6f)
             val diet = aiRepository.generateDietPlan(payload).getOrThrow()
-            nutritionRepository.saveGeneratedDiet(user.id, diet)
+            nutritionRepository.saveGeneratedDiet(user.id, diet.withDetailedMeals(foodRepository, payload, locale))
         } else {
             workoutRepository.saveGeneratedPlan(user.id, StarterPlans.workout(payload, locale))
             onProgress(0.6f)
-            nutritionRepository.saveGeneratedDiet(user.id, StarterPlans.diet(payload))
+            val foods = runCatching { foodRepository.bundledFoods() }.getOrDefault(emptyList())
+            nutritionRepository.saveGeneratedDiet(user.id, StarterPlans.diet(payload, foods, locale))
         }
         onProgress(1f)
         if (personal) PlanKind.Personal else PlanKind.Starter

@@ -1,6 +1,7 @@
 package com.fitai.app.sync
 
 import com.fitai.app.firebase.FirebaseBootstrap
+import com.fitai.app.sync.FirestorePaths.CUSTOM_FOODS
 import com.fitai.app.sync.FirestorePaths.DIET_PLANS
 import com.fitai.app.sync.FirestorePaths.LEGACY_USER_PROFILES
 import com.fitai.app.sync.FirestorePaths.MEAL_LOGS
@@ -62,6 +63,11 @@ internal class FirestoreSyncRemoteDataSource {
 
     suspend fun deleteMeasurement(uid: String, id: String) = sub(uid, MEASUREMENTS).document(id).delete()
 
+    suspend fun setCustomFood(uid: String, doc: CustomFoodDocument) =
+        sub(uid, CUSTOM_FOODS).document(doc.id).write(CustomFoodDocument.serializer(), doc)
+
+    suspend fun deleteCustomFood(uid: String, id: String) = sub(uid, CUSTOM_FOODS).document(id).delete()
+
     /** Writes every document in batches (Firestore allows 500 writes per batch). */
     suspend fun writeAll(uid: String, data: CloudDataSnapshot) {
         val writes = buildList<(WriteBatch) -> WriteBatch> {
@@ -70,6 +76,7 @@ internal class FirestoreSyncRemoteDataSource {
             data.sessions.forEach { doc -> add { it.put(sub(uid, WORKOUT_SESSIONS).document(doc.id), WorkoutSessionDocument.serializer(), doc) } }
             data.meals.forEach { doc -> add { it.put(sub(uid, MEAL_LOGS).document(doc.id), MealLogDocument.serializer(), doc) } }
             data.measurements.forEach { doc -> add { it.put(sub(uid, MEASUREMENTS).document(doc.id), MeasurementDocument.serializer(), doc) } }
+            data.customFoods.forEach { doc -> add { it.put(sub(uid, CUSTOM_FOODS).document(doc.id), CustomFoodDocument.serializer(), doc) } }
         }
         writes.chunked(BATCH_SIZE).forEach { chunk ->
             chunk.fold(Firebase.firestore.batch()) { batch, write -> write(batch) }.commit()
@@ -90,6 +97,9 @@ internal class FirestoreSyncRemoteDataSource {
             if (doc.id.isBlank()) doc.copy(id = id) else doc
         },
         measurements = readCollection(sub(uid, MEASUREMENTS), MeasurementDocument.serializer()) { doc, id ->
+            if (doc.id.isBlank()) doc.copy(id = id) else doc
+        },
+        customFoods = readCollection(sub(uid, CUSTOM_FOODS), CustomFoodDocument.serializer()) { doc, id ->
             if (doc.id.isBlank()) doc.copy(id = id) else doc
         },
     )

@@ -7,12 +7,18 @@ import com.fitai.app.domain.GenerateDietPlanUseCase
 import com.fitai.app.domain.LogMealUseCase
 import com.fitai.app.domain.UseCaseState
 import com.fitai.app.model.MealAnalysisResult
+import com.fitai.app.model.MealSlot
 import com.fitai.app.nutrition.AnalyzeMealPhotoWithQuotaUseCase
+import com.fitai.app.nutrition.DeleteMealEntryUseCase
+import com.fitai.app.nutrition.EditMealEntryUseCase
+import com.fitai.app.nutrition.GetMealEntryUseCase
 import com.fitai.app.nutrition.GetTodayNutritionOverviewUseCase
 import com.fitai.app.nutrition.LogAnalyzedMealUseCase
+import com.fitai.app.nutrition.LogPlannedMealUseCase
 import com.fitai.app.nutrition.MealPhotoAnalysisOutcome
 import com.fitai.app.nutrition.NextMealOutcome
 import com.fitai.app.nutrition.ObserveNutritionOverviewUseCase
+import com.fitai.app.nutrition.SelectPlanMealOptionUseCase
 import com.fitai.app.nutrition.SuggestNextMealUseCase
 import com.fitai.app.viewmodel.nutrition.MealFormFields
 import com.fitai.app.viewmodel.nutrition.MealLogIntent
@@ -26,8 +32,12 @@ import com.fitai.app.viewmodel.nutrition.ReviewError
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 class NutritionViewModel(
     private val observeNutritionOverviewUseCase: ObserveNutritionOverviewUseCase,
@@ -37,6 +47,9 @@ class NutritionViewModel(
     private val analyzeMealPhotoWithQuotaUseCase: AnalyzeMealPhotoWithQuotaUseCase,
     private val logAnalyzedMealUseCase: LogAnalyzedMealUseCase,
     private val suggestNextMealUseCase: SuggestNextMealUseCase,
+    private val logPlannedMealUseCase: LogPlannedMealUseCase,
+    private val selectPlanMealOptionUseCase: SelectPlanMealOptionUseCase,
+    private val deleteMealEntryUseCase: DeleteMealEntryUseCase,
 ) : BaseViewModel<NutritionState, NutritionIntent, NutritionEffect>(NutritionState()) {
 
     private var observeJob: Job? = null
@@ -54,7 +67,7 @@ class NutritionViewModel(
                 if (currentState().nextMeal == NextMealState.Locked) suggestNextMeal()
             }
             NutritionIntent.RegeneratePlan -> regenerate()
-            NutritionIntent.OpenManualLog -> setEffect(NutritionEffect.NavigateToMealLog)
+            NutritionIntent.OpenManualLog -> setEffect(NutritionEffect.NavigateToMealLog(slot = currentSlot()))
             NutritionIntent.OpenPaywall -> setEffect(NutritionEffect.NavigateToPaywall)
             is NutritionIntent.PhotoPicked -> analyzePhoto(intent.bytes, intent.mimeType)
             NutritionIntent.PhotoPickCancelled -> Unit
@@ -62,6 +75,15 @@ class NutritionViewModel(
             NutritionIntent.SaveAnalyzedMeal -> saveAnalyzedMeal()
             NutritionIntent.DiscardAnalysis -> setState { copy(plate = PlatePhotoState.Idle) }
             NutritionIntent.RetryNextMeal -> suggestNextMeal()
+            is NutritionIntent.AddFood -> setEffect(NutritionEffect.NavigateToFoodSearch(intent.slot))
+            is NutritionIntent.OpenEntry -> openEntry(intent)
+            is NutritionIntent.DeleteEntry -> viewModelScope.launch { deleteMealEntryUseCase(intent.mealId) }
+            is NutritionIntent.LogPlanned -> logPlanned(intent.slot)
+            is NutritionIntent.SwapOption -> swap(intent.slot, intent.optionIndex)
+            is NutritionIntent.TogglePlan -> setState {
+                val code = intent.slot.code
+                copy(toggledPlans = if (code in toggledPlans) toggledPlans - code else toggledPlans + code)
+            }
         }
     }
 
@@ -74,6 +96,8 @@ class NutritionViewModel(
                         activePlan = overview.activePlan,
                         planHistory = overview.planHistory,
                         todayMeals = overview.todayMeals,
+                        diary = overview.diary,
+                        planTotals = overview.planTotals,
                         loading = false,
                     )
                 }
@@ -82,6 +106,44 @@ class NutritionViewModel(
             }
         }
         refreshPhotoAccess()
+    }
+
+    private fun openEntry(intent: NutritionIntent.OpenEntry) {
+        val meal = intent.meal
+        val slot = MealSlot.fromCode(meal.slot) ?: currentState().diary.firstOrNull { d -> d.entries.any { it.id == meal.id } }?.slot
+            ?: currentSlot()
+        if (meal.isPortioned) {
+            setEffect(NutritionEffect.NavigateToFoodDetail(meal.foodId, slot, meal.id))
+        } else {
+            setEffect(NutritionEffect.NavigateToMealLog(slot = slot, mealId = meal.id))
+        }
+    }
+
+    private fun logPlanned(slot: MealSlot) {
+        if (currentState().busySlot != null) return
+        viewModelScope.launch {
+            setState { copy(busySlot = slot.code) }
+            val result = logPlannedMealUseCase(slot.code)
+            setState { copy(busySlot = null) }
+            if (result is UseCaseState.Success) setEffect(NutritionEffect.PlannedMealLogged)
+        }
+    }
+
+    private fun swap(slot: MealSlot, optionIndex: Int) {
+        if (currentState().busySlot != null) return
+        viewModelScope.launch {
+            setState { copy(busySlot = slot.code) }
+            selectPlanMealOptionUseCase(slot.code, optionIndex)
+            setState { copy(busySlot = null) }
+        }
+    }
+
+    /** The diary meal closest to the current time. */
+    @OptIn(ExperimentalTime::class)
+    private fun currentSlot(): MealSlot {
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        val slots = currentState().diary.map { it.slot }.ifEmpty { MealSlot.defaultDiary }
+        return MealSlot.forTime(now.hour, now.minute, slots)
     }
 
     private fun refreshPhotoAccess() {
@@ -136,7 +198,7 @@ class NutritionViewModel(
         }
         viewModelScope.launch {
             setState { copy(plate = review.copy(saving = true, error = null)) }
-            when (logAnalyzedMealUseCase(fields.mealName.trim(), calories, protein, carbs, fat)) {
+            when (logAnalyzedMealUseCase(fields.mealName.trim(), calories, protein, carbs, fat, currentSlot().code)) {
                 is UseCaseState.Success -> {
                     setState { copy(plate = PlatePhotoState.Idle) }
                     setEffect(NutritionEffect.MealSaved)
@@ -192,42 +254,80 @@ private fun MealAnalysisResult.toFormFields() = MealFormFields(
 )
 
 /** One decimal at most, without a trailing ".0". */
-private fun Double.toFieldText(): String {
+internal fun Double.toFieldText(): String {
     val tenths = (coerceAtLeast(0.0) * 10).roundToInt()
     return if (tenths % 10 == 0) "${tenths / 10}" else "${tenths / 10}.${abs(tenths % 10)}"
 }
 
 /** Accepts both "12.5" and the Turkish "12,5". */
-private fun String.toMacroGrams(): Double? =
+internal fun String.toMacroGrams(): Double? =
     trim().replace(',', '.').toDoubleOrNull()?.takeIf { it >= 0.0 }
 
+/** Quick add of a meal by its totals, or editing a photo / quick-add entry ([MealLogState.editingId]). */
 class MealLogViewModel(
     private val logMealUseCase: LogMealUseCase,
+    private val getMealEntryUseCase: GetMealEntryUseCase,
+    private val editMealEntryUseCase: EditMealEntryUseCase,
+    private val deleteMealEntryUseCase: DeleteMealEntryUseCase,
 ) : BaseViewModel<MealLogState, MealLogIntent, NutritionEffect>(MealLogState()) {
+
+    private var loadedKey: Triple<String?, MealSlot?, Int>? = null
 
     override fun handleIntent(intent: MealLogIntent) {
         when (intent) {
-            is MealLogIntent.MealNameChanged -> setState { copy(mealName = intent.value) }
+            is MealLogIntent.Load -> load(intent.mealId, intent.slot, intent.session)
+            is MealLogIntent.MealNameChanged -> setState { copy(mealName = intent.value, errorMessage = null) }
             is MealLogIntent.CaloriesChanged ->
-                setState { copy(calories = intent.value.filter(Char::isDigit)) }
-            is MealLogIntent.ProteinChanged -> setState { copy(proteinG = intent.value) }
-            is MealLogIntent.CarbsChanged -> setState { copy(carbsG = intent.value) }
-            is MealLogIntent.FatChanged -> setState { copy(fatG = intent.value) }
+                setState { copy(calories = intent.value.filter(Char::isDigit), errorMessage = null) }
+            is MealLogIntent.ProteinChanged -> setState { copy(proteinG = intent.value, errorMessage = null) }
+            is MealLogIntent.CarbsChanged -> setState { copy(carbsG = intent.value, errorMessage = null) }
+            is MealLogIntent.FatChanged -> setState { copy(fatG = intent.value, errorMessage = null) }
+            is MealLogIntent.SlotSelected -> setState { copy(slot = intent.slot) }
             is MealLogIntent.ApplyAnalysis -> setState {
                 copy(
                     mealName = intent.mealName,
                     calories = intent.calories.toString(),
-                    proteinG = intent.proteinG.toString(),
-                    carbsG = intent.carbsG.toString(),
-                    fatG = intent.fatG.toString(),
+                    proteinG = intent.proteinG.toFieldText(),
+                    carbsG = intent.carbsG.toFieldText(),
+                    fatG = intent.fatG.toFieldText(),
                 )
             }
             MealLogIntent.Save -> save()
+            MealLogIntent.Delete -> delete()
+        }
+    }
+
+    private fun load(mealId: String?, slot: MealSlot?, session: Int) {
+        if (loadedKey == Triple(mealId, slot, session)) return
+        loadedKey = Triple(mealId, slot, session)
+        if (mealId == null) {
+            setState { MealLogState(slot = slot ?: MealSlot.Lunch) }
+            return
+        }
+        viewModelScope.launch {
+            when (val result = getMealEntryUseCase(mealId)) {
+                is UseCaseState.Success -> {
+                    val meal = result.data
+                    setState {
+                        MealLogState(
+                            editingId = meal.id,
+                            mealName = meal.mealName,
+                            calories = meal.calories.toString(),
+                            proteinG = meal.proteinG.toFieldText(),
+                            carbsG = meal.carbsG.toFieldText(),
+                            fatG = meal.fatG.toFieldText(),
+                            slot = MealSlot.fromCode(meal.slot) ?: slot ?: MealSlot.Lunch,
+                        )
+                    }
+                }
+                is UseCaseState.Error -> setState { copy(errorMessage = result.message) }
+            }
         }
     }
 
     private fun save() {
         val s = currentState()
+        if (s.saving) return
         val calories = s.calories.toIntOrNull()
         val protein = s.proteinG.toMacroGrams()
         val carbs = s.carbsG.toMacroGrams()
@@ -238,13 +338,28 @@ class MealLogViewModel(
         }
         viewModelScope.launch {
             setState { copy(saving = true, errorMessage = null) }
-            when (val result = logMealUseCase(s.mealName, calories, protein, carbs, fat)) {
+            val result = if (s.editingId != null) {
+                editMealEntryUseCase(s.editingId, s.mealName, calories, protein, carbs, fat, s.slot)
+            } else {
+                logMealUseCase(s.mealName.trim(), calories, protein, carbs, fat, slot = s.slot.code)
+            }
+            when (result) {
                 is UseCaseState.Success -> {
                     setState { copy(saving = false) }
                     setEffect(NutritionEffect.MealSaved)
                 }
-                is UseCaseState.Error ->
-                    setState { copy(saving = false, errorMessage = result.message) }
+                is UseCaseState.Error -> setState { copy(saving = false, errorMessage = result.message) }
+            }
+        }
+    }
+
+    private fun delete() {
+        val id = currentState().editingId ?: return
+        viewModelScope.launch {
+            setState { copy(saving = true) }
+            when (deleteMealEntryUseCase(id)) {
+                is UseCaseState.Success -> setEffect(NutritionEffect.MealSaved)
+                is UseCaseState.Error -> setState { copy(saving = false, errorMessage = "delete_failed") }
             }
         }
     }

@@ -4,6 +4,14 @@ Bu dosya (Memory Bank), proje üzerinde çalışan tüm yapay zeka ajanlarının
 
 ## 📝 Son Değişiklikler (Recent Changes)
 
+## 2026-11-15 — Detaylı diyet planı, gıda veritabanı ve manuel öğün girişi
+- Diyet planı öğün öğün: saat, ev ölçüsü + gram, gıda/öğün makroları, hazırlık notu, öğün başına 2 alternatif (tek dokunuşla değiştir), plan toplamı vs hedef. `StarterDiet` gıda veritabanından kısıtlara uygun üretir; sunucu öğünsüz dönerse istemci tamamlar
+- Gıda veritabanı: 298 gıda (`core/data/.../files/foods.json`, `core/data/fooddb/build_foods.py` + README; USDA FDC CC0, tarif tahmini, etiket ortalaması — JSON elle değil script ile üretilir). Aksan/Türkçe harf duyarsız arama, kişisel gıdalar (`custom_foods`)
+- FatSecret tarzı günlük: öğün kartında "+" → arama (plan/son/sık/kendi gıdaların) → ölçü + miktar + canlı makro → ekle; düzenle/sil, "Planladığımı yedim", hızlı kalori. `NutritionFlow` sekme içi yığın; bildirimdeki öğün linki de buraya açılır
+- SQLDelight migration kuruldu: `migrations/1.sqm` (v1→v2), `databases/*.db`, `DatabaseMigrationTest` (SQLDelight `verifyMigrations` çok yavaş olduğu için kapalı). Yeni tablo/kolon artık migration ile eklenir
+- Firestore: `diet_plans.meals`, `meal_logs` slot/foodId/servingUnit/servingAmount/grams (`localDate`, `source` aynı), `custom_foods`. Functions `generateDietPlan` öğünlü şema; deploy yapılmadı
+- Testler, functions build + `check:diet`, kural testleri, iOS link başarılı; emülatörde eski build üstüne kurulum ve tüm akış doğrulandı
+
 ## 2026-11-15 — Firebase dinamik bildirimler (FCM) ve tetikleyiciler
 - Sunucu `functions/src/notifications`: 15 dk'da bir `notificationSweep` yalnız `notification_state/{uid}.nextCheckAt` zamanı gelenleri okur (sunucuya özel belge); tetikleyiciler kullanıcı, cihaz, plan, seans ve öğün yazımlarında durumu günceller. Türler: antrenman gecikti (hatırlatma +90 dk), öğün kaydı (11:00 / 15:30 / 20:30), seri riski (20:00), geri dönüş (en fazla 2). TR/EN, 22:00–08:00 sessiz, günde en fazla 2, aynı tür günde 1 kez, ölü token silinir. Ayarlar `config.ts`
 - İstemci: FCM token `users/{uid}/devices/{installationId}` (açılış, giriş, token yenileme; kapatma ve çıkışta silinir). Android yerel FCM + `fitai_smart_nudges` kanalı, iOS SPM FirebaseMessaging + `PushBridge` + `aps-environment`. Bildirime dokununca Antrenman / Öğün kaydı / Ana sayfa açılır (yerel hatırlatmalar da)
@@ -77,7 +85,7 @@ Bu dosya (Memory Bank), proje üzerinde çalışan tüm yapay zeka ajanlarının
 - Yeni modül `feature:coach` (sohbet + haftalık rapor); Home slot ile `CoachEntryCard`; Progress sekmesi açıldı
 - Kaldırıldı: `moko-permissions` (iOS link'te K/N çöküyordu); composeApp `generateResClass = never` (çift `Res` sınıfı)
 - `MainTabShell` sistem geri tuşu; Workout gün çipleri yerelleşti (`weekdayShort`)
-- Kural: yeni `CREATE/ALTER TABLE` yok (SQLDelight migration kurulu değil)
+- Kural (2026-11-15'te değişti): şema değişikliği artık `migrations/<n>.sqm` + `databases/<n>.db` + `DatabaseMigrationTest` ile yapılır (o tarihe kadar migration kurulu değildi)
 - `assembleDebug`, `linkDebugFrameworkIosSimulatorArm64`, `:core:domain:testDebugUnitTest` başarılı; emülatörde sekmeler, Koç, Bugün Modu duman testi geçti
 
 ## 2026-11-07 — Rakip (Symmetry) analizi ve strateji planı

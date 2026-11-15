@@ -7,7 +7,8 @@
     "test:only": "node --test test/*.test.mjs",
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions,firestore:rules",
-    "test:emulator": "npm run build && firebase emulators:exec --config test/firebase.json --only firestore --project demo-fitai \"node --test test/emulator/*.test.mjs\""
+    "test:emulator": "npm run build && firebase emulators:exec --config test/firebase.json --only firestore --project demo-fitai \"node --test test/emulator/*.test.mjs\"",
+    "check:diet": "npm run build && node scripts/check-diet-plan.js"
   },
   "engines": {
     "node": "24"

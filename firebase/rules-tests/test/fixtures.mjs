@@ -66,6 +66,23 @@ export function dietPlanDoc(id, overrides = {}) {
     isActive: true,
     createdAt: "2026-11-10T08:00:00Z",
     updatedAt: NOW,
+    meals: [
+      {
+        slot: "breakfast",
+        time: "08:00",
+        selected: 0,
+        options: [
+          {
+            title: "Klasik Türk kahvaltısı",
+            note: "Çayı şekersiz iç.",
+            foods: [
+              { foodId: "egg_boiled", name: "Haşlanmış yumurta", amount: 2, unit: "piece", grams: 100, calories: 155, proteinG: 12.6, carbsG: 1.1, fatG: 10.6 },
+              { foodId: null, name: "Domates", amount: 1, unit: "piece", grams: 120, calories: 22, proteinG: 1.1, carbsG: 4.7, fatG: 0.2 },
+            ],
+          },
+        ],
+      },
+    ],
     ...overrides,
   };
 }
@@ -115,6 +132,47 @@ export function mealDoc(id, overrides = {}) {
     loggedAt: "2026-11-15T11:00:00Z",
     localDate: "2026-11-15",
     updatedAt: NOW,
+    slot: "lunch",
+    foodId: null,
+    servingUnit: null,
+    servingAmount: null,
+    grams: null,
+    ...overrides,
+  };
+}
+
+/** A food database entry logged with a serving. */
+export function foodMealDoc(id, overrides = {}) {
+  return mealDoc(id, {
+    mealName: "Beyaz peynir",
+    calories: 79,
+    proteinG: 4.5,
+    carbsG: 0.8,
+    fatG: 6.5,
+    source: "manual",
+    photoUrl: null,
+    slot: "breakfast",
+    foodId: "cheese_white",
+    servingUnit: "slice",
+    servingAmount: 1,
+    grams: 30,
+    ...overrides,
+  });
+}
+
+export function customFoodDoc(id, overrides = {}) {
+  return {
+    schemaVersion: 1,
+    id,
+    name: "Annemin keki",
+    kcalPer100g: 380,
+    proteinPer100g: 6,
+    carbsPer100g: 50,
+    fatPer100g: 17,
+    servingUnit: "slice",
+    servingGrams: 60,
+    createdAt: "2026-11-14T10:00:00Z",
+    updatedAt: NOW,
     ...overrides,
   };
 }
@@ -157,3 +215,4 @@ export const SESSION_KEYS = Object.keys(sessionDoc("s"));
 export const MEAL_KEYS = Object.keys(mealDoc("m"));
 export const MEASUREMENT_KEYS = Object.keys(measurementDoc("w"));
 export const DEVICE_KEYS = Object.keys(deviceDoc());
+export const CUSTOM_FOOD_KEYS = Object.keys(customFoodDoc("custom_x"));

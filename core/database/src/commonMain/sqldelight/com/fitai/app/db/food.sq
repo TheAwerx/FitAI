@@ -1,0 +1,46 @@
+-- v2 (1.sqm): foods the user created. Values per 100 g; one household serving to log them by.
+CREATE TABLE custom_foods (
+    id TEXT NOT NULL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    kcal_per_100g REAL NOT NULL,
+    protein_per_100g REAL NOT NULL,
+    carbs_per_100g REAL NOT NULL,
+    fat_per_100g REAL NOT NULL,
+    serving_unit TEXT NOT NULL,
+    serving_grams REAL NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE INDEX idx_custom_foods_user ON custom_foods(user_id, name);
+
+selectCustomFoodsForUser:
+SELECT * FROM custom_foods WHERE user_id = ? ORDER BY name COLLATE NOCASE;
+
+selectCustomFoodById:
+SELECT * FROM custom_foods WHERE id = ?;
+
+insertCustomFood:
+INSERT INTO custom_foods (
+    id, user_id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g,
+    serving_unit, serving_grams, created_at, updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateCustomFood:
+UPDATE custom_foods
+SET
+    name = ?,
+    kcal_per_100g = ?,
+    protein_per_100g = ?,
+    carbs_per_100g = ?,
+    fat_per_100g = ?,
+    serving_unit = ?,
+    serving_grams = ?,
+    updated_at = ?
+WHERE id = ?;
+
+deleteCustomFood:
+DELETE FROM custom_foods WHERE id = ?;

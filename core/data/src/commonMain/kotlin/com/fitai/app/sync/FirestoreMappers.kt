@@ -1,5 +1,6 @@
 package com.fitai.app.sync
 
+import com.fitai.app.db.Custom_foods
 import com.fitai.app.model.ActivityLevel
 import com.fitai.app.model.BodyMeasurement
 import com.fitai.app.model.DietPlan
@@ -8,10 +9,15 @@ import com.fitai.app.model.EquipmentOption
 import com.fitai.app.model.Exercise
 import com.fitai.app.model.FitnessGoal
 import com.fitai.app.model.FocusArea
+import com.fitai.app.model.FoodUnits
 import com.fitai.app.model.Gender
 import com.fitai.app.model.LocalUserProfile
 import com.fitai.app.model.MealLog
+import com.fitai.app.model.MealSlot
 import com.fitai.app.model.OnboardingAnswers
+import com.fitai.app.model.PlanFood
+import com.fitai.app.model.PlanMeal
+import com.fitai.app.model.PlanMealOption
 import com.fitai.app.model.SessionExercise
 import com.fitai.app.model.SessionLength
 import com.fitai.app.model.SessionSet
@@ -63,6 +69,15 @@ internal object CloudLimits {
     const val MAX_MACRO_G = 2000
     const val MAX_BODY_FAT = 80.0
     const val MAX_CIRCUMFERENCE_CM = 300.0
+    const val PLAN_MEALS = 8
+    const val MEAL_OPTIONS = 3
+    const val OPTION_FOODS = 12
+    const val FOOD_NAME = 120
+    const val MEAL_NOTE = 300
+    const val FOOD_ID = 64
+    const val MAX_FOOD_GRAMS = 5000.0
+    const val MAX_KCAL_PER_100G = 900.0
+    const val MAX_MACRO_PER_100G = 100.0
 }
 
 // users/{uid}
@@ -234,7 +249,65 @@ internal fun DietPlan.toDocument(updatedAt: String) = DietPlanDocument(
     isActive = isActive,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    meals = meals.take(CloudLimits.PLAN_MEALS).map { meal ->
+        DietMealEntry(
+            slot = meal.slot,
+            time = meal.time.take(5),
+            selected = meal.selectedIndex.coerceAtMost(CloudLimits.MEAL_OPTIONS - 1),
+            options = meal.options.take(CloudLimits.MEAL_OPTIONS).map { option ->
+                DietMealOptionEntry(
+                    title = option.title.take(CloudLimits.TITLE),
+                    note = option.note.take(CloudLimits.MEAL_NOTE),
+                    foods = option.foods.take(CloudLimits.OPTION_FOODS).map { it.toEntry() },
+                )
+            },
+        )
+    },
 )
+
+private fun PlanFood.toEntry() = DietFoodEntry(
+    foodId = foodId?.takeIf(::isFoodId),
+    name = name.take(CloudLimits.FOOD_NAME),
+    amount = amount.coerceIn(0.0, CloudLimits.MAX_FOOD_GRAMS),
+    unit = unit.takeIf { FoodUnits.isKnown(it) } ?: FoodUnits.GRAM,
+    grams = grams.coerceIn(0.0, CloudLimits.MAX_FOOD_GRAMS),
+    calories = calories.coerceIn(0, CloudLimits.MAX_CALORIES),
+    proteinG = proteinG.coerceIn(0.0, CloudLimits.MAX_MACRO_G.toDouble()),
+    carbsG = carbsG.coerceIn(0.0, CloudLimits.MAX_MACRO_G.toDouble()),
+    fatG = fatG.coerceIn(0.0, CloudLimits.MAX_MACRO_G.toDouble()),
+)
+
+/** Restore: the detailed meals of a cloud plan. */
+internal fun DietPlanDocument.toPlanMeals(): List<PlanMeal> = meals.map { meal ->
+    PlanMeal(
+        slot = meal.slot,
+        time = meal.time,
+        selected = meal.selected,
+        options = meal.options.map { option ->
+            PlanMealOption(
+                title = option.title,
+                note = option.note,
+                foods = option.foods.map { food ->
+                    PlanFood(
+                        foodId = food.foodId,
+                        name = food.name,
+                        amount = food.amount,
+                        unit = food.unit,
+                        grams = food.grams,
+                        calories = food.calories,
+                        proteinG = food.proteinG,
+                        carbsG = food.carbsG,
+                        fatG = food.fatG,
+                    )
+                },
+            )
+        },
+    )
+}
+
+private val FOOD_ID_PATTERN = Regex("^[A-Za-z0-9_-]{1,64}$")
+
+internal fun isFoodId(value: String): Boolean = FOOD_ID_PATTERN.matches(value)
 
 // workout_sessions
 
@@ -294,6 +367,11 @@ internal fun MealLog.toDocument(updatedAt: String, zone: TimeZone) = MealLogDocu
     loggedAt = loggedAt,
     localDate = localDateOf(loggedAt, zone),
     updatedAt = updatedAt,
+    slot = MealSlot.fromCode(slot)?.code,
+    foodId = foodId?.takeIf(::isFoodId),
+    servingUnit = servingUnit?.takeIf { FoodUnits.isKnown(it) },
+    servingAmount = servingAmount?.coerceIn(0.0, CloudLimits.MAX_FOOD_GRAMS),
+    grams = grams?.coerceIn(0.0, CloudLimits.MAX_FOOD_GRAMS),
 )
 
 internal fun MealLogDocument.toMealLog(userId: String) = MealLog(
@@ -306,6 +384,40 @@ internal fun MealLogDocument.toMealLog(userId: String) = MealLog(
     fatG = fatG,
     photoUrl = photoUrl,
     loggedAt = loggedAt,
+    slot = slot,
+    foodId = foodId,
+    servingUnit = servingUnit,
+    servingAmount = servingAmount,
+    grams = grams,
+)
+
+// custom_foods
+
+internal fun Custom_foods.toDocument(updatedAt: String) = CustomFoodDocument(
+    id = id,
+    name = name.take(CloudLimits.NAME),
+    kcalPer100g = kcal_per_100g.coerceIn(0.0, CloudLimits.MAX_KCAL_PER_100G),
+    proteinPer100g = protein_per_100g.coerceIn(0.0, CloudLimits.MAX_MACRO_PER_100G),
+    carbsPer100g = carbs_per_100g.coerceIn(0.0, CloudLimits.MAX_MACRO_PER_100G),
+    fatPer100g = fat_per_100g.coerceIn(0.0, CloudLimits.MAX_MACRO_PER_100G),
+    servingUnit = serving_unit.takeIf { FoodUnits.isKnown(it) } ?: FoodUnits.GRAM,
+    servingGrams = serving_grams.coerceIn(0.0, CloudLimits.MAX_FOOD_GRAMS),
+    createdAt = created_at.takeIf(::isIsoInstant) ?: updatedAt,
+    updatedAt = updatedAt,
+)
+
+internal fun CustomFoodDocument.toRow(userId: String) = Custom_foods(
+    id = id,
+    user_id = userId,
+    name = name,
+    kcal_per_100g = kcalPer100g,
+    protein_per_100g = proteinPer100g,
+    carbs_per_100g = carbsPer100g,
+    fat_per_100g = fatPer100g,
+    serving_unit = servingUnit.ifBlank { FoodUnits.GRAM },
+    serving_grams = servingGrams.takeIf { it > 0 } ?: 100.0,
+    created_at = createdAt,
+    updated_at = updatedAt,
 )
 
 // measurements

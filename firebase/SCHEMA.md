@@ -36,9 +36,10 @@ Rules live in `firestore.rules`; tests in `rules-tests/`.
 | `users/{uid}/workout_sessions/{sessionId}` | client | owner, functions |
 | `users/{uid}/meal_logs/{mealId}` | client | owner, functions |
 | `users/{uid}/measurements/{measurementId}` | client | owner, functions |
+| `users/{uid}/custom_foods/{foodId}` | client | owner, functions |
 | `users/{uid}/devices/{installationId}` | client | owner, functions |
 | `notification_state/{uid}` | functions only | nobody (server only) |
-| `plan_quotas/{uid}` | functions only, *reserved* | owner (read-only) |
+| `plan_quotas/{uid}` | functions only (`generateWorkoutPlan`) | owner (read-only) |
 | `trials/{uid}` | functions only (`startTrial`) | nobody (server only) |
 | `device_trials/{deviceHash}` | functions only (`startTrial`) | nobody (server only) |
 | `guest_trials/{uid}` | *legacy, frozen* | owner (read-only) |
@@ -110,12 +111,25 @@ replace but still referenced by history), `name`, `sets` (int), `reps` (string, 
 
 ### `users/{uid}/diet_plans/{planId}`
 
+Written when a plan is generated and when the user swaps in an alternative meal.
+
 | Field | Type | Notes |
 |---|---|---|
 | `schemaVersion`, `id`, `createdAt`, `updatedAt` | | as above |
 | `dailyCalories` | int 0..10000 | |
 | `proteinG`, `carbsG`, `fatG` | int 0..2000 | |
 | `isActive` | bool | |
+| `meals` | list ≤ 8 of maps | detailed plan; `[]` for target-only plans (older plans) |
+
+Meal map: `slot` (meal slot code, see below), `time` (`HH:mm`), `selected` (int, index of the option in use),
+`options` (list ≤ 3; `[0]` is the main suggestion, the rest are alternatives). Option map: `title` (≤ 200),
+`note` (prep tip, ≤ 300), `foods` (list ≤ 12). Food map: `foodId` (food database id \| null for AI foods
+not in the database), `name` (≤ 120), `amount` (number), `unit` (unit code), `grams` (number, weight of the
+amount), `calories` (int), `proteinG`, `carbsG`, `fatG` (number). Rules check the list type and size only.
+
+Meal slot codes (`MealSlot` in `FoodModels.kt`): `breakfast`, `morning_snack`, `lunch`, `afternoon_snack`,
+`dinner`, `evening_snack`. Unit codes (`FoodUnits`): `g`, `ml`, `piece`, `slice`, `portion`, `bowl`, `glass`,
+`tea_glass`, `cup`, `mug`, `tbsp`, `dsp`, `tsp`, `handful`, `ladle`, `can`, `pack`, `scoop`.
 
 ### `users/{uid}/workout_sessions/{sessionId}`
 
@@ -138,7 +152,8 @@ when it finishes. Push notifications use `localDate` + `completed`.
 
 ### `users/{uid}/meal_logs/{mealId}`
 
-Written on log, deleted on delete.
+Written on log and edit, deleted on delete. One document per diary entry: a photo-analysed meal, a quick
+add, or one food from the food database (a planned meal logged with "ate as planned" is one entry per food).
 
 | Field | Type | Notes |
 |---|---|---|
@@ -150,6 +165,27 @@ Written on log, deleted on delete.
 | `photoUrl` | string \| null | today only the marker `analyzed_photo`; images are not uploaded |
 | `loggedAt` | ISO string | |
 | `localDate` | `yyyy-MM-dd` | |
+| `slot` | meal slot code \| null | null for entries logged before meal slots; the app places them by time |
+| `foodId` | string ≤ 64 (doc id chars) \| null | bundled food id or `custom_…`; null for photo and quick-add entries |
+| `servingUnit` | unit code \| null | |
+| `servingAmount` | number 0..5000 \| null | amount of `servingUnit` |
+| `grams` | number 0..5000 \| null | weight of the entry |
+
+`source` stays `photo` \| `manual`: food database and plan entries are `manual`.
+
+### `users/{uid}/custom_foods/{foodId}`
+
+Foods the user created in the food search. Written on create, deleted on delete. `{foodId}` is
+`custom_` + 16 hex chars, the same id the device and `meal_logs.foodId` use.
+
+| Field | Type | Notes |
+|---|---|---|
+| `schemaVersion`, `id`, `createdAt`, `updatedAt` | | as above |
+| `name` | non-empty string ≤ 80 | |
+| `kcalPer100g` | number 0..900 | |
+| `proteinPer100g`, `carbsPer100g`, `fatPer100g` | number 0..100 | |
+| `servingUnit` | unit code | the household measure the food is logged by (`g` = by weight only) |
+| `servingGrams` | number 0..5000 | weight of one `servingUnit` |
 
 ### `users/{uid}/measurements/{measurementId}`
 
@@ -254,7 +290,7 @@ once these rules are deployed, so deploy the rules together with the new client.
    plans and history.
 2. **Device is empty** (sign-out or reinstall): read `users/{uid}`, falling back to
    `user_profiles/{uid}`, then restore the profile, onboarding answers, settings, plans,
-   sessions, meals and measurements. With an active workout and diet plan restored, the
+   sessions, meals, measurements and custom foods. With an active workout and diet plan restored, the
    app goes straight to Main. Otherwise it opens plan setup, which builds plans from the
    restored answers.
 3. **Neither**: onboarding.

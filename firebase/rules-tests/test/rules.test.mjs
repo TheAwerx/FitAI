@@ -3,8 +3,10 @@ import { after, before, beforeEach, describe, it } from "node:test";
 import { assertFails, assertSucceeds, initializeTestEnvironment } from "@firebase/rules-unit-testing";
 import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
 import {
+  customFoodDoc,
   deviceDoc,
   dietPlanDoc,
+  foodMealDoc,
   mealDoc,
   measurementDoc,
   sessionDoc,
@@ -135,6 +137,10 @@ describe("users/{uid} subcollections", () => {
     await assertSucceeds(setDoc(doc(db, "users/alice/workout_sessions/s2"), sessionDoc("s2", { completedAt: null, completed: false, durationMinutes: null })));
     await assertSucceeds(setDoc(doc(db, "users/alice/meal_logs/m1"), mealDoc("m1")));
     await assertSucceeds(setDoc(doc(db, "users/alice/meal_logs/m2"), mealDoc("m2", { source: "manual", photoUrl: null })));
+    await assertSucceeds(setDoc(doc(db, "users/alice/meal_logs/m3"), foodMealDoc("m3")));
+    await assertSucceeds(setDoc(doc(db, "users/alice/meal_logs/m4"), mealDoc("m4", { slot: null })));
+    await assertSucceeds(setDoc(doc(db, "users/alice/diet_plans/d2"), dietPlanDoc("d2", { meals: [] })));
+    await assertSucceeds(setDoc(doc(db, "users/alice/custom_foods/custom_0123456789abcdef"), customFoodDoc("custom_0123456789abcdef")));
     await assertSucceeds(setDoc(doc(db, "users/alice/measurements/w1"), measurementDoc("w1")));
     await assertSucceeds(setDoc(doc(db, "users/alice/devices/install-1"), deviceDoc()));
     await assertSucceeds(getDocs(collection(db, "users/alice/workout_sessions")));
@@ -146,11 +152,15 @@ describe("users/{uid} subcollections", () => {
     await assertFails(getDoc(doc(bob, "users/alice/meal_logs/m1")));
     await assertFails(getDocs(collection(bob, "users/alice/meal_logs")));
     await assertFails(setDoc(doc(bob, "users/alice/meal_logs/m2"), mealDoc("m2")));
+    await assertFails(setDoc(doc(bob, "users/alice/custom_foods/custom_1"), customFoodDoc("custom_1")));
+    await assertFails(getDocs(collection(bob, "users/alice/custom_foods")));
     await assertFails(setDoc(doc(anonymous("alice"), "users/alice/meal_logs/m2"), mealDoc("m2")));
     await assertFails(deleteDoc(doc(bob, "users/alice/meal_logs/m1")));
   });
 
   it("lets the owner delete meals, measurements and devices but not plans or sessions", async () => {
+    await seed("users/alice/custom_foods/custom_1", customFoodDoc("custom_1"));
+    await assertSucceeds(deleteDoc(doc(signedIn("alice"), "users/alice/custom_foods/custom_1")));
     await seed("users/alice/meal_logs/m1", mealDoc("m1"));
     await seed("users/alice/measurements/w1", measurementDoc("w1"));
     await seed("users/alice/devices/install-1", deviceDoc());
@@ -182,6 +192,19 @@ describe("users/{uid} subcollections", () => {
       ["users/alice/meal_logs/m1", mealDoc("m1", { source: "ai" })],
       ["users/alice/meal_logs/m1", mealDoc("m1", { calories: 20000 })],
       ["users/alice/meal_logs/m1", omit(mealDoc("m1"), "localDate")],
+      ["users/alice/meal_logs/m1", omit(mealDoc("m1"), "slot")],
+      ["users/alice/meal_logs/m1", mealDoc("m1", { slot: "brunch" })],
+      ["users/alice/meal_logs/m1", foodMealDoc("m1", { servingUnit: "bucket" })],
+      ["users/alice/meal_logs/m1", foodMealDoc("m1", { foodId: "../x" })],
+      ["users/alice/meal_logs/m1", foodMealDoc("m1", { grams: -1 })],
+      ["users/alice/diet_plans/d1", omit(dietPlanDoc("d1"), "meals")],
+      ["users/alice/diet_plans/d1", dietPlanDoc("d1", { meals: "kahvaltı" })],
+      ["users/alice/diet_plans/d1", dietPlanDoc("d1", { meals: Array(9).fill({ slot: "lunch" }) })],
+      ["users/alice/custom_foods/custom_1", customFoodDoc("custom_2")],
+      ["users/alice/custom_foods/custom_1", customFoodDoc("custom_1", { name: "" })],
+      ["users/alice/custom_foods/custom_1", customFoodDoc("custom_1", { kcalPer100g: 1200 })],
+      ["users/alice/custom_foods/custom_1", customFoodDoc("custom_1", { servingUnit: "bucket" })],
+      ["users/alice/custom_foods/custom_1", { ...customFoodDoc("custom_1"), barcode: "123" }],
       ["users/alice/measurements/w1", measurementDoc("w1", { weightKg: 5 })],
       ["users/alice/measurements/w1", measurementDoc("w1", { bodyFatPct: 95 })],
       ["users/alice/devices/install-1", deviceDoc({ platform: "web" })],

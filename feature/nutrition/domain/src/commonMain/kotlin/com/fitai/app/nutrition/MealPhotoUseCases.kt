@@ -69,6 +69,7 @@ class LogAnalyzedMealUseCase(
         proteinG: Double,
         carbsG: Double,
         fatG: Double,
+        slot: String? = null,
     ): UseCaseState<MealLog> = useCaseCatching {
         val user = localUserRepository.getLatestUser() ?: error("no_user")
         nutritionRepository.logMeal(
@@ -80,6 +81,7 @@ class LogAnalyzedMealUseCase(
             fatG = fatG,
             loggedAt = nowIsoTimestamp(),
             photoUrl = MealLog.ANALYZED_PHOTO_MARKER,
+            slot = slot,
         )
     }
 }

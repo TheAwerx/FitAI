@@ -16,6 +16,9 @@ DELETE FROM workout_plans;
 deleteAllMealLogs:
 DELETE FROM meal_logs;
 
+deleteAllCustomFoods:
+DELETE FROM custom_foods;
+
 deleteAllDietPlans:
 DELETE FROM diet_plans;
 
