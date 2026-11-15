@@ -8,6 +8,9 @@
 # Local configuration
 local.properties
 
+# Project MCP secrets (API keys)
+.cursor/mcp.json
+
 # Log/OS
 *.log
 .DS_Store
