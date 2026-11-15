@@ -57,6 +57,11 @@ data class MealAnalysisResult(
     val fatG: Double,
 )
 
+/**
+ * Profile sent to the plan and coach callables. [equipment] and [dietRestrictions] are comma-joined codes
+ * (see `ProfileEnums`); the optional fields are the extra onboarding answers in `OnboardingAnswers`.
+ * [locale] ("tr" / "en") is the language of the generated plan text.
+ */
 @Serializable
 data class UserProfilePayload(
     val name: String,
@@ -71,4 +76,7 @@ data class UserProfilePayload(
     val experience: String? = null,
     val daysPerWeek: Int? = null,
     val sessionMinutes: Int? = null,
+    val obstacle: String? = null,
+    val focusAreas: List<String>? = null,
+    val locale: String? = null,
 )

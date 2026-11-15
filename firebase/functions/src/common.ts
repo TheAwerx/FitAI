@@ -2,6 +2,19 @@ import { HttpsError } from "firebase-functions/v2/https";
 
 export type Locale = "tr" | "en";
 
+// Onboarding codes, same as core/domain/.../model/ProfileEnums.kt and OnboardingAnswers.kt.
+export const GENDERS = ["male", "female"] as const;
+export const EXPERIENCES = ["none", "beginner", "intermediate", "advanced"] as const;
+export const OBSTACLES = ["time", "knowledge", "motivation", "injury", "equipment", "never_tried"] as const;
+export const FOCUS_AREAS = [
+  "personal_plan", "smart_overload", "plate_photo", "log_lifts", "streak", "ai_coach",
+] as const;
+export const MAX_FOCUS_AREAS = 3;
+
+/**
+ * Profile sent by the app (`UserProfilePayload` in core/domain). `equipment` and `dietRestrictions` are
+ * comma-joined codes. The optional fields are the extra onboarding answers; older app builds omit them.
+ */
 export interface UserProfilePayload {
   name: string;
   age: number;
@@ -11,6 +24,12 @@ export interface UserProfilePayload {
   activityLevel: string;
   equipment: string;
   dietRestrictions: string;
+  gender?: string;
+  experience?: string;
+  obstacle?: string;
+  focusAreas?: string[];
+  daysPerWeek?: number;
+  sessionMinutes?: number;
 }
 
 export interface GeneratedExercise {
@@ -101,10 +120,14 @@ export function parseLocale(value: unknown): Locale {
   return typeof value === "string" && value.toLowerCase().startsWith("en") ? "en" : "tr";
 }
 
+function pickCode<T extends string>(value: unknown, allowed: readonly T[]): T | undefined {
+  return typeof value === "string" && (allowed as readonly string[]).includes(value) ? value as T : undefined;
+}
+
 export function parseProfile(value: unknown): UserProfilePayload {
   const p = requireRecord(value, "profile");
   const text = (v: unknown) => truncate(asString(v, "").trim(), 200);
-  return {
+  const profile: UserProfilePayload = {
     name: text(p.name),
     age: clamp(asInt(p.age, 30), 10, 100),
     heightCm: clamp(asNumber(p.heightCm, 170), 100, 250),
@@ -114,6 +137,24 @@ export function parseProfile(value: unknown): UserProfilePayload {
     equipment: text(p.equipment),
     dietRestrictions: text(p.dietRestrictions),
   };
+  const gender = pickCode(p.gender, GENDERS);
+  const experience = pickCode(p.experience, EXPERIENCES);
+  const obstacle = pickCode(p.obstacle, OBSTACLES);
+  const focusAreas = asStringArray(p.focusAreas, FOCUS_AREAS.length, 40)
+    .filter((code) => (FOCUS_AREAS as readonly string[]).includes(code))
+    .slice(0, MAX_FOCUS_AREAS);
+  if (gender) profile.gender = gender;
+  if (experience) profile.experience = experience;
+  if (obstacle) profile.obstacle = obstacle;
+  if (focusAreas.length) profile.focusAreas = focusAreas;
+  if (p.daysPerWeek != null) profile.daysPerWeek = clamp(asInt(p.daysPerWeek, 3), 1, 7);
+  if (p.sessionMinutes != null) profile.sessionMinutes = clamp(asInt(p.sessionMinutes, 45), 10, 180);
+  return profile;
+}
+
+/** Comma-joined codes from the app ("dumbbells,pull_up_bar") as a clean list. */
+export function splitCodes(value: string): string[] {
+  return value.split(",").map((code) => code.trim()).filter((code) => code.length > 0);
 }
 
 export function normalizeExercise(item: unknown): GeneratedExercise {

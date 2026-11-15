@@ -11,6 +11,7 @@ import com.fitai.app.repository.LocalUserRepository
 import com.fitai.app.repository.NutritionRepository
 import com.fitai.app.repository.WorkoutRepository
 import com.fitai.app.trial.TrialRepository
+import com.fitai.app.util.appLocale
 
 class GenerateWorkoutPlanUseCase(
     private val aiRepository: AIRepository,
@@ -23,7 +24,7 @@ class GenerateWorkoutPlanUseCase(
         trialRepository.ensureAnonymousAuth().getOrThrow()
         check(trialRepository.canAccessAiFeatures().getOrThrow()) { "trial_expired" }
         val user = localUserRepository.getLatestUser() ?: error("no_user")
-        val payload = user.toProfilePayload(userPreferencesRepository.onboardingAnswers())
+        val payload = user.toProfilePayload(userPreferencesRepository.onboardingAnswers(), appLocale())
         val generated = aiRepository.generateWorkoutPlan(payload).getOrThrow()
         workoutRepository.saveGeneratedPlan(user.id, generated)
         generated
@@ -41,7 +42,7 @@ class GenerateDietPlanUseCase(
         trialRepository.ensureAnonymousAuth().getOrThrow()
         check(trialRepository.canAccessAiFeatures().getOrThrow()) { "trial_expired" }
         val user = localUserRepository.getLatestUser() ?: error("no_user")
-        val payload = user.toProfilePayload(userPreferencesRepository.onboardingAnswers())
+        val payload = user.toProfilePayload(userPreferencesRepository.onboardingAnswers(), appLocale())
         val generated = aiRepository.generateDietPlan(payload).getOrThrow()
         nutritionRepository.saveGeneratedDiet(user.id, generated)
         generated

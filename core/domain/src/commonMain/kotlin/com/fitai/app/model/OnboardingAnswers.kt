@@ -29,6 +29,11 @@ enum class TrainingObstacle(val code: String) {
     Injury("injury"),
     Equipment("equipment"),
     NeverTried("never_tried"),
+    ;
+
+    companion object {
+        fun fromCode(code: String?): TrainingObstacle? = entries.find { it.code == code }
+    }
 }
 
 /** What the user wants FitAI for; at most [MAX_SELECTED] in onboarding. */
@@ -43,6 +48,8 @@ enum class FocusArea(val code: String) {
 
     companion object {
         const val MAX_SELECTED = 3
+
+        fun fromCode(code: String?): FocusArea? = entries.find { it.code == code }
     }
 }
 
@@ -61,9 +68,13 @@ data class OnboardingAnswers(
     val sessionMinutes: Int,
 )
 
-fun LocalUserProfile.toProfilePayload(answers: OnboardingAnswers?) = toProfilePayload().copy(
+/** Plan-generation payload: the profile plus every onboarding answer, with the plan text in [locale]. */
+fun LocalUserProfile.toProfilePayload(answers: OnboardingAnswers?, locale: String? = null) = toProfilePayload().copy(
     gender = answers?.gender,
     experience = answers?.experience,
     daysPerWeek = answers?.daysPerWeek,
     sessionMinutes = answers?.sessionMinutes,
+    obstacle = answers?.obstacle,
+    focusAreas = answers?.focusAreas?.sorted(),
+    locale = locale,
 )

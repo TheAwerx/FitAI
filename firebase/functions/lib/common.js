@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.exerciseSchema = void 0;
+exports.exerciseSchema = exports.MAX_FOCUS_AREAS = exports.FOCUS_AREAS = exports.OBSTACLES = exports.EXPERIENCES = exports.GENDERS = void 0;
 exports.asInt = asInt;
 exports.asNumber = asNumber;
 exports.asString = asString;
@@ -14,8 +14,17 @@ exports.requireRecord = requireRecord;
 exports.requireNumber = requireNumber;
 exports.parseLocale = parseLocale;
 exports.parseProfile = parseProfile;
+exports.splitCodes = splitCodes;
 exports.normalizeExercise = normalizeExercise;
 const https_1 = require("firebase-functions/v2/https");
+// Onboarding codes, same as core/domain/.../model/ProfileEnums.kt and OnboardingAnswers.kt.
+exports.GENDERS = ["male", "female"];
+exports.EXPERIENCES = ["none", "beginner", "intermediate", "advanced"];
+exports.OBSTACLES = ["time", "knowledge", "motivation", "injury", "equipment", "never_tried"];
+exports.FOCUS_AREAS = [
+    "personal_plan", "smart_overload", "plate_photo", "log_lifts", "streak", "ai_coach",
+];
+exports.MAX_FOCUS_AREAS = 3;
 exports.exerciseSchema = {
     type: "OBJECT",
     properties: {
@@ -83,10 +92,13 @@ function requireNumber(value, field) {
 function parseLocale(value) {
     return typeof value === "string" && value.toLowerCase().startsWith("en") ? "en" : "tr";
 }
+function pickCode(value, allowed) {
+    return typeof value === "string" && allowed.includes(value) ? value : undefined;
+}
 function parseProfile(value) {
     const p = requireRecord(value, "profile");
     const text = (v) => truncate(asString(v, "").trim(), 200);
-    return {
+    const profile = {
         name: text(p.name),
         age: clamp(asInt(p.age, 30), 10, 100),
         heightCm: clamp(asNumber(p.heightCm, 170), 100, 250),
@@ -96,6 +108,29 @@ function parseProfile(value) {
         equipment: text(p.equipment),
         dietRestrictions: text(p.dietRestrictions),
     };
+    const gender = pickCode(p.gender, exports.GENDERS);
+    const experience = pickCode(p.experience, exports.EXPERIENCES);
+    const obstacle = pickCode(p.obstacle, exports.OBSTACLES);
+    const focusAreas = asStringArray(p.focusAreas, exports.FOCUS_AREAS.length, 40)
+        .filter((code) => exports.FOCUS_AREAS.includes(code))
+        .slice(0, exports.MAX_FOCUS_AREAS);
+    if (gender)
+        profile.gender = gender;
+    if (experience)
+        profile.experience = experience;
+    if (obstacle)
+        profile.obstacle = obstacle;
+    if (focusAreas.length)
+        profile.focusAreas = focusAreas;
+    if (p.daysPerWeek != null)
+        profile.daysPerWeek = clamp(asInt(p.daysPerWeek, 3), 1, 7);
+    if (p.sessionMinutes != null)
+        profile.sessionMinutes = clamp(asInt(p.sessionMinutes, 45), 10, 180);
+    return profile;
+}
+/** Comma-joined codes from the app ("dumbbells,pull_up_bar") as a clean list. */
+function splitCodes(value) {
+    return value.split(",").map((code) => code.trim()).filter((code) => code.length > 0);
 }
 function normalizeExercise(item) {
     const e = asRecord(item);

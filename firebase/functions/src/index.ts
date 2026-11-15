@@ -2,13 +2,12 @@ import * as admin from "firebase-admin";
 import { onCall, HttpsError, CallableRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import {
-  UserProfilePayload,
   asInt,
   asNumber,
+  asRecord,
   asString,
-  exerciseSchema,
-  normalizeExercise,
   parseLocale,
+  parseProfile,
 } from "./common";
 import {
   adaptedSessionSchema,
@@ -29,6 +28,15 @@ import {
   weeklyReportPrompt,
   weeklyReportSchema,
 } from "./coach";
+import {
+  dietPlanPrompt,
+  dietReference,
+  dietSchema,
+  normalizeDietPlan,
+  normalizeWorkoutPlan,
+  workoutPlanPrompt,
+  workoutSchema,
+} from "./plans";
 import { withDailyQuota } from "./rateLimit";
 
 admin.initializeApp();
@@ -52,28 +60,6 @@ const authCallable = {
   region: FUNCTIONS_REGION,
   cors: true,
   invoker: "public" as const,
-};
-
-const workoutSchema = {
-  type: "OBJECT",
-  properties: {
-    title: { type: "STRING" },
-    description: { type: "STRING" },
-    daysPerWeek: { type: "INTEGER" },
-    exercises: { type: "ARRAY", items: exerciseSchema },
-  },
-  required: ["title", "description", "daysPerWeek", "exercises"],
-};
-
-const dietSchema = {
-  type: "OBJECT",
-  properties: {
-    dailyCalories: { type: "INTEGER" },
-    proteinG: { type: "INTEGER" },
-    carbsG: { type: "INTEGER" },
-    fatG: { type: "INTEGER" },
-  },
-  required: ["dailyCalories", "proteinG", "carbsG", "fatG"],
 };
 
 const mealSchema = {
@@ -144,25 +130,6 @@ function requireAuth(request: CallableRequest): string {
   return request.auth.uid;
 }
 
-function normalizeWorkout(parsed: Record<string, unknown>) {
-  const exercises = Array.isArray(parsed.exercises) ? parsed.exercises : [];
-  return {
-    title: asString(parsed.title, "Antrenman planı"),
-    description: asString(parsed.description, ""),
-    daysPerWeek: Math.min(7, Math.max(1, asInt(parsed.daysPerWeek, 3))),
-    exercises: exercises.map(normalizeExercise),
-  };
-}
-
-function normalizeDiet(parsed: Record<string, unknown>) {
-  return {
-    dailyCalories: Math.max(800, asInt(parsed.dailyCalories, 2000)),
-    proteinG: Math.max(0, asInt(parsed.proteinG, 120)),
-    carbsG: Math.max(0, asInt(parsed.carbsG, 200)),
-    fatG: Math.max(0, asInt(parsed.fatG, 60)),
-  };
-}
-
 function normalizeMeal(parsed: Record<string, unknown>) {
   return {
     mealName: asString(parsed.mealName, "Öğün"),
@@ -189,36 +156,32 @@ function trialStatus(startedAt: Date, hasSubscription = false) {
   };
 }
 
+// Both plan callables take the app's UserProfilePayload (all onboarding answers) plus `locale`.
 export const generateWorkoutPlan = onCall(geminiCallable, async (request) => {
   requireAuth(request);
-  const profile = request.data as UserProfilePayload;
-  const prompt =
-    "Generate a personalized workout plan as JSON. " +
-    "User: " + JSON.stringify(profile) + ". " +
-    "Use Turkish exercise names where appropriate. Keep daysPerWeek between 3 and 6.";
+  const data = asRecord(request.data);
+  const profile = parseProfile(data);
+  const locale = parseLocale(data.locale);
   const parsed = await callGemini(
     geminiApiKey.value(),
     GEMINI_PLAN_MODEL,
-    [{ text: prompt }],
+    [{ text: workoutPlanPrompt(profile, locale) }],
     workoutSchema,
   );
-  return normalizeWorkout((parsed ?? {}) as Record<string, unknown>);
+  return normalizeWorkoutPlan(parsed, profile, locale);
 });
 
 export const generateDietPlan = onCall(geminiCallable, async (request) => {
   requireAuth(request);
-  const profile = request.data as UserProfilePayload;
-  const prompt =
-    "Generate a daily diet macro plan as JSON for this user: " +
-    JSON.stringify(profile) +
-    ". Respect diet restrictions.";
+  const profile = parseProfile(request.data);
+  const reference = dietReference(profile);
   const parsed = await callGemini(
     geminiApiKey.value(),
     GEMINI_PLAN_MODEL,
-    [{ text: prompt }],
+    [{ text: dietPlanPrompt(profile, reference) }],
     dietSchema,
   );
-  return normalizeDiet((parsed ?? {}) as Record<string, unknown>);
+  return normalizeDietPlan(parsed, reference);
 });
 
 export const analyzeMealPhoto = onCall(geminiCallable, async (request) => {
