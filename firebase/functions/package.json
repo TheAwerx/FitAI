@@ -1,0 +1,22 @@
+{
+  "name": "fitai-functions",
+  "description": "Firebase Cloud Functions for FitAI Gemini proxy and trial management",
+  "scripts": {
+    "build": "tsc",
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions,firestore:rules"
+  },
+  "engines": {
+    "node": "24"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "firebase-functions-test": "^3.4.0"
+  },
+  "private": true
+}

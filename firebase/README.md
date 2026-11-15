@@ -1,0 +1,135 @@
+# Firebase + Gemini (FitAI)
+
+Gemini API anahtarı **cihaza konmaz**. Mobil uygulama Firebase Callable Functions üzerinden
+`generateWorkoutPlan`, `generateDietPlan`, `analyzeMealPhoto`, `suggestNextMeal`,
+`adaptTodaySession`, `coachChat`, `weeklyCoachReport` çağırır; Functions gizli
+`GEMINI_API_KEY` ile Gemini’ye proxy olur.
+
+Firebase yapılandırılmazsa uygulama otomatik `MockAIRepository` kullanır.
+
+Proje ID: `fitai-1e8a4`
+
+## Senin yapman gereken manuel adımlar
+
+### 1. Gemini API anahtarı
+
+1. [Google AI Studio](https://aistudio.google.com/apikey) → **Create API key**
+2. Anahtarı kopyala (sadece Functions secret’ına girecek)
+3. [Google Cloud Console](https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com?project=fitai-1e8a4)
+   içinde **Generative Language API**’yi etkinleştir
+
+### 2. Firebase Console
+
+Aynı proje (`fitai-1e8a4`):
+
+1. **Blaze (pay as you go)** plana geç — 2nd gen Functions ve dışarı Gemini çağrısı için gerekli
+2. **Authentication → Sign-in method**
+   - Anonymous: Enable (guest / trial Gemini çağrıları için zorunlu)
+   - Email/Password: Enable (kayıt/giriş ekranı)
+   - Google: Enable. Bu adım Web OAuth client üretir (`….apps.googleusercontent.com`).
+     Üretilmeden Android "Google ile devam et" `google_client_missing` verir.
+   - Android uygulamasına debug (ve yayın) SHA-1 ekle. Google, imza parmak izi
+     kayıtlı değilse kimlik penceresini açmaz.
+   - Google'ı açtıktan sonra `google-services.json` dosyasını yeniden indir.
+     Uygulama Web client id'yi bu dosyadaki `default_web_client_id` alanından okur.
+     Elle vermek için `google_web_client_id` string'i doldurulabilir.
+3. **Firestore Database** oluştur (production, tercihen `eur3` veya `nam5`)
+4. Android `google-services.json` dosyası `composeApp/google-services.json` konumunda olmalı
+   (git’e eklenmez). iOS `GoogleService-Info.plist` `iosApp/iosApp/` altında.
+
+Paket adı: `com.fitai.app`
+
+### 3. CLI, secret ve deploy
+
+```bash
+npm i -g firebase-tools
+firebase login
+cd firebase
+firebase use fitai-1e8a4
+cd functions
+npm install
+cd ..
+firebase functions:secrets:set GEMINI_API_KEY
+# yapıştır → Enter
+firebase deploy --only functions,firestore:rules
+```
+
+İlk deploy Billing + Cloud Build / Artifact Registry izinleri isteyebilir; Console’daki
+uyarıları onayla.
+
+### 4. Doğrulama
+
+Firebase Console → Functions listesinde şunlar `us-central1` bölgesinde olmalı:
+
+- `generateWorkoutPlan`
+- `generateDietPlan`
+- `analyzeMealPhoto`
+- `initGuestTrial`
+- `getTrialStatus`
+- `suggestNextMeal`
+- `adaptTodaySession`
+- `coachChat`
+- `weeklyCoachReport`
+
+### 5. Yeni fonksiyon deploy + IAM (her yeni callable için zorunlu)
+
+Sadece AI koç fonksiyonlarını deploy etmek için:
+
+```bash
+cd firebase
+firebase deploy --only functions:suggestNextMeal,functions:adaptTodaySession,functions:coachChat,functions:weeklyCoachReport,functions:analyzeMealPhoto
+```
+
+2nd gen callable’lar Cloud Run servisidir. `invoker: "public"` olsa bile ilk oluşturma
+yarıda kalırsa servis `allUsers` → `roles/run.invoker` almayabilir ve istemci
+`UNAUTHENTICATED` görür. Deploy sonrası her yeni servis için çalıştır (servis adı
+fonksiyon adının küçük harflisidir):
+
+```bash
+for fn in suggestnextmeal adapttodaysession coachchat weeklycoachreport; do
+  gcloud run services add-iam-policy-binding "$fn" \
+    --region=us-central1 \
+    --project=fitai-1e8a4 \
+    --member=allUsers \
+    --role=roles/run.invoker
+done
+```
+
+Kontrol: `gcloud run services get-iam-policy coachchat --region=us-central1 --project=fitai-1e8a4`
+
+## AI koç callable’ları
+
+Tüm istekler `locale` (`"tr"` | `"en"`) taşır; cevap metinleri bu dilde döner. JSON alanları
+`docs/FitAI_Uygulama_Plani.md` Bölüm 6 ile aynıdır.
+
+| Callable | Model | Günlük limit |
+|---|---|---|
+| `suggestNextMeal` | `GEMINI_VISION_MODEL` (flash) | 30 |
+| `adaptTodaySession` | `GEMINI_PLAN_MODEL` (pro) | 10 |
+| `coachChat` | `GEMINI_VISION_MODEL` (flash) | 60 |
+| `weeklyCoachReport` | `GEMINI_VISION_MODEL` (flash) | 5 |
+
+Geçersiz istek → `invalid-argument`. Limit aşımı → `resource-exhausted` (mesaj `daily_limit`).
+`analyzeMealPhoto` artık opsiyonel `locale` alır (yoksa Türkçe); cevap şekli değişmedi.
+
+### Rate limit koleksiyonu
+
+`aiUsage/{uid}/days/{yyyy-mm-dd}` (UTC gün). Alanlar: fonksiyon adı başına sayaç
+(`suggestNextMeal`, `adaptTodaySession`, `coachChat`, `weeklyCoachReport`), `updatedAt`,
+`expiresAt` (+7 gün). Sayaç Gemini çağrısından önce transaction ile artar; çağrı hata
+verirse geri alınır. Yalnız Admin SDK yazar; `firestore.rules` bu koleksiyona istemci
+erişimi vermez. Eski kayıtları otomatik silmek için Firestore TTL politikası
+(`days` collection group, alan `expiresAt`) Console’dan açılabilir.
+
+Uygulamada onboarding’i bitirince plan üretimi mock yerine Gemini çıktısı döner.
+`google-services.json` yoksa veya Firebase init başarısızsa mock’a düşülür.
+
+## Mimari
+
+```
+App (KMP) → Firebase Auth (anonim veya e-posta)
+         → Callable Functions (us-central1)
+         → Gemini (API key sadece secret)
+         → JSON (workout / diet / meal)
+         → SQLDelight (offline kaynak)
+```
