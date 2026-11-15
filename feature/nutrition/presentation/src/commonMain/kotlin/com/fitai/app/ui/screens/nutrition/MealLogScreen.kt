@@ -79,7 +79,7 @@ fun MealLogScreen(
                 enabled = !state.saving,
             )
             state.errorMessage?.let {
-                Text(strings.foodFieldsInvalid, style = MaterialTheme.typography.bodyMedium, color = FitAIColors.Error)
+                Text(strings.foodQuickAddInvalid, style = MaterialTheme.typography.bodyMedium, color = FitAIColors.Error)
             }
             if (state.editingId != null) {
                 FitAIButton(

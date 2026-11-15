@@ -370,6 +370,7 @@ interface Strings {
     fun foodPer100g(kcal: Int): String
     val foodInvalidAmount: String
     val foodFieldsInvalid: String
+    val foodQuickAddInvalid: String
     val customFoodTitle: String
     val customFoodName: String
     val customFoodServingUnit: String
@@ -1194,6 +1195,7 @@ object StringsTr : Strings {
     override fun foodPer100g(kcal: Int) = "100 g: $kcal kcal"
     override val foodInvalidAmount = "Geçerli bir miktar gir."
     override val foodFieldsInvalid = "Ad, kalori ve makroları geçerli sayılarla doldur."
+    override val foodQuickAddInvalid = "Ad ve kaloriyi gir. Makrolar isteğe bağlı; girersen geçerli bir sayı olmalı."
     override val customFoodTitle = "Yeni gıda"
     override val customFoodName = "Gıda adı"
     override val customFoodServingUnit = "Porsiyon ölçüsü"
@@ -2108,6 +2110,7 @@ object StringsEn : Strings {
     override fun foodPer100g(kcal: Int) = "100 g: $kcal kcal"
     override val foodInvalidAmount = "Enter a valid amount."
     override val foodFieldsInvalid = "Fill in the name, calories and macros with valid numbers."
+    override val foodQuickAddInvalid = "Enter a name and calories. Macros are optional; if you enter one, use a valid number."
     override val customFoodTitle = "New food"
     override val customFoodName = "Food name"
     override val customFoodServingUnit = "Serving measure"
