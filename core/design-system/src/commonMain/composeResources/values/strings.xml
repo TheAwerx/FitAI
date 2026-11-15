@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FitAI</string>
+    <string name="google_web_client_id" translatable="false">529662166222-eh59s1sn2mbdo2ro3pd8vj70v18m5rr1.apps.googleusercontent.com</string>
+
+    <string name="splash_loading">Yükleniyor…</string>
+
+    <string name="tab_home">Ana Sayfa</string>
+    <string name="tab_workout">Antrenman</string>
+    <string name="tab_nutrition">Beslenme</string>
+    <string name="tab_progress">İlerleme</string>
+    <string name="tab_profile">Profil</string>
+    <string name="tab_progress_disabled">İlerleme — Faz 4\'te</string>
+
+    <string name="home_title">Ana Sayfa</string>
+    <string name="home_subtitle">Bugünkü özetiniz</string>
+    <string name="home_today_workout">Bugünkü antrenman</string>
+    <string name="home_no_workout">Bugün için egzersiz yok</string>
+    <string name="home_macros">Günlük makrolar</string>
+    <string name="home_quick_log_meal">Öğün ekle</string>
+    <string name="home_trial_remaining">Deneme: %1$d gün kaldı</string>
+    <string name="home_trial_expired">Deneme süreniz doldu</string>
+
+    <string name="welcome_title">FitAI\'ye hoş geldiniz</string>
+    <string name="welcome_subtitle">Kişisel antrenman ve beslenme planları için birkaç soruyla başlayalım. Hesap zorunlu değil.</string>
+
+    <string name="onboarding_progress">Adım %1$d / %2$d</string>
+    <string name="onboarding_label_name">Adınız</string>
+    <string name="onboarding_label_email">E-posta (isteğe bağlı)</string>
+    <string name="onboarding_label_age">Yaş</string>
+    <string name="onboarding_label_height">Boy (cm)</string>
+    <string name="onboarding_label_weight">Kilo (kg)</string>
+    <string name="onboarding_label_goal">Hedefiniz</string>
+    <string name="onboarding_label_activity">Aktivite düzeyi</string>
+    <string name="onboarding_label_equipment">Ekipman</string>
+    <string name="onboarding_label_diet_restrictions">Diyet kısıtlamaları</string>
+    <string name="onboarding_generating_workout">Antrenman planınız oluşturuluyor…</string>
+    <string name="onboarding_generating_diet">Beslenme planınız oluşturuluyor…</string>
+    <string name="onboarding_ai_wait">AI koçunuz planınızı hazırlıyor</string>
+
+    <string name="workout_title">Antrenman</string>
+    <string name="workout_active_plan">Aktif plan</string>
+    <string name="workout_history">Geçmiş planlar</string>
+    <string name="workout_regenerate">Planı yenile</string>
+    <string name="workout_start_session">Antrenmana başla</string>
+    <string name="workout_exercises_count">%1$d egzersiz</string>
+    <string name="workout_sets_reps">%1$d set × %2$s</string>
+    <string name="workout_rest">Dinlenme: %1$d sn</string>
+    <string name="workout_session_active">Aktif antrenman</string>
+    <string name="workout_complete_session">Antrenmanı bitir</string>
+    <string name="workout_set_number">Set %1$d</string>
+    <string name="workout_weight_kg">Ağırlık (kg)</string>
+    <string name="workout_actual_reps">Tekrar</string>
+    <string name="workout_no_plan">Henüz antrenman planınız yok</string>
+
+    <string name="nutrition_title">Beslenme</string>
+    <string name="nutrition_targets">Günlük hedefler</string>
+    <string name="nutrition_calories">Kalori</string>
+    <string name="nutrition_protein">Protein</string>
+    <string name="nutrition_carbs">Karbonhidrat</string>
+    <string name="nutrition_fat">Yağ</string>
+    <string name="nutrition_today_meals">Bugünkü öğünler</string>
+    <string name="nutrition_log_meal">Öğün kaydet</string>
+    <string name="nutrition_photo_meal">Fotoğraftan analiz</string>
+    <string name="nutrition_meal_name">Öğün adı</string>
+    <string name="nutrition_regenerate">Diyet planını yenile</string>
+    <string name="nutrition_no_plan">Henüz diyet planınız yok</string>
+    <string name="nutrition_analyzing">Fotoğraf analiz ediliyor…</string>
+
+    <string name="paywall_title">Deneme süreniz doldu</string>
+    <string name="paywall_subtitle">AI planları ve fotoğraf analizi için giriş yapın veya abone olun.</string>
+    <string name="paywall_subscribe">Abone ol (yakında)</string>
+    <string name="paywall_sign_in">Giriş yap</string>
+
+    <string name="profile_title">Profil</string>
+    <string name="profile_cloud_hint">Verileriniz önce bu cihazda saklanır. Diğer cihazlarla senkron veya yedek için giriş yapabilirsiniz.</string>
+    <string name="profile_local_summary">%1$s · %2$s · %3$s</string>
+    <string name="profile_diet_restrictions">Diyet: %1$s</string>
+    <string name="profile_google">Google ile devam et</string>
+    <string name="profile_apple">Apple ile devam et</string>
+    <string name="profile_sign_out">Çıkış yap</string>
+
+    <string name="auth_title_sign_in">E-posta ile giriş</string>
+    <string name="auth_title_register">Hesap oluştur</string>
+    <string name="auth_password">Şifre</string>
+
+    <string name="action_continue">Devam</string>
+    <string name="action_back">Geri</string>
+    <string name="action_finish">Bitir</string>
+    <string name="action_submit">Gönder</string>
+    <string name="action_save">Kaydet</string>
+    <string name="action_retry">Tekrar dene</string>
+    <string name="action_cancel">İptal</string>
+
+    <string name="firebase_unavailable">Bulut girişi şu an kullanılamıyor (Firebase yapılandırması eksik).</string>
+    <string name="validation_name_required">Lütfen adınızı girin.</string>
+    <string name="validation_numbers_required">Yaş, boy ve kilo için geçerli sayılar girin.</string>
+    <string name="validation_fields_required">Tüm alanları doldurun.</string>
+    <string name="validation_email_password_required">E-posta ve şifre gerekli.</string>
+    <string name="error_unknown">Bir hata oluştu.</string>
+    <string name="trial_expired">Deneme süreniz doldu.</string>
+    <string name="sync_failed">Profil buluta gönderilemedi.</string>
+    <string name="apple_unsupported_android">Apple ile giriş bu platformda desteklenmiyor.</string>
+
+    <string name="sample_email_label">E-posta</string>
+    <string name="sample_email_placeholder">ornek@fitai.app</string>
+    <string name="action_primary_example">Örnek birincil buton</string>
+</resources>

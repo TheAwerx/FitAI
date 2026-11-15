@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_title">Home</string>
+    <string name="home_subtitle">Your daily summary</string>
+    <string name="home_today_workout">Today\'s workout</string>
+    <string name="home_no_workout">No exercises scheduled for today</string>
+    <string name="home_macros">Daily macros</string>
+    <string name="home_quick_log_meal">Log a meal</string>
+    <string name="home_trial_remaining">Trial: %1$d days left</string>
+    <string name="home_trial_expired">Your trial has expired</string>
+
+    <string name="tab_home">Home</string>
+    <string name="tab_workout">Workout</string>
+    <string name="tab_nutrition">Nutrition</string>
+    <string name="tab_progress">Progress</string>
+    <string name="tab_profile">Profile</string>
+    <string name="tab_progress_disabled">Progress — Phase 4</string>
+
+    <string name="onboarding_label_diet_restrictions">Diet restrictions</string>
+    <string name="onboarding_generating_workout">Generating your workout plan…</string>
+    <string name="onboarding_generating_diet">Generating your diet plan…</string>
+    <string name="onboarding_ai_wait">Your AI coach is preparing your plan</string>
+
+    <string name="workout_title">Workout</string>
+    <string name="workout_active_plan">Active plan</string>
+    <string name="workout_history">Plan history</string>
+    <string name="workout_regenerate">Regenerate plan</string>
+    <string name="workout_start_session">Start workout</string>
+    <string name="workout_no_plan">No workout plan yet</string>
+
+    <string name="nutrition_title">Nutrition</string>
+    <string name="nutrition_log_meal">Log meal</string>
+    <string name="nutrition_photo_meal">Analyze from photo</string>
+    <string name="nutrition_no_plan">No diet plan yet</string>
+
+    <string name="paywall_title">Trial expired</string>
+    <string name="paywall_subtitle">Sign in or subscribe to use AI plans and photo analysis.</string>
+    <string name="paywall_subscribe">Subscribe (coming soon)</string>
+    <string name="paywall_sign_in">Sign in</string>
+
+    <string name="action_retry">Retry</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="trial_expired">Your trial has expired.</string>
+</resources>
