@@ -2,6 +2,7 @@ package com.fitai.app.ai
 
 import com.fitai.app.firebase.FirebaseBootstrap
 import com.fitai.app.firebase.FitAiFunctions
+import com.fitai.app.firebase.WorkoutPlanCallableRequest
 import com.fitai.app.model.AdaptedSession
 import com.fitai.app.model.CoachChatReply
 import com.fitai.app.model.CoachChatRequest
@@ -21,8 +22,7 @@ class AiRemoteDataSource {
 
     suspend fun generateWorkoutPlan(request: ApiRequest<GeneratedWorkoutPlan>): GeneratedWorkoutPlan {
         check(initialized) { "Firebase is not configured" }
-        val profile = request.requestBody as UserProfilePayload
-        return FitAiFunctions.generateWorkoutPlan(profile)
+        return FitAiFunctions.generateWorkoutPlan(request.requestBody as WorkoutPlanCallableRequest)
     }
 
     suspend fun generateDietPlan(request: ApiRequest<GeneratedDietPlan>): GeneratedDietPlan {

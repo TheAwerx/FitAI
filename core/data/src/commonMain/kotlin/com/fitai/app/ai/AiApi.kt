@@ -1,5 +1,7 @@
 package com.fitai.app.ai
 
+import com.fitai.app.access.PlanGenerationPurpose
+import com.fitai.app.firebase.WorkoutPlanCallableRequest
 import com.fitai.app.model.AdaptedSession
 import com.fitai.app.model.CoachChatReply
 import com.fitai.app.model.CoachChatRequest
@@ -16,10 +18,10 @@ import com.fitai.app.network.ApiMethod
 import com.fitai.app.network.ApiRequest
 
 internal object AiApi {
-    fun generateWorkoutPlan(body: UserProfilePayload) = ApiRequest<GeneratedWorkoutPlan>(
+    fun generateWorkoutPlan(profile: UserProfilePayload, purpose: PlanGenerationPurpose) = ApiRequest<GeneratedWorkoutPlan>(
         method = ApiMethod.CALLABLE,
         path = "generateWorkoutPlan",
-        requestBody = body,
+        requestBody = WorkoutPlanCallableRequest(profile = profile, planPurpose = purpose.code),
     )
 
     fun generateDietPlan(body: UserProfilePayload) = ApiRequest<GeneratedDietPlan>(

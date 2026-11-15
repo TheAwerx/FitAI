@@ -1,5 +1,6 @@
 package com.fitai.app.ai
 
+import com.fitai.app.access.PlanGenerationPurpose
 import com.fitai.app.model.AdaptedSession
 import com.fitai.app.model.CoachChatReply
 import com.fitai.app.model.CoachChatRequest
@@ -14,7 +15,11 @@ import com.fitai.app.model.WeeklyCoachReport
 import com.fitai.app.model.WeeklyReportRequest
 
 interface AIRepository {
-    suspend fun generateWorkoutPlan(profile: UserProfilePayload): Result<GeneratedWorkoutPlan>
+    /** [purpose] tells the server whether this call spends a regeneration right (see `PlanQuotaPolicy`). */
+    suspend fun generateWorkoutPlan(
+        profile: UserProfilePayload,
+        purpose: PlanGenerationPurpose = PlanGenerationPurpose.Regenerate,
+    ): Result<GeneratedWorkoutPlan>
     suspend fun generateDietPlan(profile: UserProfilePayload): Result<GeneratedDietPlan>
     suspend fun analyzeMealPhoto(
         imageBase64: String,

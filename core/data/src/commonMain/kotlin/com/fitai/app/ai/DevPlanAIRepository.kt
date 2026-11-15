@@ -1,5 +1,6 @@
 package com.fitai.app.ai
 
+import com.fitai.app.access.PlanGenerationPurpose
 import com.fitai.app.model.AdaptedSession
 import com.fitai.app.model.CoachChatReply
 import com.fitai.app.model.CoachChatRequest
@@ -24,8 +25,10 @@ internal class DevPlanAIRepository(
     private val localPlans: AIRepository,
 ) : AIRepository {
 
-    override suspend fun generateWorkoutPlan(profile: UserProfilePayload): Result<GeneratedWorkoutPlan> =
-        localPlans.generateWorkoutPlan(profile)
+    override suspend fun generateWorkoutPlan(
+        profile: UserProfilePayload,
+        purpose: PlanGenerationPurpose,
+    ): Result<GeneratedWorkoutPlan> = localPlans.generateWorkoutPlan(profile, purpose)
 
     override suspend fun generateDietPlan(profile: UserProfilePayload): Result<GeneratedDietPlan> =
         localPlans.generateDietPlan(profile)

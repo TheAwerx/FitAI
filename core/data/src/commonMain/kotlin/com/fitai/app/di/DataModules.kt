@@ -3,6 +3,12 @@ package com.fitai.app.di
 import com.fitai.app.access.CheckFeatureAccessUseCase
 import com.fitai.app.access.EntitlementRepository
 import com.fitai.app.access.EntitlementRepositoryImpl
+import com.fitai.app.access.FirestorePlanQuotaRepository
+import com.fitai.app.access.GetPlanQuotaUseCase
+import com.fitai.app.access.LocalPlanQuotaRepository
+import com.fitai.app.access.PlanQuotaRepository
+import com.fitai.app.access.RegenerateWorkoutPlanUseCase
+import com.fitai.app.access.SpendPlanRegenerationUseCase
 import com.fitai.app.access.GetAccessTierUseCase
 import com.fitai.app.access.RecordFeatureUseUseCase
 import com.fitai.app.access.UsageLimitRepository
@@ -110,6 +116,15 @@ fun dataRepositoryModule(useRemotePlanGeneration: Boolean) = module {
     single<ProgressRepository> { ProgressRepositoryImpl(get()) }
     single<EntitlementRepository> { EntitlementRepositoryImpl(get(), get()) }
     single<UsageLimitRepository> { UsageLimitRepositoryImpl(get()) }
+    single { LocalPlanQuotaRepository(get()) }
+    single<PlanQuotaRepository> {
+        // Dev never calls generateWorkoutPlan, so the server count would stay at zero there.
+        if (useRemotePlanGeneration && FirebaseBootstrap.ensureInitialized()) {
+            FirestorePlanQuotaRepository(get())
+        } else {
+            get<LocalPlanQuotaRepository>()
+        }
+    }
     single<AnalyticsTracker> { LogAnalyticsTracker() }
     single<UserPreferencesRepository> { UserPreferencesRepositoryImpl(get()) }
     single<LocalSessionRepository> { LocalSessionRepositoryImpl(get(), get()) }
@@ -129,6 +144,9 @@ val dataUseCaseModule = module {
     factoryOf(::GetAccessTierUseCase)
     factoryOf(::CheckFeatureAccessUseCase)
     factoryOf(::RecordFeatureUseUseCase)
+    factoryOf(::GetPlanQuotaUseCase)
+    factoryOf(::SpendPlanRegenerationUseCase)
+    factoryOf(::RegenerateWorkoutPlanUseCase)
     factoryOf(::TrackEventUseCase)
     factoryOf(::GetSubscriptionProductsUseCase)
     factoryOf(::PurchaseSubscriptionUseCase)

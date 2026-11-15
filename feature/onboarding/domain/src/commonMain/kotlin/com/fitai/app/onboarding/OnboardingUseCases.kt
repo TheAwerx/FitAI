@@ -2,6 +2,7 @@ package com.fitai.app.onboarding
 
 import com.fitai.app.access.AccessTier
 import com.fitai.app.access.EntitlementRepository
+import com.fitai.app.access.PlanGenerationPurpose
 import com.fitai.app.ai.AIRepository
 import com.fitai.app.domain.UseCaseState
 import com.fitai.app.domain.useCaseCatching
@@ -99,7 +100,7 @@ class SetupInitialPlansUseCase(
         val personal = !forceStarter && entitlementRepository.currentTier() == AccessTier.Pro
         onProgress(0.15f)
         if (personal) {
-            val workout = aiRepository.generateWorkoutPlan(payload).getOrThrow()
+            val workout = aiRepository.generateWorkoutPlan(payload, PlanGenerationPurpose.Initial).getOrThrow()
             workoutRepository.saveGeneratedPlan(user.id, workout)
             onProgress(0.6f)
             val diet = aiRepository.generateDietPlan(payload).getOrThrow()

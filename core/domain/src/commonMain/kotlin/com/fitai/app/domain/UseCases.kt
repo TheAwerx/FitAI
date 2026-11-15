@@ -1,5 +1,6 @@
 package com.fitai.app.domain
 
+import com.fitai.app.access.PlanGenerationPurpose
 import com.fitai.app.ai.AIRepository
 import com.fitai.app.model.GeneratedDietPlan
 import com.fitai.app.model.GeneratedWorkoutPlan
@@ -19,12 +20,15 @@ class GenerateWorkoutPlanUseCase(
     private val trialRepository: TrialRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
 ) {
-    suspend operator fun invoke(): UseCaseState<GeneratedWorkoutPlan> = useCaseCatching {
+    /** Regenerations go through `RegenerateWorkoutPlanUseCase`, which spends the plan quota. */
+    suspend operator fun invoke(
+        purpose: PlanGenerationPurpose = PlanGenerationPurpose.Regenerate,
+    ): UseCaseState<GeneratedWorkoutPlan> = useCaseCatching {
         trialRepository.ensureAnonymousAuth().getOrThrow()
         check(trialRepository.canAccessAiFeatures().getOrThrow()) { "trial_expired" }
         val user = localUserRepository.getLatestUser() ?: error("no_user")
         val payload = user.toProfilePayload(userPreferencesRepository.onboardingAnswers())
-        val generated = aiRepository.generateWorkoutPlan(payload).getOrThrow()
+        val generated = aiRepository.generateWorkoutPlan(payload, purpose).getOrThrow()
         workoutRepository.saveGeneratedPlan(user.id, generated)
         generated
     }

@@ -1,5 +1,6 @@
 package com.fitai.app.ai
 
+import com.fitai.app.access.PlanGenerationPurpose
 import com.fitai.app.model.AdaptedSession
 import com.fitai.app.model.CoachChatReply
 import com.fitai.app.model.CoachChatRequest
@@ -17,7 +18,10 @@ import com.fitai.app.util.appLocale
 
 class MockAIRepository : AIRepository {
 
-    override suspend fun generateWorkoutPlan(profile: UserProfilePayload): Result<GeneratedWorkoutPlan> =
+    override suspend fun generateWorkoutPlan(
+        profile: UserProfilePayload,
+        purpose: PlanGenerationPurpose,
+    ): Result<GeneratedWorkoutPlan> =
         runCatching { StarterPlans.workout(profile, appLocale(), personal = true) }
 
     override suspend fun generateDietPlan(profile: UserProfilePayload): Result<GeneratedDietPlan> =

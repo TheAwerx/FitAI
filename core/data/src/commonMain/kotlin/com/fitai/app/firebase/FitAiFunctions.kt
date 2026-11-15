@@ -25,8 +25,8 @@ internal object FitAiFunctions {
 
     fun client(): FirebaseFunctions = Firebase.functions(REGION)
 
-    suspend fun generateWorkoutPlan(profile: UserProfilePayload): GeneratedWorkoutPlan =
-        call("generateWorkoutPlan", profile)
+    suspend fun generateWorkoutPlan(request: WorkoutPlanCallableRequest): GeneratedWorkoutPlan =
+        call("generateWorkoutPlan", request)
 
     suspend fun generateDietPlan(profile: UserProfilePayload): GeneratedDietPlan =
         call("generateDietPlan", profile)
@@ -56,6 +56,13 @@ internal object FitAiFunctions {
     private suspend inline fun <reified Req : Any, reified Res> call(name: String, data: Req): Res =
         client().httpsCallable(name, timeout).invoke(data).data()
 }
+
+/** `planPurpose` is a `PlanGenerationPurpose` code; the server unwraps [profile] before prompting. */
+@Serializable
+internal data class WorkoutPlanCallableRequest(
+    val profile: UserProfilePayload,
+    val planPurpose: String,
+)
 
 @Serializable
 internal data class MealPhotoCallableRequest(
