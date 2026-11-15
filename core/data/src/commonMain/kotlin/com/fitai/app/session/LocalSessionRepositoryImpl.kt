@@ -25,8 +25,10 @@ class LocalSessionRepositoryImpl(
             database.sessionQueries.deleteAllUsers()
         }
         val language = settings.getStringOrNull(SessionPreferenceKeys.LANGUAGE)
+        val devTrialLedger = settings.getStringOrNull(SessionPreferenceKeys.DEV_TRIAL_LEDGER)
         settings.clear()
         if (language != null) settings[SessionPreferenceKeys.LANGUAGE] = language
+        if (devTrialLedger != null) settings[SessionPreferenceKeys.DEV_TRIAL_LEDGER] = devTrialLedger
         settings[SessionPreferenceKeys.REQUIRES_LOGIN] = true
     }
 }

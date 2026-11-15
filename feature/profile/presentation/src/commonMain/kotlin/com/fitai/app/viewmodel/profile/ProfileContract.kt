@@ -7,6 +7,8 @@ import com.fitai.app.engagement.WorkoutStreak
 import com.fitai.app.engagement.WorkoutTrendMetric
 import com.fitai.app.model.DietRestriction
 import com.fitai.app.model.LocalUserProfile
+import com.fitai.app.model.TrialDebugInfo
+import com.fitai.app.model.TrialStatus
 import com.fitai.app.notifications.ReminderSettings
 import com.fitai.app.notifications.ReminderTexts
 import com.fitai.app.ui.plangeneration.PlanGenerationPhase
@@ -20,6 +22,10 @@ data class ProfileState(
     val message: String? = null,
     val isFirebaseAvailable: Boolean = false,
     val isPro: Boolean = false,
+    /** Running or finished free trial; null when the account never had one. */
+    val trialStatus: TrialStatus? = null,
+    /** Debug builds only: trial state and device key prefix, for reinstall tests. */
+    val trialDebug: TrialDebugInfo? = null,
     val history: WorkoutHistory? = null,
     val streak: WorkoutStreak? = null,
     val tab: ProfileTab = ProfileTab.Workouts,

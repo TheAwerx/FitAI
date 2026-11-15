@@ -250,6 +250,22 @@ interface Strings {
     val planGenFailedTitle: String
     val planGenFailedBody: String
     val planGenFailedKeptRight: String
+    // region:trial:interface
+    val trialUsedOnDeviceTitle: String
+    val trialUsedOnDeviceBody: String
+    val trialUsedByAccountTitle: String
+    val trialUsedByAccountBody: String
+    fun trialActiveTitle(days: Int): String
+    val trialActiveBody: String
+    fun trialStartedMessage(days: Int): String
+    val trialRequiresAccount: String
+    val trialStartFailed: String
+    val planSetupTrialUsedOnDevice: String
+    val planSetupTrialUsedByAccount: String
+    val planSetupTrialPending: String
+    fun settingsPlanTrial(days: Int): String
+    val settingsPlanTrialEnded: String
+    fun trialDebugLine(state: String, days: Int, keyPrefix: String, source: String, backend: String): String
     // region:onboarding:interface
     val onboardingSkip: String
     val onboardingAttributionTitle: String
@@ -903,6 +919,27 @@ object StringsTr : Strings {
     override val planGenFailedTitle = "Plan yenilenemedi"
     override val planGenFailedBody = "Bağlantını kontrol edip tekrar dene."
     override val planGenFailedKeptRight = "Hakkın kullanılmadı."
+    // region:trial:tr
+    override val trialUsedOnDeviceTitle = "Ücretsiz deneme bu cihazda kullanıldı"
+    override val trialUsedOnDeviceBody =
+        "7 günlük deneme her cihazda bir kez kullanılabilir. Pro'ya geçerek tüm özelliklere hemen erişebilirsin."
+    override val trialUsedByAccountTitle = "Bu hesabın denemesi bitti"
+    override val trialUsedByAccountBody =
+        "7 günlük deneme her hesapta bir kez kullanılabilir. Pro ile kaldığın yerden devam et."
+    override fun trialActiveTitle(days: Int) = "Denemen sürüyor: $days gün kaldı"
+    override val trialActiveBody = "Şimdi Pro'ya geçersen deneme bitince kesintisiz devam edersin."
+    override fun trialStartedMessage(days: Int) = "$days günlük denemen başladı"
+    override val trialRequiresAccount = "Denemeyi başlatmak için hesabınla giriş yap."
+    override val trialStartFailed = "Deneme şu an başlatılamadı. Bağlantını kontrol edip tekrar dene."
+    override val planSetupTrialUsedOnDevice =
+        "Bu cihazda ücretsiz deneme daha önce kullanıldığı için başlangıç planınla devam ediyorsun."
+    override val planSetupTrialUsedByAccount =
+        "Bu hesabın deneme süresi daha önce kullanıldığı için başlangıç planınla devam ediyorsun."
+    override val planSetupTrialPending = "Deneme şu an başlatılamadı; bağlantın gelince otomatik başlayacak."
+    override fun settingsPlanTrial(days: Int) = "Pro deneme · $days gün kaldı"
+    override val settingsPlanTrialEnded = "Ücretsiz plan · deneme bitti"
+    override fun trialDebugLine(state: String, days: Int, keyPrefix: String, source: String, backend: String) =
+        "Deneme (debug): $state · $days gün · cihaz $keyPrefix ($source, $backend)"
     // region:onboarding:tr
     override val onboardingSkip = "Atla"
     override val onboardingAttributionTitle = "Bizi nereden duydun?"
@@ -1663,6 +1700,27 @@ object StringsEn : Strings {
     override val planGenFailedTitle = "Couldn't regenerate your plan"
     override val planGenFailedBody = "Check your connection and try again."
     override val planGenFailedKeptRight = "No regeneration was used."
+    // region:trial:en
+    override val trialUsedOnDeviceTitle = "Free trial already used on this device"
+    override val trialUsedOnDeviceBody =
+        "The 7-day trial can be used once per device. Go Pro to unlock every feature right away."
+    override val trialUsedByAccountTitle = "This account's trial has ended"
+    override val trialUsedByAccountBody =
+        "The 7-day trial can be used once per account. Go Pro to pick up where you left off."
+    override fun trialActiveTitle(days: Int) = if (days == 1) "Your trial is on: 1 day left" else "Your trial is on: $days days left"
+    override val trialActiveBody = "Subscribe now and Pro carries on without a break when the trial ends."
+    override fun trialStartedMessage(days: Int) = "Your $days-day trial has started"
+    override val trialRequiresAccount = "Sign in to your account to start the trial."
+    override val trialStartFailed = "The trial couldn't start right now. Check your connection and try again."
+    override val planSetupTrialUsedOnDevice =
+        "This device already used the free trial, so you're starting with the starter plan."
+    override val planSetupTrialUsedByAccount =
+        "This account already used its free trial, so you're starting with the starter plan."
+    override val planSetupTrialPending = "The trial couldn't start right now; it will start once you're back online."
+    override fun settingsPlanTrial(days: Int) = if (days == 1) "Pro trial · 1 day left" else "Pro trial · $days days left"
+    override val settingsPlanTrialEnded = "Free plan · trial ended"
+    override fun trialDebugLine(state: String, days: Int, keyPrefix: String, source: String, backend: String) =
+        "Trial (debug): $state · $days d · device $keyPrefix ($source, $backend)"
     // region:onboarding:en
     override val onboardingSkip = "Skip"
     override val onboardingAttributionTitle = "How did you hear about us?"

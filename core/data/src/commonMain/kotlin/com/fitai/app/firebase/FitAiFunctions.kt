@@ -9,10 +9,11 @@ import com.fitai.app.model.MealAnalysisResult
 import com.fitai.app.model.NextMealRequest
 import com.fitai.app.model.NextMealSuggestion
 import com.fitai.app.model.TodayModeRequest
-import com.fitai.app.model.TrialStatusDto
 import com.fitai.app.model.UserProfilePayload
 import com.fitai.app.model.WeeklyCoachReport
 import com.fitai.app.model.WeeklyReportRequest
+import com.fitai.app.trial.TrialDeviceRequest
+import com.fitai.app.trial.TrialStatusDto
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.functions.FirebaseFunctions
 import dev.gitlive.firebase.functions.functions
@@ -46,12 +47,9 @@ internal object FitAiFunctions {
     suspend fun weeklyCoachReport(request: WeeklyReportRequest): WeeklyCoachReport =
         call("weeklyCoachReport", request)
 
-    suspend fun initGuestTrial(): TrialStatusDto = call("initGuestTrial")
+    suspend fun getTrialStatus(request: TrialDeviceRequest): TrialStatusDto = call("getTrialStatus", request)
 
-    suspend fun getTrialStatus(): TrialStatusDto = call("getTrialStatus")
-
-    private suspend inline fun <reified T> call(name: String): T =
-        client().httpsCallable(name, timeout).invoke().data()
+    suspend fun startTrial(request: TrialDeviceRequest): TrialStatusDto = call("startTrial", request)
 
     private suspend inline fun <reified Req : Any, reified Res> call(name: String, data: Req): Res =
         client().httpsCallable(name, timeout).invoke(data).data()

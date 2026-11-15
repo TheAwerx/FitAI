@@ -65,7 +65,7 @@ fun HomeScreen(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        state.trialStatus?.let { trial ->
+        state.trialStatus?.takeUnless { state.isPro }?.let { trial ->
             TrialBanner(
                 daysRemaining = trial.daysRemaining,
                 isActive = trial.isActive,

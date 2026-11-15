@@ -1,7 +1,7 @@
 package com.fitai.app.onboarding
 
-import com.fitai.app.access.AccessTier
 import com.fitai.app.access.EntitlementRepository
+import com.fitai.app.access.hasPremiumAccess
 import com.fitai.app.access.PlanGenerationPurpose
 import com.fitai.app.ai.AIRepository
 import com.fitai.app.domain.UseCaseState
@@ -80,8 +80,8 @@ class SaveOnboardingAnswersUseCase(
 enum class PlanKind { Personal, Starter }
 
 /**
- * Assigns the first plans after sign-up. Pro users get AI plans built from their onboarding answers;
- * everyone else gets [StarterPlans]. [onProgress] reports 0..1 for the loading screen.
+ * Assigns the first plans after sign-up. Pro and trial users get AI plans built from their onboarding
+ * answers; everyone else gets [StarterPlans]. [onProgress] reports 0..1 for the loading screen.
  */
 class SetupInitialPlansUseCase(
     private val entitlementRepository: EntitlementRepository,
@@ -98,7 +98,7 @@ class SetupInitialPlansUseCase(
         val user = localUserRepository.getLatestUser() ?: error("no_user")
         val locale = appLocale()
         val payload = user.toProfilePayload(userPreferencesRepository.onboardingAnswers(), locale)
-        val personal = !forceStarter && entitlementRepository.currentTier() == AccessTier.Pro
+        val personal = !forceStarter && entitlementRepository.currentTier().hasPremiumAccess
         onProgress(0.15f)
         if (personal) {
             val workout = aiRepository.generateWorkoutPlan(payload, PlanGenerationPurpose.Initial).getOrThrow()

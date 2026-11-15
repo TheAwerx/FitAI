@@ -16,6 +16,8 @@ object AnalyticsEvents {
     const val PURCHASE_STARTED = "purchase_started"
     const val PURCHASE_COMPLETED = "purchase_completed"
     const val TRIAL_STARTED = "trial_started"
+    const val TRIAL_REQUESTED = "trial_requested"
+    const val TRIAL_REFUSED = "trial_refused"
     const val WORKOUT_STARTED = "workout_started"
     const val WORKOUT_COMPLETED = "workout_completed"
     const val SET_COMPLETED = "set_completed"

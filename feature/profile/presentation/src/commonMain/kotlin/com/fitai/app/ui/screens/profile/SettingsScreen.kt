@@ -44,6 +44,7 @@ import com.fitai.app.model.ActivityLevel
 import com.fitai.app.model.DietRestriction
 import com.fitai.app.model.EquipmentOption
 import com.fitai.app.model.FitnessGoal
+import com.fitai.app.model.TrialState
 import com.fitai.app.model.decodeProfileCodes
 import com.fitai.app.notifications.ReminderSettings
 import com.fitai.app.ui.components.FitAIButton
@@ -152,12 +153,31 @@ fun SettingsScreen(
                 )
             }
             SettingsSection(strings.settingsSubscription) {
+                val trial = state.trialStatus?.takeUnless { state.isPro }
                 SettingsRow(
                     icon = FitAIIcons.AutoAwesome,
-                    title = if (state.isPro) strings.settingsPlanPro else strings.settingsPlanFree,
+                    title = when {
+                        state.isPro -> strings.settingsPlanPro
+                        trial?.isActive == true -> strings.settingsPlanTrial(trial.daysRemaining)
+                        trial?.state == TrialState.Expired -> strings.settingsPlanTrialEnded
+                        else -> strings.settingsPlanFree
+                    },
                     trailing = if (state.isPro) null else strings.upgradeToPro,
                     onClick = if (state.isPro) null else onNavigatePaywall,
                 )
+                state.trialDebug?.let { debug ->
+                    Text(
+                        text = strings.trialDebugLine(
+                            state = debug.state?.code ?: "unknown",
+                            days = debug.daysRemaining,
+                            keyPrefix = debug.deviceKeyPrefix,
+                            source = debug.keySource,
+                            backend = debug.backend,
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = FitAIColors.OnSurfaceMuted,
+                    )
+                }
             }
             SettingsSection(strings.settingsProfileSection) {
                 ProfileSummary(state, strings)

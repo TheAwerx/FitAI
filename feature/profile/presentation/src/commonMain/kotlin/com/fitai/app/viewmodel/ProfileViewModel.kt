@@ -11,6 +11,7 @@ import com.fitai.app.engagement.GetWorkoutStreakUseCase
 import com.fitai.app.analytics.TrackEventUseCase
 import com.fitai.app.auth.IsFirebaseAvailableUseCase
 import com.fitai.app.domain.UseCaseState
+import com.fitai.app.model.TrialState
 import com.fitai.app.model.decodeProfileCodes
 import com.fitai.app.model.encodeProfileCodes
 import com.fitai.app.model.toggleDietRestriction
@@ -29,6 +30,8 @@ import com.fitai.app.profile.ProfileSignOutUseCase
 import com.fitai.app.profile.RegeneratePlansUseCase
 import com.fitai.app.profile.UpdateProfileInput
 import com.fitai.app.profile.UpdateProfileUseCase
+import com.fitai.app.trial.GetTrialDebugInfoUseCase
+import com.fitai.app.trial.GetTrialStatusUseCase
 import com.fitai.app.ui.plangeneration.PlanGenerationPhase
 import com.fitai.app.ui.plangeneration.PlanGenerationUiState
 import com.fitai.app.ui.plangeneration.trainingDays
@@ -56,6 +59,8 @@ class ProfileViewModel(
     private val getWorkoutHistoryUseCase: GetWorkoutHistoryUseCase,
     private val getWorkoutStreakUseCase: GetWorkoutStreakUseCase,
     private val getAccessTierUseCase: GetAccessTierUseCase,
+    private val getTrialStatusUseCase: GetTrialStatusUseCase,
+    private val getTrialDebugInfoUseCase: GetTrialDebugInfoUseCase,
     private val trackEventUseCase: TrackEventUseCase,
 ) : BaseViewModel<ProfileState, ProfileIntent, ProfileEffect>(
     ProfileState(isFirebaseAvailable = isFirebaseAvailableUseCase()),
@@ -145,7 +150,12 @@ class ProfileViewModel(
             val history = (getWorkoutHistoryUseCase() as? UseCaseState.Success)?.data
             val streak = (getWorkoutStreakUseCase() as? UseCaseState.Success)?.data
             val tier = (getAccessTierUseCase() as? UseCaseState.Success)?.data
-            setState { copy(history = history, streak = streak, isPro = tier == AccessTier.Pro) }
+            val trial = (getTrialStatusUseCase() as? UseCaseState.Success)?.data
+                ?.takeIf { it.state == TrialState.Active || it.state == TrialState.Expired }
+            val debug = (getTrialDebugInfoUseCase() as? UseCaseState.Success)?.data
+            setState {
+                copy(history = history, streak = streak, isPro = tier == AccessTier.Pro, trialStatus = trial, trialDebug = debug)
+            }
         }
     }
 

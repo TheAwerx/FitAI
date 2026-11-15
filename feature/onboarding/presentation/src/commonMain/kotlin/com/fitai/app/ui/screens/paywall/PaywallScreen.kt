@@ -56,7 +56,10 @@ import com.fitai.app.billing.SubscriptionProduct
 import com.fitai.app.localization.LocalStrings
 import com.fitai.app.localization.Strings
 import com.fitai.app.model.EquipmentOption
+import com.fitai.app.model.TrialState
+import com.fitai.app.model.TrialStatus
 import com.fitai.app.onboarding.OnboardingSummary
+import com.fitai.app.trial.TrialPolicy
 import com.fitai.app.ui.components.FitAIButton
 import com.fitai.app.ui.components.FitAIButtonVariant
 import com.fitai.app.ui.theme.FitAIColors
@@ -173,6 +176,10 @@ private fun PaywallContent(
                 Spacer(Modifier.height(FitAISpacing.xl))
                 PlanSummaryCard(state.summary)
                 Spacer(Modifier.height(FitAISpacing.xl))
+                state.trialNotice?.takeUnless { state.loading }?.let { trial ->
+                    TrialNoticeCard(trial)
+                    Spacer(Modifier.height(FitAISpacing.md))
+                }
                 PlanOptions(state = state, onIntent = onIntent)
                 Spacer(Modifier.height(FitAISpacing.md))
                 Row(
@@ -303,6 +310,7 @@ private fun PlanOptions(
             state.products.forEach { product ->
                 PlanOptionCard(
                     product = product,
+                    trialDays = state.trialDaysFor(product),
                     selected = product.id == state.selectedProductId,
                     enabled = !state.busy,
                     onClick = { onIntent(PaywallIntent.ProductSelected(product.id)) },
@@ -312,9 +320,48 @@ private fun PlanOptions(
     }
 }
 
+/** Why the free trial isn't offered: used on this device, used by this account, or already running. */
+@Composable
+private fun TrialNoticeCard(trial: TrialStatus) {
+    val strings = LocalStrings.current
+    val (title, body) = when (trial.state) {
+        TrialState.Active -> strings.trialActiveTitle(trial.daysRemaining) to strings.trialActiveBody
+        TrialState.Expired -> strings.trialUsedByAccountTitle to strings.trialUsedByAccountBody
+        else -> strings.trialUsedOnDeviceTitle to strings.trialUsedOnDeviceBody
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = FitAIShapes.card,
+        color = FitAIColors.Surface,
+        border = BorderStroke(1.dp, FitAIColors.SurfaceVariant),
+    ) {
+        Row(
+            modifier = Modifier.padding(FitAISpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(FitAISpacing.md),
+        ) {
+            Box(
+                modifier = Modifier.size(36.dp).background(FitAIColors.SurfaceVariant, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (trial.state == TrialState.Active) FitAIIcons.Schedule else FitAIIcons.Lock,
+                    contentDescription = null,
+                    tint = FitAIColors.OnSurface,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(FitAISpacing.xs)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, color = FitAIColors.OnSurface)
+                Text(body, style = MaterialTheme.typography.bodySmall, color = FitAIColors.OnSurfaceMuted)
+            }
+        }
+    }
+}
+
 @Composable
 private fun PlanOptionCard(
     product: SubscriptionProduct,
+    trialDays: Int,
     selected: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
@@ -369,9 +416,9 @@ private fun PlanOptionCard(
                         }
                         Text(product.priceLabel, style = MaterialTheme.typography.bodySmall, color = FitAIColors.OnSurfaceMuted)
                     }
-                    if (product.trialDays > 0) {
+                    if (trialDays > 0) {
                         Text(
-                            text = strings.paywallTrialDays(product.trialDays),
+                            text = strings.paywallTrialDays(trialDays),
                             style = MaterialTheme.typography.labelSmall,
                             color = FitAIColors.Primary,
                         )
@@ -477,7 +524,7 @@ private fun ExitOfferSheet(state: PaywallState, onIntent: (PaywallIntent) -> Uni
                         textAlign = TextAlign.Center,
                     )
                 }
-                state.yearlyProduct?.trialDays?.takeIf { it > 0 }?.let {
+                state.yearlyProduct?.let(state::trialDaysFor)?.takeIf { it > 0 }?.let {
                     Text(strings.paywallTrialDays(it), style = MaterialTheme.typography.labelSmall, color = FitAIColors.Primary)
                 }
             }
@@ -503,6 +550,10 @@ private fun paywallMessage(message: PaywallMessage, strings: Strings): String = 
     PaywallMessage.RestoreSuccess -> strings.paywallRestoreSuccess
     PaywallMessage.RestoreNotFound -> strings.paywallRestoreNotFound
     PaywallMessage.GenericError -> strings.errorUnknown
+    PaywallMessage.TrialUsedOnDevice -> strings.trialUsedOnDeviceTitle
+    PaywallMessage.TrialUsedByAccount -> strings.trialUsedByAccountTitle
+    PaywallMessage.TrialRequiresAccount -> strings.trialRequiresAccount
+    PaywallMessage.TrialStartFailed -> strings.trialStartFailed
 }
 
 @Preview
@@ -520,6 +571,7 @@ private fun PaywallPreview() {
                     SubscriptionProduct("fitai_pro_monthly", SubscriptionPeriod.Monthly, "179,99 ₺/ay", "179,99 ₺/ay", 0, null),
                 ),
                 selectedProductId = "fitai_pro_yearly",
+                trialStatus = TrialStatus(TrialState.UsedOnDevice, trialDays = TrialPolicy.TRIAL_DAYS),
             ),
             snackbar = remember { SnackbarHostState() },
             onIntent = {},

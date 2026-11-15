@@ -40,7 +40,6 @@ import com.fitai.app.domain.CheckTrialAccessUseCase
 import com.fitai.app.domain.CompleteSetUseCase
 import com.fitai.app.domain.GenerateDietPlanUseCase
 import com.fitai.app.domain.GenerateWorkoutPlanUseCase
-import com.fitai.app.domain.InitGuestTrialUseCase
 import com.fitai.app.domain.LogMealUseCase
 import com.fitai.app.domain.StartWorkoutSessionUseCase
 import com.fitai.app.engagement.AddWeighInUseCase
@@ -82,9 +81,15 @@ import com.fitai.app.sync.SyncingProgressRepository
 import com.fitai.app.sync.SyncingUserPreferencesRepository
 import com.fitai.app.sync.SyncingWorkoutRepository
 import com.fitai.app.sync.UserDataSyncRepository
-import com.fitai.app.trial.FirestoreTrialRepository
+import com.fitai.app.trial.FirebaseTrialRepository
+import com.fitai.app.trial.GetTrialDebugInfoUseCase
+import com.fitai.app.trial.GetTrialStatusUseCase
 import com.fitai.app.trial.LocalTrialRepository
+import com.fitai.app.trial.RequestTrialUseCase
+import com.fitai.app.trial.StartRequestedTrialUseCase
 import com.fitai.app.trial.TrialRepository
+import com.fitai.app.trial.TrialStatusCache
+import com.fitai.app.trial.devTrialAccountId
 import com.fitai.app.training.DetectSessionPRsUseCase
 import com.fitai.app.training.GetPersonalRecordsUseCase
 import com.fitai.app.training.GetSetSuggestionsUseCase
@@ -115,8 +120,14 @@ fun dataRepositoryModule(useRemotePlanGeneration: Boolean) = module {
             else -> DevPlanAIRepository(remote = FirebaseAIRepository(get()), localPlans = localPlans)
         }
     }
+    // One trial per account and device (docs/trial.md). Needs a `DeviceKeyProvider` from platformDriverModule().
     single<TrialRepository> {
-        if (FirebaseBootstrap.ensureInitialized()) FirestoreTrialRepository() else LocalTrialRepository()
+        if (useRemotePlanGeneration && FirebaseBootstrap.ensureInitialized()) {
+            FirebaseTrialRepository(TrialStatusCache(get()), get())
+        } else {
+            val users = get<LocalUserRepository>()
+            LocalTrialRepository(get(), get(), accountId = { devTrialAccountId(users) })
+        }
     }
     single<UserDataSyncRepository> {
         if (FirebaseBootstrap.ensureInitialized()) {
@@ -153,7 +164,10 @@ val dataUseCaseModule = module {
     factoryOf(::StartWorkoutSessionUseCase)
     factoryOf(::CompleteSetUseCase)
     factoryOf(::CheckTrialAccessUseCase)
-    factoryOf(::InitGuestTrialUseCase)
+    factoryOf(::GetTrialStatusUseCase)
+    factoryOf(::RequestTrialUseCase)
+    factoryOf(::StartRequestedTrialUseCase)
+    factoryOf(::GetTrialDebugInfoUseCase)
     factoryOf(::GetAccessTierUseCase)
     factoryOf(::CheckFeatureAccessUseCase)
     factoryOf(::RecordFeatureUseUseCase)

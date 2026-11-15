@@ -2,6 +2,9 @@ package com.fitai.app.access
 
 enum class AccessTier { Free, Trial, Pro }
 
+/** Trial unlocks everything Pro does, for its 7 days. */
+val AccessTier.hasPremiumAccess: Boolean get() = this != AccessTier.Free
+
 enum class QuotaPeriod { Week, Month }
 
 enum class GatedFeature(val freeQuota: Int, val period: QuotaPeriod) {

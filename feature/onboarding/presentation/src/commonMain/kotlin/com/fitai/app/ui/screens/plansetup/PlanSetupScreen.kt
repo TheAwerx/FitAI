@@ -40,6 +40,7 @@ import com.fitai.app.ui.theme.FitAISpacing
 import com.fitai.app.viewmodel.PlanSetupViewModel
 import com.fitai.app.viewmodel.plansetup.PlanSetupEffect
 import com.fitai.app.viewmodel.plansetup.PlanSetupIntent
+import com.fitai.app.viewmodel.plansetup.PlanSetupTrialNotice
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -121,6 +122,19 @@ fun PlanSetupScreen(
             color = FitAIColors.OnSurface,
             textAlign = TextAlign.Center,
         )
+        state.trialNotice?.let { notice ->
+            Spacer(Modifier.height(FitAISpacing.sm))
+            Text(
+                text = when (notice) {
+                    PlanSetupTrialNotice.UsedOnDevice -> strings.planSetupTrialUsedOnDevice
+                    PlanSetupTrialNotice.UsedByAccount -> strings.planSetupTrialUsedByAccount
+                    PlanSetupTrialNotice.Pending -> strings.planSetupTrialPending
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = FitAIColors.OnSurfaceMuted,
+                textAlign = TextAlign.Center,
+            )
+        }
         Spacer(Modifier.height(FitAISpacing.xl))
         Column(verticalArrangement = Arrangement.spacedBy(FitAISpacing.md)) {
             SetupRow(strings.planSetupStepWorkout, done = progress >= 0.5f, active = progress < 0.5f)

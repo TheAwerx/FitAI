@@ -133,10 +133,3 @@ class CheckTrialAccessUseCase(
     suspend operator fun invoke(): UseCaseState<Boolean> =
         trialRepository.canAccessAiFeatures().toUseCaseState()
 }
-
-class InitGuestTrialUseCase(
-    private val trialRepository: TrialRepository,
-) {
-    suspend operator fun invoke(): UseCaseState<com.fitai.app.model.TrialStatus> =
-        trialRepository.initGuestTrial().toUseCaseState()
-}

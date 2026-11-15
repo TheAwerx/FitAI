@@ -59,7 +59,8 @@ class BuildAndScheduleRemindersUseCase(
         if (entitlementRepository.currentTier() != AccessTier.Trial) return null
         val status = trialRepository.getTrialStatus().getOrNull() ?: return null
         if (!status.isActive || status.hasSubscription) return null
-        return runCatching { Instant.parse(status.trialExpiresAt).toEpochMilliseconds() }.getOrNull()
+        val expiresAt = status.trialExpiresAt ?: return null
+        return runCatching { Instant.parse(expiresAt).toEpochMilliseconds() }.getOrNull()
     }
 }
 
