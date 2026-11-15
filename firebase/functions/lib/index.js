@@ -40,6 +40,7 @@ const params_1 = require("firebase-functions/params");
 const common_1 = require("./common");
 const coach_1 = require("./coach");
 const rateLimit_1 = require("./rateLimit");
+const planQuota_1 = require("./planQuota");
 admin.initializeApp();
 const geminiApiKey = (0, params_1.defineSecret)("GEMINI_API_KEY");
 const TRIAL_DAYS = 3;
@@ -173,7 +174,7 @@ function trialStatus(startedAt, hasSubscription = false) {
         hasSubscription,
     };
 }
-exports.generateWorkoutPlan = (0, https_1.onCall)(geminiCallable, async (request) => {
+exports.generateWorkoutPlan = (0, https_1.onCall)(geminiCallable, (0, planQuota_1.withPlanQuota)(async (request) => {
     requireAuth(request);
     const profile = request.data;
     const prompt = "Generate a personalized workout plan as JSON. " +
@@ -181,7 +182,7 @@ exports.generateWorkoutPlan = (0, https_1.onCall)(geminiCallable, async (request
         "Use Turkish exercise names where appropriate. Keep daysPerWeek between 3 and 6.";
     const parsed = await callGemini(geminiApiKey.value(), GEMINI_PLAN_MODEL, [{ text: prompt }], workoutSchema);
     return normalizeWorkout((parsed !== null && parsed !== void 0 ? parsed : {}));
-});
+}));
 exports.generateDietPlan = (0, https_1.onCall)(geminiCallable, async (request) => {
     requireAuth(request);
     const profile = request.data;

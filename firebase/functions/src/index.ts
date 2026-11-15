@@ -30,6 +30,7 @@ import {
   weeklyReportSchema,
 } from "./coach";
 import { withDailyQuota } from "./rateLimit";
+import { withPlanQuota } from "./planQuota";
 
 admin.initializeApp();
 
@@ -189,7 +190,7 @@ function trialStatus(startedAt: Date, hasSubscription = false) {
   };
 }
 
-export const generateWorkoutPlan = onCall(geminiCallable, async (request) => {
+export const generateWorkoutPlan = onCall(geminiCallable, withPlanQuota(async (request) => {
   requireAuth(request);
   const profile = request.data as UserProfilePayload;
   const prompt =
@@ -203,7 +204,7 @@ export const generateWorkoutPlan = onCall(geminiCallable, async (request) => {
     workoutSchema,
   );
   return normalizeWorkout((parsed ?? {}) as Record<string, unknown>);
-});
+}));
 
 export const generateDietPlan = onCall(geminiCallable, async (request) => {
   requireAuth(request);

@@ -10,5 +10,10 @@ service cloud.firestore {
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+    // Plan regeneration rights; only the generateWorkoutPlan callable (Admin SDK) writes here.
+    match /plan_quotas/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
   }
 }
