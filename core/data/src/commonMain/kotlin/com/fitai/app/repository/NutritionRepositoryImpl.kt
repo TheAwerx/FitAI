@@ -7,7 +7,9 @@ import com.fitai.app.db.FitAiDatabase
 import com.fitai.app.model.DailyMacroSummary
 import com.fitai.app.model.DietPlan
 import com.fitai.app.model.GeneratedDietPlan
+import com.fitai.app.model.MealEntryDraft
 import com.fitai.app.model.MealLog
+import com.fitai.app.model.PlanMeal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -47,17 +49,20 @@ class NutritionRepositoryImpl(
         withContext(Dispatchers.Default) {
             val planId = newId()
             val now = com.fitai.app.util.nowIsoTimestamp()
-            database.nutritionQueries.deactivateDietPlansForUser(userId)
-            database.nutritionQueries.insertDietPlan(
-                id = planId,
-                user_id = userId,
-                daily_calories = generated.dailyCalories.toLong(),
-                protein_g = generated.proteinG.toLong(),
-                carbs_g = generated.carbsG.toLong(),
-                fat_g = generated.fatG.toLong(),
-                created_at = now,
-                is_active = 1,
-            )
+            database.transaction {
+                database.nutritionQueries.deactivateDietPlansForUser(userId)
+                database.nutritionQueries.insertDietPlan(
+                    id = planId,
+                    user_id = userId,
+                    daily_calories = generated.dailyCalories.toLong(),
+                    protein_g = generated.proteinG.toLong(),
+                    carbs_g = generated.carbsG.toLong(),
+                    fat_g = generated.fatG.toLong(),
+                    created_at = now,
+                    is_active = 1,
+                    meals_json = PlanMealsJson.encode(generated.meals),
+                )
+            }
             DietPlan(
                 id = planId,
                 userId = userId,
@@ -67,8 +72,14 @@ class NutritionRepositoryImpl(
                 fatG = generated.fatG,
                 createdAt = now,
                 isActive = true,
+                meals = generated.meals,
             )
         }
+
+    override suspend fun updateDietPlanMeals(planId: String, meals: List<PlanMeal>) = withContext(Dispatchers.Default) {
+        database.nutritionQueries.updateDietPlanMeals(PlanMealsJson.encode(meals), planId)
+        Unit
+    }
 
     override suspend fun logMeal(
         userId: String,
@@ -79,30 +90,41 @@ class NutritionRepositoryImpl(
         fatG: Double,
         loggedAt: String,
         photoUrl: String?,
+        slot: String?,
     ): MealLog = withContext(Dispatchers.Default) {
-        val id = newId()
-        database.nutritionQueries.insertMealLog(
-            id = id,
-            user_id = userId,
-            meal_name = mealName,
-            calories = calories.toLong(),
-            protein_g = proteinG,
-            carbs_g = carbsG,
-            fat_g = fatG,
-            photo_url = photoUrl,
-            logged_at = loggedAt,
+        insert(
+            userId,
+            MealEntryDraft(mealName, calories, proteinG, carbsG, fatG, slot = slot, photoUrl = photoUrl),
+            loggedAt,
         )
-        MealLog(
-            id = id,
-            userId = userId,
-            mealName = mealName,
-            calories = calories,
-            proteinG = proteinG,
-            carbsG = carbsG,
-            fatG = fatG,
-            photoUrl = photoUrl,
-            loggedAt = loggedAt,
+    }
+
+    override suspend fun logEntries(userId: String, entries: List<MealEntryDraft>, loggedAt: String): List<MealLog> =
+        withContext(Dispatchers.Default) {
+            database.transactionWithResult { entries.map { insert(userId, it, loggedAt) } }
+        }
+
+    override suspend fun getMeal(mealId: String): MealLog? = withContext(Dispatchers.Default) {
+        database.nutritionQueries.selectMealLogById(mealId).executeAsOneOrNull()?.toDomain()
+    }
+
+    override suspend fun updateMeal(meal: MealLog) = withContext(Dispatchers.Default) {
+        database.nutritionQueries.updateMealLog(
+            meal_name = meal.mealName,
+            calories = meal.calories.toLong(),
+            protein_g = meal.proteinG,
+            carbs_g = meal.carbsG,
+            fat_g = meal.fatG,
+            photo_url = meal.photoUrl,
+            logged_at = meal.loggedAt,
+            slot = meal.slot,
+            food_id = meal.foodId,
+            serving_unit = meal.servingUnit,
+            serving_amount = meal.servingAmount,
+            grams = meal.grams,
+            id = meal.id,
         )
+        Unit
     }
 
     override suspend fun deleteMeal(mealId: String) = withContext(Dispatchers.Default) {
@@ -130,6 +152,42 @@ class NutritionRepositoryImpl(
                 fatG = meals.sumOf { it.fatG },
             )
         }
+
+    private fun insert(userId: String, entry: MealEntryDraft, loggedAt: String): MealLog {
+        val meal = MealLog(
+            id = newId(),
+            userId = userId,
+            mealName = entry.name,
+            calories = entry.calories,
+            proteinG = entry.proteinG,
+            carbsG = entry.carbsG,
+            fatG = entry.fatG,
+            photoUrl = entry.photoUrl,
+            loggedAt = loggedAt,
+            slot = entry.slot,
+            foodId = entry.foodId,
+            servingUnit = entry.servingUnit,
+            servingAmount = entry.servingAmount,
+            grams = entry.grams,
+        )
+        database.nutritionQueries.insertMealLog(
+            id = meal.id,
+            user_id = userId,
+            meal_name = meal.mealName,
+            calories = meal.calories.toLong(),
+            protein_g = meal.proteinG,
+            carbs_g = meal.carbsG,
+            fat_g = meal.fatG,
+            photo_url = meal.photoUrl,
+            logged_at = meal.loggedAt,
+            slot = meal.slot,
+            food_id = meal.foodId,
+            serving_unit = meal.servingUnit,
+            serving_amount = meal.servingAmount,
+            grams = meal.grams,
+        )
+        return meal
+    }
 
     private fun newId(): String = buildString {
         repeat(16) { append(Random.nextInt(16).toString(16)) }

@@ -4,6 +4,9 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinSerialization)
+    // Only for the bundled food database (composeResources/files/foods.json).
+    alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.composeCompiler)
 }
 
 kotlin {
@@ -33,6 +36,8 @@ kotlin {
             implementation(libs.ktor.client.logging)
             implementation(libs.napier)
             implementation(libs.koin.core)
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.components.resources)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -56,4 +61,8 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+compose.resources {
+    packageOfResClass = "fitai.core.data.generated.resources"
 }

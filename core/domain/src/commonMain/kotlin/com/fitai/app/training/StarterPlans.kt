@@ -5,6 +5,7 @@ import com.fitai.app.model.DietRestriction
 import com.fitai.app.model.EquipmentOption
 import com.fitai.app.model.FitnessGoal
 import com.fitai.app.model.FocusArea
+import com.fitai.app.model.FoodItem
 import com.fitai.app.model.Gender
 import com.fitai.app.model.GeneratedDietPlan
 import com.fitai.app.model.GeneratedExercise
@@ -14,6 +15,7 @@ import com.fitai.app.model.TrainingObstacle
 import com.fitai.app.model.UserProfilePayload
 import com.fitai.app.model.decodeProfileCodes
 import com.fitai.app.model.SessionLength
+import com.fitai.app.nutrition.StarterDiet
 import kotlin.math.roundToInt
 
 /**
@@ -71,6 +73,15 @@ object StarterPlans {
             daysPerWeek = days,
             exercises = exercises,
         )
+    }
+
+    /**
+     * [diet] targets plus detailed meals from the food database ([foods]): time, foods with household
+     * portions and macros, a prep note and two alternatives per meal, all within the diet restrictions.
+     */
+    fun diet(profile: UserProfilePayload, foods: List<FoodItem>, locale: String): GeneratedDietPlan {
+        val targets = diet(profile)
+        return targets.copy(meals = StarterDiet.meals(targets, profile, foods, locale))
     }
 
     /** Mifflin-St Jeor with the onboarding activity level and a goal adjustment; vegan protein is raised 10%. */

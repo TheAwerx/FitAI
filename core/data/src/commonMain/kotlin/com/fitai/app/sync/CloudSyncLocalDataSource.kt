@@ -1,5 +1,6 @@
 package com.fitai.app.sync
 
+import com.fitai.app.db.Custom_foods
 import com.fitai.app.db.FitAiDatabase
 import com.fitai.app.db.Workout_sessions
 import com.fitai.app.model.BodyMeasurement
@@ -8,6 +9,7 @@ import com.fitai.app.model.Exercise
 import com.fitai.app.model.LocalUserProfile
 import com.fitai.app.model.MealLog
 import com.fitai.app.model.WorkoutPlan
+import com.fitai.app.repository.PlanMealsJson
 import com.fitai.app.repository.toDomain
 import com.fitai.app.repository.toLocalUserProfile
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +22,7 @@ internal class CloudSyncLocalDataSource(
     private val workout get() = database.workoutQueries
     private val nutrition get() = database.nutritionQueries
     private val progress get() = database.progressQueries
+    private val food get() = database.foodQueries
 
     suspend fun latestUser(): LocalUserProfile? = io {
         database.usersQueries.selectLatestUser().executeAsOneOrNull()?.toLocalUserProfile()
@@ -77,6 +80,10 @@ internal class CloudSyncLocalDataSource(
         progress.selectMeasurementsForUser(userId).executeAsList().map { it.toDomain() }
     }
 
+    suspend fun customFood(id: String): Custom_foods? = io { food.selectCustomFoodById(id).executeAsOneOrNull() }
+
+    suspend fun customFoods(userId: String): List<Custom_foods> = io { food.selectCustomFoodsForUser(userId).executeAsList() }
+
     /**
      * Inserts every cloud row missing on the device, in one transaction. With [keepLocalPlans] restored
      * plans are inactive; otherwise the newest active cloud plan (and diet) becomes the active one.
@@ -129,6 +136,7 @@ internal class CloudSyncLocalDataSource(
                         fat_g = doc.fatG.toLong(),
                         created_at = doc.createdAt,
                         is_active = if (doc.id == activeDietId) 1 else 0,
+                        meals_json = PlanMealsJson.encode(doc.toPlanMeals()),
                     )
                     diets++
                 }
@@ -198,6 +206,11 @@ internal class CloudSyncLocalDataSource(
                     fat_g = meal.fatG,
                     photo_url = meal.photoUrl,
                     logged_at = meal.loggedAt,
+                    slot = meal.slot,
+                    food_id = meal.foodId,
+                    serving_unit = meal.servingUnit,
+                    serving_amount = meal.servingAmount,
+                    grams = meal.grams,
                 )
                 meals++
             }
@@ -221,12 +234,33 @@ internal class CloudSyncLocalDataSource(
                 measurements++
             }
 
+            var customFoods = 0
+            cloud.customFoods.filter { isFoodId(it.id) && it.name.isNotBlank() }.forEach { doc ->
+                if (food.selectCustomFoodById(doc.id).executeAsOneOrNull() != null) return@forEach
+                val row = doc.toRow(localUserId)
+                food.insertCustomFood(
+                    id = row.id,
+                    user_id = row.user_id,
+                    name = row.name,
+                    kcal_per_100g = row.kcal_per_100g,
+                    protein_per_100g = row.protein_per_100g,
+                    carbs_per_100g = row.carbs_per_100g,
+                    fat_per_100g = row.fat_per_100g,
+                    serving_unit = row.serving_unit,
+                    serving_grams = row.serving_grams,
+                    created_at = row.created_at,
+                    updated_at = row.updated_at,
+                )
+                customFoods++
+            }
+
             CloudRestoreSummary(
                 workoutPlans = plans,
                 dietPlans = diets,
                 sessions = sessions,
                 meals = meals,
                 measurements = measurements,
+                customFoods = customFoods,
                 activeWorkoutPlanRestored = restoresActiveProgram,
                 activeDietPlanRestored = restoresActiveDiet,
             )

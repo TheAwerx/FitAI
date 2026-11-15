@@ -2,14 +2,19 @@ package com.fitai.app.sync
 
 import com.fitai.app.model.AdaptedSession
 import com.fitai.app.model.BodyMeasurement
+import com.fitai.app.model.CustomFoodDraft
 import com.fitai.app.model.DietPlan
 import com.fitai.app.model.Exercise
+import com.fitai.app.model.FoodItem
 import com.fitai.app.model.GeneratedDietPlan
 import com.fitai.app.model.GeneratedWorkoutPlan
+import com.fitai.app.model.MealEntryDraft
 import com.fitai.app.model.MealLog
+import com.fitai.app.model.PlanMeal
 import com.fitai.app.model.WorkoutPlan
 import com.fitai.app.model.WorkoutSession
 import com.fitai.app.preferences.UserPreferencesRepository
+import com.fitai.app.repository.FoodRepository
 import com.fitai.app.repository.LocalUserRepository
 import com.fitai.app.repository.NutritionRepository
 import com.fitai.app.repository.ProgressRepository
@@ -82,12 +87,40 @@ internal class SyncingNutritionRepository(
         fatG: Double,
         loggedAt: String,
         photoUrl: String?,
-    ): MealLog = delegate.logMeal(userId, mealName, calories, proteinG, carbsG, fatG, loggedAt, photoUrl)
+        slot: String?,
+    ): MealLog = delegate.logMeal(userId, mealName, calories, proteinG, carbsG, fatG, loggedAt, photoUrl, slot)
         .also { sync.mealChanged(it.id) }
+
+    override suspend fun logEntries(userId: String, entries: List<MealEntryDraft>, loggedAt: String): List<MealLog> =
+        delegate.logEntries(userId, entries, loggedAt).onEach { sync.mealChanged(it.id) }
+
+    override suspend fun updateMeal(meal: MealLog) {
+        delegate.updateMeal(meal)
+        sync.mealChanged(meal.id)
+    }
+
+    override suspend fun updateDietPlanMeals(planId: String, meals: List<PlanMeal>) {
+        delegate.updateDietPlanMeals(planId, meals)
+        sync.dietPlanChanged(planId)
+    }
 
     override suspend fun deleteMeal(mealId: String) {
         delegate.deleteMeal(mealId)
         sync.mealDeleted(mealId)
+    }
+}
+
+internal class SyncingFoodRepository(
+    private val delegate: FoodRepository,
+    private val sync: CloudSyncScheduler,
+) : FoodRepository by delegate {
+
+    override suspend fun saveCustomFood(userId: String, draft: CustomFoodDraft, id: String?): FoodItem =
+        delegate.saveCustomFood(userId, draft, id).also { sync.customFoodChanged(it.id) }
+
+    override suspend fun deleteCustomFood(id: String) {
+        delegate.deleteCustomFood(id)
+        sync.customFoodDeleted(id)
     }
 }
 

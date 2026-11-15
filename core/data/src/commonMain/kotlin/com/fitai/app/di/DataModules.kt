@@ -53,6 +53,8 @@ import com.fitai.app.engagement.GetWorkoutHistoryUseCase
 import com.fitai.app.engagement.GetWorkoutStreakUseCase
 import com.fitai.app.engagement.HideStarterChallengeUseCase
 import com.fitai.app.firebase.FirebaseBootstrap
+import com.fitai.app.food.BundledFoodDataSource
+import com.fitai.app.food.FoodRepositoryImpl
 import com.fitai.app.network.HttpClientFactory
 import com.fitai.app.notifications.BuildAndScheduleRemindersUseCase
 import com.fitai.app.notifications.CancelRemindersUseCase
@@ -62,6 +64,7 @@ import com.fitai.app.notifications.ReminderStateRepositoryImpl
 import com.fitai.app.notifications.SetRemindersEnabledUseCase
 import com.fitai.app.notifications.UpdateReminderTimeUseCase
 import com.fitai.app.nutrition.GetTodayNutritionOverviewUseCase
+import com.fitai.app.repository.FoodRepository
 import com.fitai.app.repository.LocalUserRepository
 import com.fitai.app.repository.LocalUserRepositoryImpl
 import com.fitai.app.session.LocalSessionRepository
@@ -76,6 +79,7 @@ import com.fitai.app.sync.CloudSyncScheduler
 import com.fitai.app.sync.FirestoreSyncRemoteDataSource
 import com.fitai.app.sync.FirestoreUserDataSyncRepository
 import com.fitai.app.sync.NoOpUserDataSyncRepository
+import com.fitai.app.sync.SyncingFoodRepository
 import com.fitai.app.sync.SyncingLocalUserRepository
 import com.fitai.app.sync.SyncingNutritionRepository
 import com.fitai.app.sync.SyncingProgressRepository
@@ -105,10 +109,12 @@ fun dataRepositoryModule(useRemotePlanGeneration: Boolean) = module {
     single { CloudSyncScheduler(get(), get(), get<UserPreferencesRepositoryImpl>()) }
     single<WorkoutRepository> { SyncingWorkoutRepository(WorkoutRepositoryImpl(get()), get()) }
     single<NutritionRepository> { SyncingNutritionRepository(NutritionRepositoryImpl(get()), get()) }
+    single { BundledFoodDataSource() }
+    single<FoodRepository> { SyncingFoodRepository(FoodRepositoryImpl(get(), get()), get()) }
     single<LocalUserRepository> { SyncingLocalUserRepository(LocalUserRepositoryImpl(get()), get()) }
     single { AiRemoteDataSource() }
     single<AIRepository> {
-        val localPlans = MockAIRepository()
+        val localPlans = MockAIRepository(get())
         when {
             !FirebaseBootstrap.ensureInitialized() -> localPlans
             useRemotePlanGeneration -> FirebaseAIRepository(get())

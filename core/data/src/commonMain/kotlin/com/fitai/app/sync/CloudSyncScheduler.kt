@@ -29,6 +29,8 @@ private sealed interface SyncJob {
     data class MealDeleted(val mealId: String) : SyncJob
     data class Measurement(val id: String) : SyncJob
     data class MeasurementDeleted(val id: String) : SyncJob
+    data class CustomFood(val id: String) : SyncJob
+    data class CustomFoodDeleted(val id: String) : SyncJob
 }
 
 /**
@@ -78,6 +80,10 @@ internal class CloudSyncScheduler(
 
     fun measurementDeleted(id: String) = enqueue(SyncJob.MeasurementDeleted(id))
 
+    fun customFoodChanged(id: String) = enqueue(SyncJob.CustomFood(id))
+
+    fun customFoodDeleted(id: String) = enqueue(SyncJob.CustomFoodDeleted(id))
+
     private fun enqueue(job: SyncJob) {
         jobs.trySend(job)
     }
@@ -119,6 +125,11 @@ internal class CloudSyncScheduler(
                     issue(job) { remote.setMeasurement(uid, doc) }
                 }
                 is SyncJob.MeasurementDeleted -> issue(job) { remote.deleteMeasurement(uid, job.id) }
+                is SyncJob.CustomFood -> local.customFood(job.id)?.let { row ->
+                    val doc = row.toDocument(now)
+                    issue(job) { remote.setCustomFood(uid, doc) }
+                }
+                is SyncJob.CustomFoodDeleted -> issue(job) { remote.deleteCustomFood(uid, job.id) }
             }
         } catch (e: CancellationException) {
             throw e

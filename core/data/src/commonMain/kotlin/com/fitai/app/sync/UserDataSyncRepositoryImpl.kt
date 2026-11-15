@@ -20,6 +20,7 @@ internal class FirestoreUserDataSyncRepository(
             sessions = local.sessions(localUserId).map { it.toDocument(now, zone) },
             meals = local.meals(localUserId).map { it.toDocument(now, zone) },
             measurements = local.measurements(localUserId).map { it.toDocument(now, zone) },
+            customFoods = local.customFoods(localUserId).map { it.toDocument(now) },
         )
         remote.writeAll(uid, snapshot)
     }

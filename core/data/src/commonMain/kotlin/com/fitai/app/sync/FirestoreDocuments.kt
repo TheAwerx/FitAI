@@ -15,6 +15,7 @@ internal object FirestorePaths {
     const val WORKOUT_SESSIONS = "workout_sessions"
     const val MEAL_LOGS = "meal_logs"
     const val MEASUREMENTS = "measurements"
+    const val CUSTOM_FOODS = "custom_foods"
 }
 
 internal const val CLOUD_SCHEMA_VERSION = 1
@@ -113,6 +114,37 @@ internal data class DietPlanDocument(
     val isActive: Boolean = false,
     val createdAt: String = "",
     val updatedAt: String = "",
+    /** Detailed meals; empty for target-only plans. */
+    val meals: List<DietMealEntry> = emptyList(),
+)
+
+/** A plan meal: `options[0]` is the main suggestion, the rest are alternatives; `selected` is the one in use. */
+@Serializable
+internal data class DietMealEntry(
+    val slot: String = "",
+    val time: String = "",
+    val selected: Int = 0,
+    val options: List<DietMealOptionEntry> = emptyList(),
+)
+
+@Serializable
+internal data class DietMealOptionEntry(
+    val title: String = "",
+    val note: String = "",
+    val foods: List<DietFoodEntry> = emptyList(),
+)
+
+@Serializable
+internal data class DietFoodEntry(
+    val foodId: String? = null,
+    val name: String = "",
+    val amount: Double = 0.0,
+    val unit: String = "",
+    val grams: Double = 0.0,
+    val calories: Int = 0,
+    val proteinG: Double = 0.0,
+    val carbsG: Double = 0.0,
+    val fatG: Double = 0.0,
 )
 
 @Serializable
@@ -168,6 +200,13 @@ internal data class MealLogDocument(
     val loggedAt: String = "",
     val localDate: String = "",
     val updatedAt: String = "",
+    /** `MealSlot` code; null for entries logged before meal slots. */
+    val slot: String? = null,
+    /** Food database id (bundled or `custom_…`); null for photo and quick-add entries. */
+    val foodId: String? = null,
+    val servingUnit: String? = null,
+    val servingAmount: Double? = null,
+    val grams: Double? = null,
 ) {
     companion object {
         const val SOURCE_MANUAL = "manual"
@@ -191,6 +230,22 @@ internal data class MeasurementDocument(
     val updatedAt: String = "",
 )
 
+/** A user-created food; values per 100 g plus the serving it is logged by. */
+@Serializable
+internal data class CustomFoodDocument(
+    val schemaVersion: Int = CLOUD_SCHEMA_VERSION,
+    val id: String = "",
+    val name: String = "",
+    val kcalPer100g: Double = 0.0,
+    val proteinPer100g: Double = 0.0,
+    val carbsPer100g: Double = 0.0,
+    val fatPer100g: Double = 0.0,
+    val servingUnit: String = "",
+    val servingGrams: Double = 0.0,
+    val createdAt: String = "",
+    val updatedAt: String = "",
+)
+
 /** Everything under `users/{uid}/…` except the account document itself. */
 internal data class CloudDataSnapshot(
     val workoutPlans: List<WorkoutPlanDocument> = emptyList(),
@@ -198,4 +253,5 @@ internal data class CloudDataSnapshot(
     val sessions: List<WorkoutSessionDocument> = emptyList(),
     val meals: List<MealLogDocument> = emptyList(),
     val measurements: List<MeasurementDocument> = emptyList(),
+    val customFoods: List<CustomFoodDocument> = emptyList(),
 )
