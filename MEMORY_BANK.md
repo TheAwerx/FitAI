@@ -4,6 +4,12 @@ Bu dosya (Memory Bank), proje üzerinde çalışan tüm yapay zeka ajanlarının
 
 ## 📝 Son Değişiklikler (Recent Changes)
 
+## 2026-11-15 — Ekstra testler: özellik listesi + fiziksel test
+- `docs/FitAI_Ozellik_Test_Listesi.md` / `.csv` (UTF-8 BOM, Notion'a aktarılabilir): 118 madde; Pixel_9a emülatöründe (dev) elle test, Firebase emülatörü (functions 50/50, sweep 4/4, kurallar 16/16), iOS sim duman testi. 88 ✅, 7 🔧, 8 ❌, 15 ⏸; kanıtlar `docs/screenshots/qa/`
+- Düzeltildi: uygulama içi dil değişince AI/plan dili (`FitAIApp` SideEffect kapsamı), dinlenme günü ipucu + seçili gün çipi görünür + "Aktif plan" etiketi, hızlı kalori makrosuz kaydedilir, sekme değişince eski arama sorgusu, TR ondalık virgül + EN "1 day", mock fiyat dili
+- Açık: yarım bırakılan seans açık kalıyor ve hacme giriyor (G10), diyet makroları hedefe oturmuyor, `check:diet` yalnız kaloriyi kontrol ediyor (H3), tartı profil kilosunu güncellemiyor (J3, ürün kararı), alternatif listesi ekipmana göre sıralanmıyor (G5), paywall'dan dönüş hep Ana sayfa (C14), hesapsız deneme CTA'sı sessiz (C13), ft/in seçici tekrar (D7)
+- Dev flavor `DevPlanAIRepository`: yalnız planlar yerel; koç, rapor, Bugün Modu, sonraki öğün ve fotoğraf canlı callable'a gider (N9). Hesap/deneme/kota/FCM deploy ve gerçek hesapla test edilmeli; fiziksel telefon bağlı değildi
+
 ## 2026-11-15 — Detaylı diyet planı, gıda veritabanı ve manuel öğün girişi
 - Diyet planı öğün öğün: saat, ev ölçüsü + gram, gıda/öğün makroları, hazırlık notu, öğün başına 2 alternatif (tek dokunuşla değiştir), plan toplamı vs hedef. `StarterDiet` gıda veritabanından kısıtlara uygun üretir; sunucu öğünsüz dönerse istemci tamamlar
 - Gıda veritabanı: 298 gıda (`core/data/.../files/foods.json`, `core/data/fooddb/build_foods.py` + README; USDA FDC CC0, tarif tahmini, etiket ortalaması — JSON elle değil script ile üretilir). Aksan/Türkçe harf duyarsız arama, kişisel gıdalar (`custom_foods`)
