@@ -1,14 +1,323 @@
 rules_version = '2';
+
+// FitAI Firestore rules. Collections, fields and who writes them: firebase/SCHEMA.md.
+// Tests: firebase/rules-tests (npm test, runs the Firestore emulator).
+// Anything not matched below is denied. Cloud Functions use the Admin SDK and bypass these rules.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /user_profiles/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+    // ---------- Auth ----------
+
+    function signedIn() {
+      return request.auth != null;
     }
-    match /guest_trials/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
     }
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+    // Account data needs a real sign-in; anonymous sessions (pre-signup AI calls) get no cloud copy.
+    function isAccountOwner(uid) {
+      return isOwner(uid) && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    // ---------- Field checks ----------
+
+    function isStr(v, max) {
+      return v is string && v.size() <= max;
+    }
+
+    function isOptStr(v, max) {
+      return v == null || isStr(v, max);
+    }
+
+    function isNonEmptyStr(v, max) {
+      return isStr(v, max) && v.size() > 0;
+    }
+
+    function isDocId(v) {
+      return v is string && v.matches('^[A-Za-z0-9_-]{1,64}$');
+    }
+
+    // Device ISO-8601 UTC instants, e.g. 2026-11-15T07:30:12.345Z.
+    function isIso(v) {
+      return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]{5,24}Z$');
+    }
+
+    function isOptIso(v) {
+      return v == null || isIso(v);
+    }
+
+    function isLocalDate(v) {
+      return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function isIntIn(v, lo, hi) {
+      return v is int && v >= lo && v <= hi;
+    }
+
+    function isNumIn(v, lo, hi) {
+      return v is number && v >= lo && v <= hi;
+    }
+
+    function isOptNumIn(v, lo, hi) {
+      return v == null || isNumIn(v, lo, hi);
+    }
+
+    function isOptCode(v, codes) {
+      return v == null || v in codes;
+    }
+
+    function isCodeList(v, codes, max) {
+      return v is list && v.size() <= max && v.hasOnly(codes);
+    }
+
+    function hasExactly(d, fields) {
+      return d.keys().hasAll(fields) && d.keys().hasOnly(fields);
+    }
+
+    function isVersioned(d) {
+      return d.schemaVersion is int && d.schemaVersion >= 1;
+    }
+
+    // ---------- Onboarding codes (core/domain/.../model/ProfileEnums.kt, OnboardingAnswers.kt) ----------
+
+    function goals() {
+      return ['lose_fat', 'build_muscle', 'get_stronger', 'improve_endurance', 'stay_healthy'];
+    }
+
+    function activityLevels() {
+      return ['sedentary', 'light', 'moderate', 'very', 'athlete'];
+    }
+
+    function equipmentCodes() {
+      return ['bodyweight', 'dumbbells', 'barbell', 'resistance_bands', 'pull_up_bar', 'full_gym'];
+    }
+
+    function dietCodes() {
+      return ['none', 'vegetarian', 'vegan', 'pescatarian', 'halal', 'kosher', 'gluten-free', 'dairy-free'];
+    }
+
+    function focusCodes() {
+      return ['personal_plan', 'smart_overload', 'plate_photo', 'log_lifts', 'streak', 'ai_coach'];
+    }
+
+    // ---------- Documents ----------
+
+    function validUser(d) {
+      return hasExactly(d, [
+          'schemaVersion', 'localUserId', 'name', 'email', 'age', 'heightCm', 'weightKg', 'gender',
+          'goal', 'activityLevel', 'equipment', 'dietRestrictions', 'experience', 'obstacle',
+          'focusAreas', 'daysPerWeek', 'sessionMinutes', 'attributionSource', 'commitmentConfirmedAt',
+          'notificationsEnabled', 'reminderHour', 'reminderMinute', 'language', 'timeZone',
+          'createdAt', 'updatedAt'
+        ])
+        && isVersioned(d)
+        && isStr(d.localUserId, 64)
+        && isStr(d.name, 80)
+        && isStr(d.email, 254)
+        && isIntIn(d.age, 10, 120)
+        && isNumIn(d.heightCm, 50, 272)
+        && isNumIn(d.weightKg, 20, 500)
+        && isOptCode(d.gender, ['male', 'female'])
+        && d.goal in goals()
+        && d.activityLevel in activityLevels()
+        && isCodeList(d.equipment, equipmentCodes(), 6)
+        && isCodeList(d.dietRestrictions, dietCodes(), 8)
+        && isOptCode(d.experience, ['none', 'beginner', 'intermediate', 'advanced'])
+        && isOptCode(d.obstacle, ['time', 'knowledge', 'motivation', 'injury', 'equipment', 'never_tried'])
+        && isCodeList(d.focusAreas, focusCodes(), 3)
+        && isIntIn(d.daysPerWeek, 1, 7)
+        && isIntIn(d.sessionMinutes, 5, 240)
+        && isOptCode(d.attributionSource, ['tiktok', 'instagram', 'youtube', 'friend', 'gym', 'search', 'other'])
+        && isOptIso(d.commitmentConfirmedAt)
+        && d.notificationsEnabled is bool
+        && isIntIn(d.reminderHour, 0, 23)
+        && isIntIn(d.reminderMinute, 0, 59)
+        && d.language in ['tr', 'en']
+        && isNonEmptyStr(d.timeZone, 64)
+        && isIso(d.createdAt)
+        && isIso(d.updatedAt);
+    }
+
+    function validWorkoutPlan(d, planId) {
+      return hasExactly(d, [
+          'schemaVersion', 'id', 'title', 'description', 'daysPerWeek', 'kind', 'isActive',
+          'createdAt', 'updatedAt', 'exercises'
+        ])
+        && isVersioned(d)
+        && d.id == planId
+        && isStr(d.title, 200)
+        && isStr(d.description, 2000)
+        && isIntIn(d.daysPerWeek, 0, 7)
+        && d.kind in ['program', 'adhoc']
+        && (d.kind == 'adhoc') == (d.daysPerWeek == 0)
+        && d.isActive is bool
+        && !(d.isActive && d.kind == 'adhoc')
+        && isIso(d.createdAt)
+        && isIso(d.updatedAt)
+        && d.exercises is list && d.exercises.size() <= 150;
+    }
+
+    function validDietPlan(d, planId) {
+      return hasExactly(d, [
+          'schemaVersion', 'id', 'dailyCalories', 'proteinG', 'carbsG', 'fatG', 'isActive',
+          'createdAt', 'updatedAt'
+        ])
+        && isVersioned(d)
+        && d.id == planId
+        && isIntIn(d.dailyCalories, 0, 10000)
+        && isIntIn(d.proteinG, 0, 2000)
+        && isIntIn(d.carbsG, 0, 2000)
+        && isIntIn(d.fatG, 0, 2000)
+        && d.isActive is bool
+        && isIso(d.createdAt)
+        && isIso(d.updatedAt);
+    }
+
+    function validSession(d, sessionId) {
+      return hasExactly(d, [
+          'schemaVersion', 'id', 'planId', 'startedAt', 'completedAt', 'completed', 'durationMinutes',
+          'notes', 'localDate', 'totalSets', 'completedSets', 'volumeKg', 'exercises', 'updatedAt'
+        ])
+        && isVersioned(d)
+        && d.id == sessionId
+        && isDocId(d.planId)
+        && isIso(d.startedAt)
+        && isOptIso(d.completedAt)
+        && d.completed == (d.completedAt != null)
+        && (d.durationMinutes == null || isIntIn(d.durationMinutes, 0, 1440))
+        && isOptStr(d.notes, 2000)
+        && isLocalDate(d.localDate)
+        && isIntIn(d.totalSets, 0, 1000)
+        && isIntIn(d.completedSets, 0, 1000)
+        && d.completedSets <= d.totalSets
+        && isNumIn(d.volumeKg, 0, 1000000)
+        && d.exercises is list && d.exercises.size() <= 40
+        && isIso(d.updatedAt);
+    }
+
+    function validMeal(d, mealId) {
+      return hasExactly(d, [
+          'schemaVersion', 'id', 'mealName', 'calories', 'proteinG', 'carbsG', 'fatG', 'source',
+          'photoUrl', 'loggedAt', 'localDate', 'updatedAt'
+        ])
+        && isVersioned(d)
+        && d.id == mealId
+        && isStr(d.mealName, 200)
+        && isIntIn(d.calories, 0, 10000)
+        && isNumIn(d.proteinG, 0, 2000)
+        && isNumIn(d.carbsG, 0, 2000)
+        && isNumIn(d.fatG, 0, 2000)
+        && d.source in ['photo', 'manual']
+        && isOptStr(d.photoUrl, 2048)
+        && isIso(d.loggedAt)
+        && isLocalDate(d.localDate)
+        && isIso(d.updatedAt);
+    }
+
+    function validMeasurement(d, measurementId) {
+      return hasExactly(d, [
+          'schemaVersion', 'id', 'weightKg', 'bodyFatPct', 'chestCm', 'waistCm', 'hipCm', 'armCm',
+          'photoUrl', 'measuredAt', 'localDate', 'updatedAt'
+        ])
+        && isVersioned(d)
+        && d.id == measurementId
+        && isNumIn(d.weightKg, 20, 500)
+        && isOptNumIn(d.bodyFatPct, 0, 80)
+        && isOptNumIn(d.chestCm, 0, 300)
+        && isOptNumIn(d.waistCm, 0, 300)
+        && isOptNumIn(d.hipCm, 0, 300)
+        && isOptNumIn(d.armCm, 0, 300)
+        && isOptStr(d.photoUrl, 2048)
+        && isIso(d.measuredAt)
+        && isLocalDate(d.localDate)
+        && isIso(d.updatedAt);
+    }
+
+    // Reserved for push notifications; nothing writes it yet.
+    function validDevice(d) {
+      return hasExactly(d, ['platform', 'fcmToken', 'language', 'timeZone', 'appVersion', 'updatedAt'])
+        && d.platform in ['android', 'ios']
+        && isNonEmptyStr(d.fcmToken, 4096)
+        && d.language in ['tr', 'en']
+        && isNonEmptyStr(d.timeZone, 64)
+        && isStr(d.appVersion, 32)
+        && isIso(d.updatedAt);
+    }
+
+    // ---------- Client-owned account data ----------
+
+    match /users/{uid} {
+      allow read: if isAccountOwner(uid);
+      allow create, update: if isAccountOwner(uid) && validUser(request.resource.data);
+      // Account deletion must also wipe subcollections, so it belongs in a function.
+      allow delete: if false;
+
+      match /workout_plans/{planId} {
+        allow read: if isAccountOwner(uid);
+        allow create, update: if isAccountOwner(uid) && validWorkoutPlan(request.resource.data, planId);
+        allow delete: if false;
+      }
+
+      match /diet_plans/{planId} {
+        allow read: if isAccountOwner(uid);
+        allow create, update: if isAccountOwner(uid) && validDietPlan(request.resource.data, planId);
+        allow delete: if false;
+      }
+
+      match /workout_sessions/{sessionId} {
+        allow read: if isAccountOwner(uid);
+        allow create, update: if isAccountOwner(uid) && validSession(request.resource.data, sessionId);
+        allow delete: if false;
+      }
+
+      match /meal_logs/{mealId} {
+        allow read, delete: if isAccountOwner(uid);
+        allow create, update: if isAccountOwner(uid) && validMeal(request.resource.data, mealId);
+      }
+
+      match /measurements/{measurementId} {
+        allow read, delete: if isAccountOwner(uid);
+        allow create, update: if isAccountOwner(uid) && validMeasurement(request.resource.data, measurementId);
+      }
+
+      match /devices/{installationId} {
+        allow read, delete: if isAccountOwner(uid);
+        allow create, update: if isAccountOwner(uid) && isDocId(installationId) && validDevice(request.resource.data);
+      }
+    }
+
+    // ---------- Written only by Cloud Functions ----------
+
+    // initGuestTrial / getTrialStatus; the app reads the trial of its own (possibly anonymous) session.
+    match /guest_trials/{uid} {
+      allow get: if isOwner(uid);
+      allow list, write: if false;
+    }
+
+    // Reserved: plan-generation counter.
+    match /plan_quotas/{uid} {
+      allow get: if isOwner(uid);
+      allow list, write: if false;
+    }
+
+    // Reserved: device-based trial tracking. Server only.
+    match /device_trials/{deviceKey} {
+      allow read, write: if false;
+    }
+
+    // Daily AI quota counters (rateLimit.ts). Server only.
+    match /aiUsage/{uid}/{document=**} {
+      allow read, write: if false;
+    }
+
+    // ---------- Legacy ----------
+
+    // Pre-schema profile; read once on sign-in and moved into users/{uid}. No new writes.
+    match /user_profiles/{uid} {
+      allow get: if isAccountOwner(uid);
+      allow list, write: if false;
     }
   }
 }
