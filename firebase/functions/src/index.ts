@@ -37,6 +37,16 @@ import {
   workoutPlanPrompt,
   workoutSchema,
 } from "./plans";
+// Dynamic push notifications (src/notifications, firebase/SCHEMA.md "Push notifications").
+// The handlers use admin lazily, so exporting before initializeApp() below is fine.
+export {
+  notificationSweep,
+  notificationsOnUserWritten,
+  notificationsOnDeviceWritten,
+  notificationsOnPlanWritten,
+  notificationsOnSessionWritten,
+  notificationsOnMealCreated,
+} from "./notifications";
 import { withDailyQuota } from "./rateLimit";
 import { withPlanQuota } from "./planQuota";
 
@@ -305,13 +315,3 @@ export const getTrialStatus = onCall(authCallable, async (request) => {
   const data = doc.data()!;
   return trialStatus(new Date(data.trialStartedAt), data.hasSubscription ?? false);
 });
-
-// Dynamic push notifications (src/notifications, firebase/SCHEMA.md "Push notifications").
-export {
-  notificationSweep,
-  notificationsOnUserWritten,
-  notificationsOnDeviceWritten,
-  notificationsOnPlanWritten,
-  notificationsOnSessionWritten,
-  notificationsOnMealCreated,
-} from "./notifications";

@@ -3,10 +3,11 @@
   "description": "Firebase Cloud Functions for FitAI Gemini proxy and trial management",
   "scripts": {
     "build": "tsc",
-    "test": "tsc && node --test test/*.test.mjs",
-    "test:emulator": "tsc && firebase emulators:exec --config ../firebase.json --only firestore --project demo-fitai \"node --test test/emulator/*.test.mjs\"",
+    "test": "npm run build && firebase emulators:exec --config test/firebase.json --only firestore --project demo-fitai \"node --test test/*.test.mjs\"",
+    "test:only": "node --test test/*.test.mjs",
     "serve": "firebase emulators:start --only functions",
-    "deploy": "firebase deploy --only functions,firestore:rules"
+    "deploy": "firebase deploy --only functions,firestore:rules",
+    "test:emulator": "npm run build && firebase emulators:exec --config test/firebase.json --only firestore --project demo-fitai \"node --test test/emulator/*.test.mjs\""
   },
   "engines": {
     "node": "24"

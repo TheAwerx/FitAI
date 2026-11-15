@@ -314,11 +314,6 @@ service cloud.firestore {
       allow list, write: if false;
     }
 
-    // Push scheduling state and sent log (functions/src/notifications/state.ts). Server only.
-    match /notification_state/{uid} {
-      allow read, write: if false;
-    }
-
     // Reserved: device-based trial tracking. Server only.
     match /device_trials/{deviceKey} {
       allow read, write: if false;
@@ -326,6 +321,11 @@ service cloud.firestore {
 
     // Daily AI quota counters (rateLimit.ts). Server only.
     match /aiUsage/{uid}/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Push scheduling state and sent log (functions/src/notifications/state.ts). Server only.
+    match /notification_state/{uid} {
       allow read, write: if false;
     }
 

@@ -128,7 +128,7 @@ Uygulamada onboarding’i bitirince plan üretimi mock yerine Gemini çıktısı
 
 Koleksiyonlar, alanlar, hangi ekrandan geldikleri ve kimin yazdığı: [`SCHEMA.md`](SCHEMA.md).
 `firestore.rules` yalnız sahibine (anonim olmayan giriş) izin verir, alanları doğrular;
-sunucu koleksiyonlarına (`guest_trials`, `plan_quotas`, `device_trials`, `aiUsage`, `notification_state`)
+sunucu koleksiyonlarına (`guest_trials`, `plan_quotas`, `device_trials`, `aiUsage`)
 istemci yazamaz. Kuralları değiştirince emülatörde test et (canlı projeye dokunmaz,
 `demo-fitai` projesi kullanılır; Firestore emülatörü JDK 21 ister):
 
@@ -150,7 +150,7 @@ referansının ±%20'si içinde tutulur.
 
 Tasarım, tetikleyiciler ve yerel hatırlatmalarla iş bölümü: [`SCHEMA.md`](SCHEMA.md) → "Push notifications".
 Kod `functions/src/notifications/`: 15 dakikada bir `notificationSweep` (yalnız `nextCheckAt` zamanı
-gelen `notification_state/{uid}` belgeleri), Firestore tetikleyicileri `notificationsOn*`.
+gelen `notification_state/{uid}` belgeleri; istemci erişimi yok), Firestore tetikleyicileri `notificationsOn*`.
 
 Canlıya almadan önce (sahibin adımları):
 
@@ -175,7 +175,7 @@ Testler (canlı projeye dokunmaz, `demo-fitai`):
 ```bash
 cd firebase/functions
 npm ci
-npm test                       # karar mantığı (birim)
+npm run test:only              # karar mantığı (birim, emülatörsüz)
 JAVA_HOME="$HOME/Applications/Android Studio.app/Contents/jbr/Contents/Home" npm run test:emulator   # emülatörde uçtan uca, FCM taklit
 ```
 
