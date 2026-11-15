@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitAI — Rekabet ve Büyüme Strateji Planı (Rakip: Symmetry)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E1113;
+    --surface: #161B1E;
+    --surface-2: #1D2428;
+    --line: #2A3338;
+    --text: #E6ECEF;
+    --muted: #9AA7AE;
+    --primary: #46F1C5;
+    --primary-dim: rgba(70, 241, 197, 0.12);
+    --warn: #FFB547;
+    --danger: #FF6B6B;
+    --info: #6BB7FF;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Lexend", system-ui, sans-serif;
+    font-weight: 300;
+    line-height: 1.65;
+    font-size: 15.5px;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 24px 96px; }
+  h1, h2, h3, h4 { font-family: "Sora", sans-serif; line-height: 1.25; margin: 0; }
+  h1 { font-size: 40px; font-weight: 800; letter-spacing: -0.02em; }
+  h2 {
+    font-size: 26px; font-weight: 700; margin: 64px 0 20px;
+    padding-top: 24px; border-top: 1px solid var(--line);
+    display: flex; align-items: center; gap: 14px;
+  }
+  h2 .num {
+    display: inline-grid; place-items: center;
+    width: 40px; height: 40px; border-radius: 12px;
+    background: var(--primary); color: #062A21; font-size: 18px; font-weight: 800;
+  }
+  h3 { font-size: 19px; font-weight: 600; margin: 36px 0 12px; color: var(--primary); }
+  h4 { font-size: 16px; font-weight: 600; margin: 0 0 8px; }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 20px; }
+  li { margin-bottom: 6px; }
+  strong { font-weight: 600; color: #fff; }
+  a { color: var(--primary); }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+
+  header.hero {
+    background: radial-gradient(1200px 400px at 10% -20%, rgba(70,241,197,0.22), transparent 60%), var(--surface);
+    border: 1px solid var(--line); border-radius: 24px; padding: 40px;
+  }
+  .eyebrow {
+    font-family: "Sora", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--primary); margin-bottom: 12px;
+  }
+  .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+  .chip {
+    font-size: 12.5px; padding: 6px 12px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
+  }
+  .chip.p { background: var(--primary-dim); border-color: rgba(70,241,197,0.35); color: var(--primary); }
+
+  nav.toc {
+    margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px;
+  }
+  nav.toc a {
+    text-decoration: none; color: var(--text); background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; font-size: 14px;
+  }
+  nav.toc a:hover { border-color: var(--primary); }
+  nav.toc a span { color: var(--primary); font-family: "Sora"; font-weight: 700; margin-right: 6px; }
+
+  .grid { display: grid; gap: 16px; }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .g4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px;
+  }
+  .card.accent { border-color: rgba(70,241,197,0.45); background: linear-gradient(180deg, rgba(70,241,197,0.07), transparent 70%), var(--surface); }
+  .card .tag {
+    display: inline-block; font-size: 11.5px; font-weight: 500; padding: 3px 9px; border-radius: 999px;
+    background: var(--surface-2); color: var(--muted); margin-bottom: 10px; border: 1px solid var(--line);
+  }
+  .kpi { font-family: "Sora"; font-size: 28px; font-weight: 700; color: var(--primary); }
+  .kpi-label { font-size: 13px; color: var(--muted); }
+
+  .callout {
+    border-left: 4px solid var(--primary); background: var(--primary-dim);
+    padding: 16px 20px; border-radius: 0 14px 14px 0; margin: 16px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: rgba(255,181,71,0.10); }
+  .callout.danger { border-color: var(--danger); background: rgba(255,107,107,0.10); }
+  .hook {
+    font-family: "Sora"; font-size: 26px; font-weight: 700; color: #fff; line-height: 1.3;
+  }
+  .hook em { color: var(--primary); font-style: normal; }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; margin: 12px 0 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 12px 14px; vertical-align: top; border-bottom: 1px solid var(--line); }
+  th {
+    font-family: "Sora"; font-weight: 600; font-size: 12.5px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--muted); background: var(--surface-2);
+  }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { font-weight: 500; color: #fff; }
+
+  .badge { display: inline-block; font-size: 12px; font-weight: 500; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .b-ok { background: rgba(70,241,197,0.15); color: var(--primary); }
+  .b-part { background: rgba(255,181,71,0.15); color: var(--warn); }
+  .b-no { background: rgba(255,107,107,0.15); color: var(--danger); }
+  .b-info { background: rgba(107,183,255,0.15); color: var(--info); }
+
+  .swot { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .swot .card h4 { display: flex; align-items: center; gap: 10px; }
+  .swot .letter {
+    display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px;
+    font-family: "Sora"; font-weight: 800; font-size: 15px;
+  }
+  .s .letter { background: rgba(70,241,197,0.18); color: var(--primary); }
+  .w .letter { background: rgba(255,107,107,0.18); color: var(--danger); }
+  .o .letter { background: rgba(107,183,255,0.18); color: var(--info); }
+  .t .letter { background: rgba(255,181,71,0.18); color: var(--warn); }
+  .swot li span.imp { display: block; font-size: 13px; color: var(--primary); margin-top: 2px; }
+
+  .persona .who { font-family: "Sora"; font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+  .persona dl { margin: 10px 0 0; display: grid; grid-template-columns: 92px 1fr; gap: 6px 10px; font-size: 13.5px; }
+  .persona dt { color: var(--muted); }
+  .persona dd { margin: 0; }
+
+  .wow { position: relative; }
+  .wow .n { font-family: "Sora"; font-weight: 800; font-size: 46px; color: rgba(70,241,197,0.22); position: absolute; top: 10px; right: 18px; }
+  .wow h4 { font-size: 18px; margin-bottom: 10px; padding-right: 50px; }
+  .wow .row { font-size: 14px; margin-bottom: 8px; }
+  .wow .row b { color: var(--muted); font-weight: 500; display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .steps { counter-reset: s; list-style: none; padding: 0; }
+  .steps li {
+    counter-increment: s; position: relative; padding: 12px 14px 12px 54px; margin-bottom: 10px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  }
+  .steps li::before {
+    content: counter(s); position: absolute; left: 14px; top: 12px;
+    width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
+    background: var(--primary); color: #062A21; font-family: "Sora"; font-weight: 800; font-size: 13px;
+  }
+
+  footer { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--line); }
+  footer ol { font-size: 13px; color: var(--muted); }
+
+  @media print {
+    body { background: #fff; color: #111; }
+    .card, header.hero, .table-wrap, .steps li { background: #fff !important; border-color: #ccc; }
+    strong, td:first-child, .hook { color: #111; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ============================== HERO ============================== -->
+<header class="hero">
+  <div class="eyebrow">Ürün ve Büyüme Strateji Planı</div>
+  <h1>FitAI ve Symmetry: Rekabet Analizi ve Uçtan Uca Strateji</h1>
+  <p class="muted" style="margin-top:12px; max-width:760px;">
+    Bu doküman, Symmetry uygulamasını kamuya açık verilerle analiz eder. Sonra FitAI için ürün, farklılaşma, pazara giriş ve gelir planını verir. Her bölüm uygulanabilir adımlarla biter.
+  </p>
+  <div class="meta">
+    <span class="chip p">Tarih: 7 Kasım 2026</span>
+    <span class="chip">Rakip: symmetry.club</span>
+    <span class="chip">Platform: Android + iOS (KMP)</span>
+    <span class="chip">İlk pazar önerisi: Türkiye</span>
+  </div>
+  <nav class="toc">
+    <a href="#ozet"><span>0</span>Yönetici özeti</a>
+    <a href="#rakip"><span>1</span>Rakip analizi</a>
+    <a href="#urun"><span>2</span>Ürün ve özellik matrisi</a>
+    <a href="#farklilasma"><span>3</span>Farklılaşma</a>
+    <a href="#gtm"><span>4</span>Pazara giriş ve büyüme</a>
+    <a href="#gelir"><span>5</span>Gelir modeli</a>
+    <a href="#yolharitasi"><span>6</span>90 günlük yol haritası</a>
+  </nav>
+</header>
+
+<!-- ============================== ÖZET ============================== -->
+<h2 id="ozet"><span class="num">0</span>Yönetici Özeti</h2>
+<div class="grid g4">
+  <div class="card"><div class="kpi">~3 M</div><div class="kpi-label">Symmetry toplam indirme (Eylül 2026)</div></div>
+  <div class="card"><div class="kpi">$137–200 B</div><div class="kpi-label">Aylık gelir aralığı (kaynaklar farklı, 2026)</div></div>
+  <div class="card"><div class="kpi">~1 Milyar</div><div class="kpi-label">Organik UGC izlenmesi (son 1 yıl, reklamsız)</div></div>
+  <div class="card"><div class="kpi">0</div><div class="kpi-label">Beslenme özelliği (Symmetry'de yok)</div></div>
+</div>
+<div class="callout">
+  <ul style="margin:0;">
+    <li><strong>Rakip:</strong> Symmetry, salon antrenmanını bir oyuna çevirir. Ana araçları AI plan, otomatik yük artışı ve kas bazlı rank sistemidir.</li>
+    <li><strong>Rakibin motoru:</strong> Ürün değil, dağıtımdır. Symmetry, 500'den fazla hesapla yılda yaklaşık 80.000 kısa video yayınlar.</li>
+    <li><strong>Boşluk:</strong> Symmetry beslenmeyi yönetmez. Kilo verme hedefini ve yeni başlayanı zayıf ödüllendirir.</li>
+    <li><strong>FitAI kancası:</strong> "Antrenmanın ve tabağın, tek AI koçta." FitAI sonucu yönetir: plan, uygulama, ölçüm ve güncelleme tek döngüdedir.</li>
+    <li><strong>Zamanlama:</strong> Ocak ayı, fitness indirmelerinin en yüksek dönemidir. Türkçe lansmanı 1 Ocak 2027'den önce yapın.</li>
+  </ul>
+</div>
+
+<!-- ============================== 1. RAKİP ============================== -->
+<h2 id="rakip"><span class="num">1</span>Rakip Analizi: Symmetry</h2>
+
+<h3>1.1 Kısa Profil</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>Alan</th><th>Veri</th><th>Kaynak notu</th></tr>
+  <tr><td>Ürün</td><td>AI destekli salon antrenman uygulaması. Plan, set kaydı, rank, sosyal akış, AI vücut taraması (fotoğraf).</td><td>symmetry.club, Google Play</td></tr>
+  <tr><td>Kurucu</td><td>Mauro Botanes (22). Eski fitness YouTuber. Üç kurucu, dış yatırım yok.</td><td>GTM Sauce, Starter Story</td></tr>
+  <tr><td>Ana pazar</td><td>İspanyolca konuşan Gen Z (İspanya, Meksika). İspanya Sağlık ve Fitness listesinde 8. sırada.</td><td>Tap &amp; Swipe, Pumf.it</td></tr>
+  <tr><td>Ölçek</td><td>~3 milyon indirme. Web sitesi "1 milyondan fazla kişi antrenman yapıyor" der.</td><td>GTM Sauce, symmetry.club</td></tr>
+  <tr><td>Gelir</td><td>Ara 2025: ~$30 B/ay. Mayıs 2026: $137 B/ay. Temmuz 2026: ~$200 B/ay. Eylül 2026: ~$160 B/ay.</td><td>Kurucu tweet'i ve podcast'ler. Rakamlar tutarlı değil.</td></tr>
+  <tr><td>Puan</td><td>4,8/5 (yaklaşık 6.000 yorum). Hollanda App Store'da 4,6.</td><td>symmetry.club, App Store</td></tr>
+  <tr><td>Fiyat</td><td>Ücretsiz çekirdek. Pro: İspanya €12,99/ay, €39,99/yıl. ABD $14,99/ay, $49,99/yıl, $9,99/hafta. Çok sayıda fiyat varyantı (A/B test).</td><td>App Store listeleri</td></tr>
+  <tr><td>Büyüme</td><td>Organik UGC. Yaratıcılara 1.000 izlenme başına ödeme, tavan yok. Gelirin yaklaşık yarısı yaratıcılara gider. Reklam harcaması yok.</td><td>GTM Sauce, LinkedIn</td></tr>
+</table>
+</div>
+<div class="callout warn small">
+  <strong>Veri uyarısı:</strong> Starter Story, "Gusto, Square ve ADP ile bordro ortaklığı" ve "kurumsal saha satışı" kanallarını Symmetry'ye bağlar. Bu bilgiler aynı adı taşıyan başka bir bordro yazılımı şirketine aittir. Bu planda o kanalları kullanmayın.
+</div>
+
+<h3>1.2 Hedef Kitle ve Kullanıcı Personaları</h3>
+<p>Symmetry'nin ana mesajı "estetik bir vücut yap" ve "salonu bir oyuna çevir"dir. Çekirdek kitle, oyun kültürüyle büyüyen, salona düzenli giden genç erkektir. Kadın kullanıcılar ayrı rank grubunda yer alır, ama pazarlama dili erkek estetiğine odaklanır.</p>
+<div class="grid g4">
+  <div class="card persona">
+    <span class="tag">Birincil</span>
+    <div class="who">"Rank Avcısı" Diego</div>
+    <div class="muted small">19–25 yaş, erkek, öğrenci</div>
+    <dl>
+      <dt>Hedef</dt><dd>Kas ve güç kazanmak, arkadaşlarından güçlü olmak</dd>
+      <dt>Motivasyon</dt><dd>Rank atlamak, PR paylaşmak, sosyal onay</dd>
+      <dt>Acı noktası</dt><dd>Ne kadar ağırlık kaldıracağını bilmiyor</dd>
+    </dl>
+  </div>
+  <div class="card persona">
+    <span class="tag">Birincil</span>
+    <div class="who">"Kararsız Yeni Başlayan" Carlos</div>
+    <div class="muted small">18–24 yaş, salona yeni yazıldı</div>
+    <dl>
+      <dt>Hedef</dt><dd>Doğru programla başlamak</dd>
+      <dt>Motivasyon</dt><dd>Seri (streak), net talimat</dd>
+      <dt>Acı noktası</dt><dd>Motivasyon kaybı, program karmaşası</dd>
+    </dl>
+  </div>
+  <div class="card persona">
+    <span class="tag">İkincil</span>
+    <div class="who">"Veri Meraklısı" Miguel</div>
+    <div class="muted small">22–35 yaş, 3+ yıl deneyim</div>
+    <dl>
+      <dt>Hedef</dt><dd>Hacim ve ilerlemeyi ölçmek</dd>
+      <dt>Motivasyon</dt><dd>Gelişmiş metrikler, kas bazlı hacim</dd>
+      <dt>Acı noktası</dt><dd>Excel tabloları, manuel takip</dd>
+    </dl>
+  </div>
+  <div class="card persona">
+    <span class="tag">İkincil</span>
+    <div class="who">"Evde Antrenman" Lucía</div>
+    <div class="muted small">20–30 yaş, ev veya küçük salon</div>
+    <dl>
+      <dt>Hedef</dt><dd>Sınırlı ekipmanla düzenli antrenman</dd>
+      <dt>Motivasyon</dt><dd>Kolay plan, seri</dd>
+      <dt>Acı noktası</dt><dd>Ekipman seçenekleri az (yalnız 4 seçenek)</dd>
+    </dl>
+  </div>
+</div>
+
+<h3>1.3 Değer Önerisi</h3>
+<div class="callout">
+  <p class="hook" style="font-size:22px; margin:0 0 6px;">"Progress. Always."</p>
+  <p style="margin:0;">Symmetry şunu vaat eder: <strong>Ne çalışacağına, ne kadar kaldıracağına ve ne zaman artıracağına uygulama karar verir.</strong></p>
+</div>
+<div class="grid g4">
+  <div class="card"><h4>Karar yükünü kaldırır</h4><p class="small muted">AI, deneyim, hedef, gün sayısı ve ekipmana göre tam program yapar. Her set için ağırlık ve tekrar önerir.</p></div>
+  <div class="card"><h4>Antrenmanı oyuna çevirir</h4><p class="small muted">9 rank (Iron → Symmetric), her rankta 3 bölüm. Egzersiz, kas, kas grubu ve global olmak üzere 4 katman.</p></div>
+  <div class="card"><h4>Sosyal hesap verebilirlik</h4><p class="small muted">Antrenman akışa düşer. Arkadaşlar "respect" verir. Seri bozulursa arkadaşlar görür.</p></div>
+  <div class="card"><h4>AI vücut taraması</h4><p class="small muted">Fotoğraftan güçlü ve zayıf kas gruplarını bulur. İlk antrenmandan sonra ücretsiz tarama verir.</p></div>
+</div>
+
+<h3>1.4 SWOT Analizi (Symmetry açısından)</h3>
+<p class="muted small">Her maddenin altında yeşil satır, FitAI için çıkarımı gösterir.</p>
+<div class="swot">
+  <div class="card s">
+    <h4><span class="letter">S</span>Güçlü Yönler</h4>
+    <ul>
+      <li>Derin oyun mekaniği: vücut ağırlığına göre ayarlı skor, cinsiyete göre yüzdelik dilim, düşüş koruması (%85 taban).
+        <span class="imp">→ Yüzdelik rank, büyük kullanıcı verisi ister. Bu mekaniği ilk günden kopyalamayın.</span></li>
+      <li>Otomatik progressive overload: her set için sonraki ağırlığı önerir.
+        <span class="imp">→ FitAI MVP'sinde bu özellik zorunludur.</span></li>
+      <li>Ölçeklenen UGC makinesi: format ve alt format takibi, izlenme başına ödeme.
+        <span class="imp">→ Aynı sistemi küçük bütçeyle Türkçe kurun.</span></li>
+      <li>Kurucu-pazar uyumu: kurucular İspanyolca fitness içerik üreticisiydi.
+        <span class="imp">→ Kendi dil ve kültür avantajınızı kullanın.</span></li>
+      <li>Deney kültürü: tek ekranlık taahhüt adımı retention'ı yaklaşık %3 artırdı.
+        <span class="imp">→ Taahhüt ekranını FitAI onboarding'ine ekleyin.</span></li>
+    </ul>
+  </div>
+  <div class="card w">
+    <h4><span class="letter">W</span>Zayıf Yönler</h4>
+    <ul>
+      <li>Beslenme yönetimi yok. Diyet planı ve öğün analizi yok.
+        <span class="imp">→ FitAI'nin ana farklılaşma alanı budur.</span></li>
+      <li>Ekipman seçimi dar (4 seçenek). Hedef seçimi dar (ör. "karın kası" hedefi yok).
+        <span class="imp">→ Ekipmanı tek tek seçtirin. Hedefi bölge bazlı yapın.</span></li>
+      <li>Güven sorunu: inaktif hesap verisi silindi, ücretsiz özellikler Pro'ya taşındı, iade şikâyetleri var.
+        <span class="imp">→ Yazılı "Güven Taahhüdü" yayınlayın.</span></li>
+      <li>Teknik hatalar: vücut taraması hata verir, rank ve en iyi set hesabı yanlış çıkar, egzersiz varyasyonları eksik.
+        <span class="imp">→ Kalite ve doğruluk, pazarlama mesajı olabilir.</span></li>
+      <li>Rank, güce bağlıdır. Yeni başlayan ve kilo veren kullanıcı uzun süre "Iron" kalır.
+        <span class="imp">→ FitAI'de oyunu güce değil, plan uyumuna bağlayın.</span></li>
+      <li>ASO zayıf: ABD ve İngiltere listelerinde yok. "gym rank" kelimesinde indeksli değil.
+        <span class="imp">→ Türkçe ASO'yu ilk günden planlayın.</span></li>
+    </ul>
+  </div>
+  <div class="card o">
+    <h4><span class="letter">O</span>Fırsatlar (Symmetry için)</h4>
+    <ul>
+      <li>ABD ve İngiltere'ye açılma (pazar İspanya'nın yaklaşık 10 katı).</li>
+      <li>Beslenme modülü ekleme.
+        <span class="imp">→ Bu, FitAI için en büyük tehdittir. Beslenme avantajını hızlı derinleştirin.</span></li>
+      <li>Dünya sıralaması (Top 500, Top 100) ve AI vücut taramasını büyütme.</li>
+      <li>Salon ve PT ortaklıkları (B2B2C).</li>
+    </ul>
+  </div>
+  <div class="card t">
+    <h4><span class="letter">T</span>Tehditler (Symmetry için)</h4>
+    <ul>
+      <li>Yüksek dağıtım maliyeti: gelirin yaklaşık yarısı yaratıcılara gider.</li>
+      <li>TikTok ve Instagram algoritma değişikliği tek kanalı keser.</li>
+      <li>Rakipler: Hevy, Strong, Liftoff, Ladder, Fitbod. Mekanik kolay kopyalanır.</li>
+      <li>Düşük ARPU pazarlar (İspanya, Meksika) birim ekonomiyi sınırlar.</li>
+      <li>Vücut fotoğrafı verisi: gizlilik ve regülasyon riski (GDPR).
+        <span class="imp">→ FitAI'de KVKK uyumunu ve cihazda işleme seçeneğini öne çıkarın.</span></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================== 2. ÜRÜN ============================== -->
+<h2 id="urun"><span class="num">2</span>Ürün ve Özellik Matrisi</h2>
+
+<h3>2.1 MVP: Zorunlu Çekirdek Özellikler</h3>
+<p>MVP'nin tek görevi şudur: <strong>Plan → Uygula → Kaydet → İlerle</strong> döngüsünü ilk haftada üç kez tamamlatmak. "Durum" sütunu FitAI kod tabanının bugünkü halini gösterir.</p>
+<div class="table-wrap">
+<table>
+  <tr><th>Özellik</th><th>Neden zorunlu</th><th>FitAI durumu</th><th>Öncelik</th><th>Aksiyon</th></tr>
+  <tr><td>Kısa onboarding + AI plan (antrenman ve diyet)</td><td>İlk değer anı. Rakip bunu yalnız antrenman için yapar.</td><td><span class="badge b-ok">Var</span></td><td>P0</td><td>Adım sayısını azaltın. E-posta adımını onboarding'den çıkarın.</td></tr>
+  <tr><td>Hızlı set kaydı (aktif seans)</td><td>Salonda günlük ana iş. Her ek dokunuş kayıp yaratır.</td><td><span class="badge b-ok">Var</span></td><td>P0</td><td>"Önceki seti kopyala" ve dinlenme sayacı ekleyin.</td></tr>
+  <tr><td>Otomatik progressive overload</td><td>Rakibin ana vaadi. Bu olmadan uygulama "akıllı" görünmez.</td><td><span class="badge b-no">Yok</span></td><td>P0</td><td>Son seansa göre ağırlık ve tekrar önerin. Kural tabanlı başlayın, AI ile iyileştirin.</td></tr>
+  <tr><td>Egzersiz kütüphanesi + teknik + değiştir</td><td>Ekipman dolu olunca kullanıcı alternatif ister.</td><td><span class="badge b-part">Kısmi</span></td><td>P0</td><td>Her egzersize "Değiştir" butonu ve kısa teknik notu ekleyin.</td></tr>
+  <tr><td>Öğün kaydı + fotoğraflı analiz</td><td>Ana farklılaşma. Rakipte yok.</td><td><span class="badge b-ok">Var</span></td><td>P0</td><td>Türk mutfağı doğruluğunu test edin (bkz. Bölüm 3).</td></tr>
+  <tr><td>Seri (streak) + akıllı bildirim</td><td>Retention'ın ana aracı.</td><td><span class="badge b-no">Yok</span></td><td>P0</td><td>Plana duyarlı seri ve D0–D7 bildirim akışı kurun (bkz. Bölüm 4.2).</td></tr>
+  <tr><td>İlerleme: kilo, ölçü, fotoğraf, PR, hacim</td><td>Kullanıcı değişimi görmezse bırakır.</td><td><span class="badge b-part">Temel</span></td><td>P1</td><td>PR kartı ve haftalık kilo trendi ekleyin.</td></tr>
+  <tr><td>Offline çalışma</td><td>Salonda internet zayıftır.</td><td><span class="badge b-ok">Var</span></td><td>P0</td><td>Koruyun. Senkronizasyon çakışmalarını test edin.</td></tr>
+  <tr><td>Hesap + bulut yedek + veri dışa aktarma</td><td>Rakibin veri kaybı şikâyetine doğrudan cevap.</td><td><span class="badge b-part">Kısmi</span></td><td>P1</td><td>Firestore yedeği ve CSV dışa aktarma ekleyin.</td></tr>
+  <tr><td>Abonelik altyapısı (trial, paywall, makbuz doğrulama)</td><td>Gelir ve deney için şart.</td><td><span class="badge b-part">UI var</span></td><td>P0</td><td>RevenueCat veya Adapty bağlayın. Fiyat A/B testini açın.</td></tr>
+  <tr><td>Analitik + kaynak ölçümü</td><td>Organik büyümede hangi videonun çalıştığını bilmek için şart.</td><td><span class="badge b-info">Doğrulanmadı</span></td><td>P0</td><td>Onboarding'e "Bizi nereden duydun?" sorusu ekleyin. Funnel olaylarını tanımlayın.</td></tr>
+</table>
+</div>
+<p class="small muted"><strong>MVP dışında bırakın:</strong> sosyal akış, global güç rank'ı, giyilebilir cihaz entegrasyonu, web uygulaması, PT paneli. Bunları 1.000 aktif kullanıcıdan sonra planlayın.</p>
+
+<h3>2.2 "Wow" Etkisi Yaratacak 3 Yenilikçi Özellik</h3>
+<div class="grid g3">
+  <div class="card accent wow">
+    <div class="n">01</div>
+    <h4>Kapalı Döngü Beslenme: "Tabak → Plan"</h4>
+    <div class="row"><b>Ne yapar</b>Kullanıcı tabağın fotoğrafını çeker. AI makroları hesaplar ve günlük hedefle karşılaştırır. Sonraki öğün için somut öneri verir: "Akşam yemeğinde 40 g protein eksik. Izgara tavuk veya mercimek ekle."</div>
+    <div class="row"><b>Ek kural</b>Antrenman günü ve dinlenme günü için makro hedefi otomatik değişir.</div>
+    <div class="row"><b>Neden wow</b>Kullanıcı kalori saymaz. Uygulama planı kendisi düzeltir.</div>
+    <div class="row"><b>Symmetry'de</b><span class="badge b-no">Yok</span></div>
+    <div class="row"><b>Metrik</b>Aktif kullanıcı başına haftada en az 5 fotoğraf.</div>
+  </div>
+  <div class="card accent wow">
+    <div class="n">02</div>
+    <h4>"Bugün Modu": Günlük Adaptif Seans</h4>
+    <div class="row"><b>Ne yapar</b>Antrenmandan önce 10 saniyelik kontrol: süre (20/45/60 dk), enerji (1–5), ağrı bölgesi, yer (salon, ev, otel). AI bugünkü seansı yeniden yazar ve haftalık hacmi korur.</div>
+    <div class="row"><b>Neden wow</b>Plan, hayata uyar. "Bugün 20 dakikam var" diyen kullanıcı antrenmanı atlamaz.</div>
+    <div class="row"><b>Symmetry'de</b><span class="badge b-no">Yok</span> Program sabittir, ekipman seçimi 4 seçenektir.</div>
+    <div class="row"><b>Metrik</b>Planlı seans tamamlama oranı ≥ %70.</div>
+  </div>
+  <div class="card accent wow">
+    <div class="n">03</div>
+    <h4>Bağlamsal AI Koç + Haftalık Rapor</h4>
+    <div class="row"><b>Ne yapar</b>Koç, kullanıcının set ve öğün kayıtlarını bilir. Sorulara kişisel cevap verir: "Dizim ağrıyor, squat yerine ne yapayım?" Her pazar kısa rapor gönderir: "Bench %5 arttı. Protein 3 gün düşük kaldı. Pazartesi şunu yap."</div>
+    <div class="row"><b>Neden wow</b>Kullanıcı bir uygulama değil, onu tanıyan bir koç hisseder.</div>
+    <div class="row"><b>Symmetry'de</b><span class="badge b-no">Yok</span></div>
+    <div class="row"><b>Metrik</b>Rapor açılma oranı ≥ %45. Raporu açanlarda D30 retention artışı.</div>
+  </div>
+</div>
+<div class="callout small">
+  <strong>Teknik not:</strong> Üç özellik de mevcut mimariye uyar. AI çağrıları Firebase Functions + Gemini üzerinden gider. Bağlam için son 14 günün özetini sunucuda üretin. Ham kayıtların tamamını modele göndermeyin; maliyeti ve gecikmeyi düşürür.
+</div>
+
+<!-- ============================== 3. FARKLILAŞMA ============================== -->
+<h2 id="farklilasma"><span class="num">3</span>Farklılaşma Stratejisi</h2>
+
+<h3>3.1 Konumlandırma ve Kanca (Hook)</h3>
+<div class="card accent">
+  <p class="hook">Antrenmanın ve tabağın, <em>tek AI koçta.</em></p>
+  <p class="muted" style="margin:10px 0 0;">Symmetry salonda bir güç oyunu sunar. FitAI sonucu yönetir: antrenmanı ve beslenmeyi tek AI koç planlar, ölçer ve her gün günceller.</p>
+</div>
+<p style="margin-top:16px;"><strong>Test edilecek alternatif mesajlar</strong> (her birini UGC'de ayrı format olarak deneyin):</p>
+<ul>
+  <li>"Ne yiyeceğini ve ne kaldıracağını FitAI söyler."</li>
+  <li>"Tabağının fotoğrafını çek. Planın kendini düzeltsin."</li>
+  <li>"Güçlü olmak için değil, sonuç için oyna."</li>
+</ul>
+
+<h3>3.2 Kullanıcı neden FitAI'yi indirmeli?</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>Boyut</th><th>Symmetry</th><th>FitAI</th></tr>
+  <tr><td>Ana vaat</td><td>Daha güçlü ol, rank atla</td><td>Hedefine ulaş: kilo ver, fit görün, güçlen</td></tr>
+  <tr><td>Beslenme</td><td><span class="badge b-no">Yok</span></td><td><span class="badge b-ok">AI diyet planı + fotoğraflı öğün analizi</span></td></tr>
+  <tr><td>Plan uyarlaması</td><td>Sabit program, set bazlı yük önerisi</td><td>Günlük adaptif seans (süre, enerji, ağrı, yer)</td></tr>
+  <tr><td>Oyunlaştırma ölçütü</td><td>Güç yüzdeliği (yeni başlayan dezavantajlı)</td><td>Plan uyumu ve disiplin (herkes kazanabilir)</td></tr>
+  <tr><td>Hedef kitle</td><td>Genç erkek, salon odaklı</td><td>Erkek ve kadın, yeni başlayan, salon ve ev</td></tr>
+  <tr><td>Dil ve pazar</td><td>İspanyolca odaklı</td><td>Türkçe öncelikli, İngilizce hazır</td></tr>
+  <tr><td>Veri güveni</td><td>Hesap silme ve paywall şikâyetleri</td><td>Yazılı Güven Taahhüdü, veri dışa aktarma</td></tr>
+</table>
+</div>
+
+<h3>3.3 FitAI Hedef Personaları</h3>
+<div class="grid g3">
+  <div class="card persona">
+    <span class="tag">Birincil</span>
+    <div class="who">"Meşgul Profesyonel" Emre</div>
+    <div class="muted small">26–38 yaş, ofis çalışanı</div>
+    <dl>
+      <dt>Hedef</dt><dd>8–10 kg vermek, düzenli olmak</dd>
+      <dt>Acı noktası</dt><dd>Zaman yok, diyet ve program ayrı uygulamalarda</dd>
+      <dt>FitAI cevabı</dt><dd>Bugün Modu + Tabak → Plan</dd>
+    </dl>
+  </div>
+  <div class="card persona">
+    <span class="tag">Birincil</span>
+    <div class="who">"Yeni Başlayan" Zeynep</div>
+    <div class="muted small">20–32 yaş, salon veya ev</div>
+    <dl>
+      <dt>Hedef</dt><dd>Sıkılaşmak, sağlıklı beslenmek</dd>
+      <dt>Acı noktası</dt><dd>Güç odaklı uygulamalar onu yetersiz hissettirir</dd>
+      <dt>FitAI cevabı</dt><dd>Uyuma dayalı lig, AI koç</dd>
+    </dl>
+  </div>
+  <div class="card persona">
+    <span class="tag">İkincil</span>
+    <div class="who">"Bütçeli Öğrenci" Burak</div>
+    <div class="muted small">18–24 yaş, kampüs salonu</div>
+    <dl>
+      <dt>Hedef</dt><dd>Kas kazanmak, ucuz ve doğru beslenmek</dd>
+      <dt>Acı noktası</dt><dd>PT ve diyetisyen pahalı</dd>
+      <dt>FitAI cevabı</dt><dd>Ücretsiz çekirdek + öğrenci fiyatı</dd>
+    </dl>
+  </div>
+</div>
+
+<h3>3.4 Vizyon Ekleri (Rakibin kopyalaması zor alanlar)</h3>
+<div class="grid g2">
+  <div class="card"><h4>Türk Mutfağı Besin Modeli</h4><p class="small muted">Fotoğraf analizini yerel yemeklerle test edin: mercimek çorbası, pilav, kuru fasulye, simit, mantı, lahmacun. Türkçe porsiyon dilini kullanın ("1 kepçe", "yarım ekmek"). Yerel doğruluk, global rakibin hızla kopyalayamayacağı bir avantajdır.</p></div>
+  <div class="card"><h4>Ramazan ve Oruç Modu</h4><p class="small muted">İftar ve sahur öğün planı, su hedefi, antrenman saati önerisi (iftardan 60–90 dk sonra). Ramazan dönemi, Türkiye ve MENA'da yıllık bir kampanya fırsatıdır.</p></div>
+  <div class="card"><h4>Disiplin Ligi</h4><p class="small muted">Oyunu güce değil, plan uyumuna bağlayın. Yüzdelik güç rank'ı büyük topluluk verisi ister. Uyum skoru ise ilk kullanıcıdan itibaren adil çalışır.</p></div>
+  <div class="card"><h4>Güven Taahhüdü</h4><p class="small muted">Uygulama içinde ve mağaza sayfasında yayınlayın: "Hesabını asla silmeyiz. Ücretsiz bir özelliği ücretliye taşımayız. Verini istediğin an dışa aktarırsın. İptal tek dokunuştur."</p></div>
+</div>
+<div class="callout danger small">
+  <strong>Yapmayın:</strong> Symmetry'nin 9 kademeli güç rank sistemini ilk sürümde kopyalamayın. Rakip, bu sistemi 3 milyon kullanıcının verisiyle kalibre eder. Az veriyle yapılan yüzdelik rank yanlış sonuç verir ve güveni bozar.
+</div>
+
+<!-- ============================== 4. GTM ============================== -->
+<h2 id="gtm"><span class="num">4</span>Pazara Giriş ve Büyüme (Go-To-Market)</h2>
+
+<h3>4.1 İlk 1.000 Aktif Kullanıcı</h3>
+<p>Symmetry'nin dersi açıktır: <strong>Ücretli reklam değil, tekrarlanabilir organik içerik sistemi.</strong> FitAI bu sistemi küçük bütçeyle ve Türkçe kurmalıdır.</p>
+
+<div class="table-wrap">
+<table>
+  <tr><th>Faz</th><th>Hedef</th><th>Ana iş</th><th>Çıkış ölçütü</th></tr>
+  <tr><td>Faz 0 (Kasım–Aralık)</td><td>500 kişilik bekleme listesi</td><td>Açılış sayfası, kurucu içeriği, kapalı beta (Google Play kapalı test, TestFlight)</td><td>50 beta kullanıcı, D7 ≥ %25</td></tr>
+  <tr><td>Faz 1 (0–100 kullanıcı)</td><td>Ürün-pazar sinyali</td><td>Her kullanıcıyla birebir görüşme. Hataları 48 saatte düzeltin.</td><td>"Uygulama giderse çok üzülürüm" oranı ≥ %40</td></tr>
+  <tr><td>Faz 2 (100–1.000 kullanıcı)</td><td>Tekrarlanabilir kanal</td><td>UGC sistemi, kampüs elçileri, salon ortaklıkları, ASO</td><td>1.000 haftalık aktif kullanıcı</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table>
+  <tr><th>Kanal</th><th>Taktik</th><th>Maliyet</th><th>KPI</th></tr>
+  <tr><td>TikTok / Reels / Shorts (UGC)</td><td>3–5 markasız (faceless) hesap açın. 10 mikro yaratıcıyla çalışın. 1.000 izlenme başına ödeyin, aylık tavan koyun. Her videoyu formata göre etiketleyin.</td><td>Orta</td><td>Video başına izlenme, izlenme → indirme</td></tr>
+  <tr><td>Kurucu içeriği (build in public)</td><td>X, LinkedIn ve YouTube'da her gün yayınlayın: geliştirme süreci, gelir, hatalar, kullanıcı hikâyeleri.</td><td>Düşük</td><td>Bekleme listesi kaydı</td></tr>
+  <tr><td>Kampüs elçileri</td><td>Üniversite spor kulüplerinden 10 elçi seçin. Her elçiye referans kodu verin. Ödül: ömür boyu Pro + davet başına komisyon.</td><td>Düşük</td><td>Kod başına aktif kullanıcı</td></tr>
+  <tr><td>Mahalle salonları ve PT'ler</td><td>Salon girişine QR afiş: "Ücretsiz AI programını ve diyet planını al." PT'lere ücretsiz Pro verin ve öğrencilerine önermelerini isteyin.</td><td>Düşük</td><td>QR tarama → kayıt</td></tr>
+  <tr><td>Topluluklar</td><td>Ekşi Sözlük, DonanımHaber fitness bölümü, Discord ve Telegram fitness grupları. Reklam yapmayın, soru cevaplayın, ücretsiz plan verin.</td><td>Sıfır</td><td>Yönlendirme trafiği</td></tr>
+  <tr><td>ASO (Türkçe)</td><td>Başlık ve alt başlıkta şu kelimeleri test edin: "diyet listesi", "spor programı", "kalori hesaplama", "evde egzersiz", "kilo verme".</td><td>Sıfır</td><td>Arama gösterimi → indirme</td></tr>
+  <tr><td>Davet (referral)</td><td>"Arkadaşını davet et, ikiniz de 7 gün Pro kazanın."</td><td>Düşük</td><td>K-faktör ≥ 0,2</td></tr>
+</table>
+</div>
+
+<h4 style="margin-top:24px;">Gerilla Taktikleri</h4>
+<ul>
+  <li><strong>"AI Tabak Challenge":</strong> Kampüste ve yemekhanede insanların tabağını AI'a analiz ettirin. Tepkileri kısa video yapın.</li>
+  <li><strong>Bildirim ekranı formatı:</strong> Symmetry'nin 17 milyon izlenen formatını Türkçe uyarlayın. Kilit ekranında kişisel bir bildirim, altında FitAI bildirimi: "Hadi, bugün 20 dakikalık seansın hazır."</li>
+  <li><strong>"Yeni Yıl, Yeni Plan" dalgası:</strong> 26 Aralık – 15 Ocak arasında içerik üretimini üç katına çıkarın. Bu dönem, fitness indirmelerinin zirvesidir.</li>
+  <li><strong>Ücretsiz web aracı:</strong> "AI makro hesaplayıcı" açılış sayfası yapın. SEO trafiğini uygulamaya yönlendirin.</li>
+  <li><strong>Diyetisyen onayı videoları:</strong> Mikro diyetisyen ve PT içerik üreticilerine "AI planımı kontrol ettim" videosu çektirin. Bu, güven sağlar.</li>
+  <li><strong>Ramazan kampanyası:</strong> "İftar tabağını analiz et" temalı içerik serisi hazırlayın.</li>
+</ul>
+<div class="callout small">
+  <strong>Ölçüm kuralı:</strong> Organik kanalda kesin atıf yoktur. Symmetry üç sinyali birleştirir: izlenme artışı, indirme artışı ve uygulama içi "Bizi nereden duydun?" sorusu. Aynı yöntemi kullanın. Her yaratıcıya ayrı promosyon kodu verin.
+</div>
+
+<h3>4.2 Retention: Onboarding ve Oyunlaştırma Kurgusu</h3>
+<p><strong>Aha anı tanımı:</strong> Kullanıcı ilk 10 dakikada kişisel planını görür. İlk 24 saatte ilk antrenmanını veya ilk öğün fotoğrafını tamamlar.</p>
+
+<h4>Onboarding akışı (önerilen sıra)</h4>
+<ol class="steps">
+  <li><strong>Hedef sorusu ilk sırada.</strong> "Ne istiyorsun?" sorusu motivasyonu açar. Ad, yaş ve boy sonra gelir.</li>
+  <li><strong>Vücut verisi ve kısıtlar.</strong> Yaş, boy, kilo, aktivite, ekipman (tek tek seçim), diyet. E-posta adımını buradan çıkarın.</li>
+  <li><strong>Plan üretim ekranı.</strong> Bekleme süresinde kişisel mesaj gösterin: "Haftada 3 gün, 45 dakika, ev ekipmanıyla plan hazırlanıyor."</li>
+  <li><strong>Plan önizlemesi.</strong> İlk haftanın programını ve günlük makro hedefini gösterin. Değeri paywall'dan önce gösterin.</li>
+  <li><strong>Taahhüt ekranı.</strong> "Haftada 3 gün antrenman yapacağım." Kullanıcı butona basılı tutarak onaylar. Symmetry bu adımla retention'ı yaklaşık %3 artırdı.</li>
+  <li><strong>Paywall.</strong> Trial'ı ve "misafir olarak devam et" seçeneğini gösterin.</li>
+  <li><strong>Bildirim izni.</strong> Değerden sonra isteyin: "Antrenman saatini hatırlatayım mı?"</li>
+  <li><strong>Gün 0 kontrol listesi.</strong> Ana ekranda üç görev: ilk seans, ilk öğün fotoğrafı, ilk tartı.</li>
+</ol>
+
+<h4 style="margin-top:24px;">İlk 7 gün bildirim akışı</h4>
+<div class="table-wrap">
+<table>
+  <tr><th>Gün</th><th>Tetikleyici</th><th>Mesaj örneği</th></tr>
+  <tr><td>G0</td><td>Plan oluştu, seans başlamadı</td><td>"İlk seansın 35 dakika. Başlamak için hazır mısın?"</td></tr>
+  <tr><td>G1</td><td>Öğle saati, fotoğraf yok</td><td>"Öğle tabağının fotoğrafını çek. Akşam için öneri vereyim."</td></tr>
+  <tr><td>G2</td><td>Dinlenme günü</td><td>"Bugün dinlenme günü. Serin devam ediyor. Protein hedefin 120 g."</td></tr>
+  <tr><td>G3</td><td>İkinci seans günü</td><td>"Geçen seansa göre squat ağırlığın 2,5 kg arttı. Hazır."</td></tr>
+  <tr><td>G5</td><td>Seans atlandı</td><td>"Bugün zamanın az mı? 20 dakikalık Bugün Modu seansını dene."</td></tr>
+  <tr><td>G7</td><td>Hafta bitti</td><td>"İlk haftalık raporun hazır. 3 seans, 14 öğün, −0,6 kg."</td></tr>
+</table>
+</div>
+
+<h4 style="margin-top:24px;">Oyunlaştırma sistemi</h4>
+<div class="grid g2">
+  <div class="card">
+    <h4>Plana Duyarlı Seri</h4>
+    <ul class="small">
+      <li>Planlı dinlenme günü seriyi bozmaz.</li>
+      <li>Haftada 1 ücretsiz "seri dondurma" hakkı verin.</li>
+      <li>Seri, antrenman veya öğün fotoğrafıyla devam eder. Böylece dinlenme günü de değerli olur.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>XP Puanları</h4>
+    <ul class="small">
+      <li>Seans tamamla: +100 XP</li>
+      <li>Kişisel rekor (PR): +50 XP</li>
+      <li>Protein hedefine ulaş: +30 XP</li>
+      <li>Öğün fotoğrafı: +20 XP</li>
+      <li>Haftalık raporu oku: +10 XP</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Disiplin Ligi (haftalık)</h4>
+    <ul class="small">
+      <li>Kullanıcılar 30 kişilik haftalık liglere girer. XP ile sıralanır.</li>
+      <li>İlk 7 kişi üst lige çıkar. Son 5 kişi alt lige iner.</li>
+      <li>Lig, güce değil uyuma bağlıdır. Yeni başlayan da birinci olabilir.</li>
+      <li>Kullanıcı azken önce arkadaş ligleri ve kampüs ligleri açın.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Sosyal ve Rozetler</h4>
+    <ul class="small">
+      <li>Antrenman ortağı: iki kişilik ortak seri.</li>
+      <li>Rozetler: "İlk 5 kg", "4 hafta seri", "100 öğün", "İlk PR".</li>
+      <li>Paylaşılabilir haftalık kart (Instagram Story formatı). Bu kart aynı zamanda UGC'dir.</li>
+    </ul>
+  </div>
+</div>
+
+<h4 style="margin-top:24px;">Retention hedefleri</h4>
+<div class="grid g4">
+  <div class="card"><div class="kpi">%35</div><div class="kpi-label">D1 retention hedefi</div></div>
+  <div class="card"><div class="kpi">%18</div><div class="kpi-label">D7 retention hedefi</div></div>
+  <div class="card"><div class="kpi">%8</div><div class="kpi-label">D30 retention hedefi</div></div>
+  <div class="card"><div class="kpi">3 / hafta</div><div class="kpi-label">Aktif kullanıcı başına seans</div></div>
+</div>
+<p class="small muted">Bu değerler başlangıç hedefidir. İlk 100 kullanıcının verisiyle güncelleyin.</p>
+
+<!-- ============================== 5. GELİR ============================== -->
+<h2 id="gelir"><span class="num">5</span>Gelir Modeli (Monetization)</h2>
+
+<h3>5.1 Model Karşılaştırması</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>Model</th><th>Avantaj</th><th>Risk</th><th>Karar</th></tr>
+  <tr><td>Freemium + abonelik (Symmetry modeli)</td><td>Viral büyüme, düşük giriş engeli</td><td>Düşük dönüşüm. FitAI'de her AI çağrısı maliyet yaratır.</td><td><span class="badge b-ok">Temel model</span></td></tr>
+  <tr><td>Hard paywall (zorunlu trial)</td><td>Yüksek ilk gelir</td><td>Düşük viral etki, Türkiye'de yüksek terk</td><td><span class="badge b-part">Yalnız A/B test</span></td></tr>
+  <tr><td>Reklam</td><td>Ücretsiz kullanıcıdan gelir</td><td>Premium algıyı bozar. Rakip "reklamsız" der.</td><td><span class="badge b-no">Hayır</span></td></tr>
+  <tr><td>Ömür boyu (lifetime)</td><td>Nakit akışı</td><td>Uzun vadeli AI maliyeti</td><td><span class="badge b-part">Yalnız kampanya</span></td></tr>
+  <tr><td>Tek seferlik program paketi (IAP)</td><td>Ek gelir</td><td>Odak kaybı</td><td><span class="badge b-info">Faz 2</span></td></tr>
+  <tr><td>B2B (salon ve PT lisansı)</td><td>Yüksek ARPU, düşük CAC</td><td>Satış eforu</td><td><span class="badge b-info">Faz 2</span></td></tr>
+</table>
+</div>
+<div class="callout">
+  <strong>Öneri:</strong> Hibrit freemium kullanın. Çekirdek takip döngüsü ücretsiz kalır. Maliyetli ve yüksek değerli AI özellikleri Pro'da olur. Ücretsiz katmanda AI kullanımına haftalık limit koyun.
+</div>
+
+<h3>5.2 Ücretsiz ve Pro Özellik Ayrımı</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>Özellik</th><th>Ücretsiz</th><th>Pro</th><th>Gerekçe</th></tr>
+  <tr><td>Onboarding + ilk AI plan (antrenman ve diyet)</td><td><span class="badge b-ok">Var</span></td><td><span class="badge b-ok">Var</span></td><td>Aha anı ücretsiz olmalı</td></tr>
+  <tr><td>Set kaydı, egzersiz kütüphanesi, offline</td><td><span class="badge b-ok">Sınırsız</span></td><td><span class="badge b-ok">Sınırsız</span></td><td>Günlük alışkanlık ücretsiz olmalı</td></tr>
+  <tr><td>Temel progressive overload önerisi</td><td><span class="badge b-ok">Var</span></td><td><span class="badge b-ok">Var</span></td><td>Rakipte ücretsiz. Pro'ya koymak kayıp yaratır.</td></tr>
+  <tr><td>Seri, XP, Disiplin Ligi</td><td><span class="badge b-ok">Var</span></td><td><span class="badge b-ok">+1 dondurma hakkı</span></td><td>Motivasyon ve viral etki ücretsiz kalmalı</td></tr>
+  <tr><td>Fotoğraflı öğün analizi</td><td><span class="badge b-part">Haftada 3</span></td><td><span class="badge b-ok">Sınırsız</span></td><td>Değeri tattırır, maliyeti sınırlar</td></tr>
+  <tr><td>Tabak → Plan önerisi (sonraki öğün)</td><td><span class="badge b-no">Yok</span></td><td><span class="badge b-ok">Var</span></td><td>Ana farklılaşma, yüksek algılanan değer</td></tr>
+  <tr><td>Bugün Modu (adaptif seans)</td><td><span class="badge b-part">Haftada 1</span></td><td><span class="badge b-ok">Sınırsız</span></td><td>Deneme fırsatı verir</td></tr>
+  <tr><td>Bağlamsal AI Koç sohbeti + haftalık rapor</td><td><span class="badge b-part">Yalnız rapor özeti</span></td><td><span class="badge b-ok">Tam</span></td><td>Raporun özeti Pro'ya merak yaratır</td></tr>
+  <tr><td>Planı yeniden üretme</td><td><span class="badge b-part">Ayda 1</span></td><td><span class="badge b-ok">Sınırsız</span></td><td>AI maliyet kontrolü</td></tr>
+  <tr><td>Gelişmiş analitik (kas bazlı hacim, trend)</td><td><span class="badge b-no">Yok</span></td><td><span class="badge b-ok">Var</span></td><td>Veri meraklısı persona öder</td></tr>
+  <tr><td>Haftalık alışveriş listesi</td><td><span class="badge b-no">Yok</span></td><td><span class="badge b-ok">Var</span></td><td>Diyet planını hayata bağlar</td></tr>
+  <tr><td>Veri dışa aktarma</td><td><span class="badge b-ok">Var</span></td><td><span class="badge b-ok">Var</span></td><td>Güven Taahhüdü gereği</td></tr>
+</table>
+</div>
+
+<h3>5.3 Fiyat Hipotezi</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>Plan</th><th>Türkiye (başlangıç)</th><th>Global (USD)</th><th>Symmetry karşılaştırma</th><th>Not</th></tr>
+  <tr><td>Aylık</td><td>179,99 ₺</td><td>$12,99</td><td>$14,99 / €12,99</td><td>Çapa fiyat. Yıllık planı ucuz gösterir.</td></tr>
+  <tr><td>Yıllık</td><td>999,99 ₺ (7 gün trial)</td><td>$44,99 (7 gün trial)</td><td>$49,99 / €39,99</td><td>Varsayılan seçili plan</td></tr>
+  <tr><td>Öğrenci yıllık</td><td>599,99 ₺</td><td>—</td><td>Yok</td><td>Kampüs elçileriyle doğrulanır</td></tr>
+  <tr><td>Haftalık</td><td>Başlangıçta yok</td><td>$6,99 (test)</td><td>$9,99</td><td>Türkiye'de güven sorunu yaratabilir</td></tr>
+</table>
+</div>
+<p class="small muted">Türkiye fiyatlarını App Store ve Google Play fiyat basamaklarına göre doğrulayın. Enflasyon nedeniyle her çeyrekte gözden geçirin.</p>
+
+<h3>5.4 Paywall ve Birim Ekonomi Kuralları</h3>
+<div class="grid g2">
+  <div class="card">
+    <h4>Paywall taktikleri</h4>
+    <ul class="small">
+      <li>Paywall'u plan önizlemesinden sonra gösterin.</li>
+      <li>Yıllık planı varsayılan seçin. Aylık eşdeğer fiyatı yazın.</li>
+      <li>Trial bitmeden 24 saat önce hatırlatma gönderin. Bu, iade ve şikâyeti azaltır.</li>
+      <li>Trial sonunda ödemeyen kullanıcıya 48 saatlik tek seferlik indirim gösterin.</li>
+      <li>İptal akışında "1 ay duraklat" seçeneği verin.</li>
+      <li>Birden fazla fiyat varyantını RevenueCat veya Adapty ile test edin. Symmetry aynı anda 10'dan fazla varyant kullanır.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Birim ekonomi sınırları</h4>
+    <ul class="small">
+      <li>Kullanıcı başına aylık AI maliyeti, ARPU'nun %10'unu geçmesin.</li>
+      <li>Fotoğraf analizinde hızlı ve ucuz model kullanın. Plan üretiminde güçlü model kullanın.</li>
+      <li>UGC bütçesi gelirin %30–40'ını geçmesin. Symmetry yaklaşık %50 öder; bu oran küçük ekip için risklidir.</li>
+      <li>İndirme başına gelir (ARPU per download) ile indirme başına maksimum ödemeyi hesaplayın.</li>
+    </ul>
+  </div>
+</div>
+<div class="table-wrap">
+<table>
+  <tr><th>Gelir KPI</th><th>Başlangıç hedefi</th></tr>
+  <tr><td>İndirme → trial başlatma</td><td>%8–12</td></tr>
+  <tr><td>Trial → ücretli dönüşüm</td><td>%35–45</td></tr>
+  <tr><td>Ücretli kullanıcılarda yıllık plan payı</td><td>≥ %60</td></tr>
+  <tr><td>Aylık abonelikte 2. ay yenileme</td><td>≥ %55</td></tr>
+</table>
+</div>
+<div class="callout danger small">
+  <strong>Kırmızı çizgi:</strong> Lansmandan sonra ücretsiz bir özelliği Pro'ya taşımayın. Symmetry bu nedenle olumsuz yorum aldı. Yeni değerli özellikleri doğrudan Pro olarak çıkarın.
+</div>
+
+<!-- ============================== 6. YOL HARİTASI ============================== -->
+<h2 id="yolharitasi"><span class="num">6</span>90 Günlük Yol Haritası</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Dönem</th><th>Ürün</th><th>Büyüme</th><th>Başarı ölçütü</th></tr>
+  <tr><td>Hafta 1–2 (9–22 Kasım)</td><td>Progressive overload, seri, Gün 0 kontrol listesi, "Bizi nereden duydun?" sorusu</td><td>Açılış sayfası ve bekleme listesi. Kurucu içeriğine başlayın.</td><td>200 bekleme listesi kaydı</td></tr>
+  <tr><td>Hafta 3–4 (23 Kasım – 6 Aralık)</td><td>Onboarding sırası, taahhüt ekranı, RevenueCat/Adapty, D0–D7 bildirimleri</td><td>Kapalı beta (50 kişi). İlk 3 faceless hesabı açın.</td><td>D7 ≥ %25 (beta)</td></tr>
+  <tr><td>Hafta 5–7 (7–27 Aralık)</td><td>Tabak → Plan önerisi, Türk mutfağı doğruluk testi, haftalık rapor</td><td>10 mikro yaratıcı. Kampüs elçileri. Türkçe ASO.</td><td>500 bekleme listesi, 30 video/hafta</td></tr>
+  <tr><td>Hafta 8 (28 Aralık – 3 Ocak)</td><td>Hata düzeltme, performans</td><td><strong>Halka açık lansman.</strong> "Yeni Yıl, Yeni Plan" kampanyası.</td><td>İlk hafta 1.500 indirme</td></tr>
+  <tr><td>Hafta 9–12 (Ocak)</td><td>Bugün Modu, Disiplin Ligi (arkadaş ligleri), paylaşılabilir haftalık kart</td><td>Kazanan video formatlarını ölçekleyin. Salon QR pilotu (5 salon).</td><td>1.000 haftalık aktif kullanıcı, trial → ücretli ≥ %35</td></tr>
+</table>
+</div>
+
+<!-- ============================== KAYNAKLAR ============================== -->
+<footer>
+  <h4>Kaynaklar</h4>
+  <ol>
+    <li><a href="https://symmetry.club/en">symmetry.club/en</a>: Ürün vaadi, özellikler, Pro fiyatı (Ekim 2026)</li>
+    <li><a href="https://symmetry.club/en/ranks">symmetry.club/en/ranks</a>: Rank sisteminin işleyişi</li>
+    <li><a href="https://www.starterstory.com/businesses/symmetry">Starter Story: Symmetry</a> ve alt sayfaları <a href="https://www.starterstory.com/businesses/symmetry/revenue">revenue</a>, <a href="https://www.starterstory.com/businesses/symmetry/monetization">monetization</a>, <a href="https://www.starterstory.com/businesses/symmetry/growth-channels">growth-channels</a></li>
+    <li><a href="https://gtmsauce.com/episodes/2026-09-09-how-i-built-this-160k-month-gym-app">GTM Sauce: How I Built This $160K/Month Gym App</a> (Eylül 2026)</li>
+    <li><a href="https://tap-and-swipe.com/episodes/mauro-botanes-symmetry">Tap &amp; Swipe: I Got 1 Billion Views For My App With No Ads</a> (Temmuz 2026)</li>
+    <li><a href="https://play.google.com/store/apps/details?hl=en_US&id=club.symmetry.application">Google Play: Symmetry</a> ve <a href="https://apps.apple.com/nl/app/symmetry-gym-workout-tracker/id6474446718">App Store (NL)</a>: Kullanıcı yorumları</li>
+    <li><a href="https://justuseapp.com/en/app/6474446718/symmetry-ai-gym-workout-log/reviews">JustUseApp: Symmetry yorum analizi</a></li>
+    <li><a href="https://pumf.it/blog/symmetry-ai-gym-workout-log-app-store-case-study">Pumf.it: Symmetry App Store vaka analizi</a> (ASO verisi)</li>
+  </ol>
+  <p class="small muted">Gelir ve indirme rakamları kurucunun kamuya açık beyanlarına ve üçüncü taraf derlemelerine dayanır. Bu rakamları tahmini kabul edin.</p>
+</footer>
+
+</div>
+</body>
+</html>
