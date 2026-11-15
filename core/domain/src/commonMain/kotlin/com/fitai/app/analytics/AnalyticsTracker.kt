@@ -31,6 +31,7 @@ object AnalyticsEvents {
     const val SIGNUP_COMPLETED = "signup_completed"
     const val PLAN_ASSIGNED = "plan_assigned"
     const val STARTER_CHALLENGE_OPENED = "starter_challenge_opened"
+    const val PLAN_REGENERATED = "plan_regenerated"
 }
 
 class TrackEventUseCase(

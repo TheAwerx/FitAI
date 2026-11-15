@@ -1,15 +1,25 @@
 package com.fitai.app.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.fitai.app.access.GetPlanQuotaUseCase
+import com.fitai.app.access.PlanGenerationPurpose
+import com.fitai.app.access.PlanQuota
+import com.fitai.app.access.PlanQuotaErrors
+import com.fitai.app.access.RegenerateWorkoutPlanUseCase
 import com.fitai.app.analytics.AnalyticsEvents
 import com.fitai.app.analytics.TrackEventUseCase
 import com.fitai.app.domain.CompleteSetUseCase
 import com.fitai.app.domain.GenerateWorkoutPlanUseCase
 import com.fitai.app.domain.StartWorkoutSessionUseCase
 import com.fitai.app.domain.UseCaseState
+import com.fitai.app.model.GeneratedWorkoutPlan
 import com.fitai.app.model.SessionSet
 import com.fitai.app.training.GetSetSuggestionsUseCase
 import com.fitai.app.training.SetSuggestion
+import com.fitai.app.ui.plangeneration.PlanGenerationPhase
+import com.fitai.app.ui.plangeneration.PlanGenerationUiState
+import com.fitai.app.ui.plangeneration.trainingDays
+import com.fitai.app.ui.plangeneration.withMinimumDuration
 import com.fitai.app.util.currentDayOfWeek
 import com.fitai.app.util.epochMillis
 import com.fitai.app.viewmodel.workout.ActiveSessionIntent
@@ -42,6 +52,8 @@ class WorkoutViewModel(
     private val observeWorkoutOverviewUseCase: ObserveWorkoutOverviewUseCase,
     private val getExercisesForDayUseCase: GetExercisesForDayUseCase,
     private val generateWorkoutPlanUseCase: GenerateWorkoutPlanUseCase,
+    private val regenerateWorkoutPlanUseCase: RegenerateWorkoutPlanUseCase,
+    private val getPlanQuotaUseCase: GetPlanQuotaUseCase,
     private val startWorkoutSessionUseCase: StartWorkoutSessionUseCase,
     private val trackEventUseCase: TrackEventUseCase,
 ) : BaseViewModel<WorkoutState, WorkoutIntent, WorkoutEffect>(
@@ -56,13 +68,18 @@ class WorkoutViewModel(
     override fun handleIntent(intent: WorkoutIntent) {
         when (intent) {
             is WorkoutIntent.SelectDay -> selectDay(intent.day)
-            WorkoutIntent.RegeneratePlan -> regenerate()
+            WorkoutIntent.RegeneratePlan -> requestRegenerate()
+            WorkoutIntent.ConfirmRegenerate -> runGeneration(spendsRight = true)
+            WorkoutIntent.DismissRegenerate -> setState { copy(confirmRegenerate = false) }
+            WorkoutIntent.RetryGeneration -> runGeneration(spendsRight = currentState().generation?.spendsRight ?: true)
+            WorkoutIntent.CloseGeneration -> closeGeneration()
             WorkoutIntent.StartSession -> startSession()
             WorkoutIntent.Refresh -> refresh()
         }
     }
 
     private fun refresh() {
+        loadQuota()
         observeJob?.cancel()
         observeJob = viewModelScope.launch {
             val day = currentState().selectedDay
@@ -95,19 +112,98 @@ class WorkoutViewModel(
         }
     }
 
-    private fun regenerate() {
+    private fun loadQuota() {
         viewModelScope.launch {
-            setState { copy(generating = true, errorMessage = null) }
-            when (val result = generateWorkoutPlanUseCase()) {
-                is UseCaseState.Success -> setState { copy(generating = false) }
-                is UseCaseState.Error -> {
-                    if (result.message == "trial_expired") {
-                        setEffect(WorkoutEffect.NavigateToPaywall)
+            val quota = (getPlanQuotaUseCase() as? UseCaseState.Success)?.data ?: return@launch
+            setState { copy(planQuota = quota) }
+        }
+    }
+
+    /** With a plan: confirm before spending a right. Without one: the first plan is free. */
+    private fun requestRegenerate() {
+        val state = currentState()
+        if (state.generating) return
+        when {
+            state.activePlan == null -> runGeneration(spendsRight = false)
+            state.planQuota?.exhausted == true -> Unit
+            else -> setState { copy(confirmRegenerate = true) }
+        }
+    }
+
+    private fun runGeneration(spendsRight: Boolean) {
+        if (currentState().generating) return
+        setState {
+            copy(
+                confirmRegenerate = false,
+                errorMessage = null,
+                generation = PlanGenerationUiState(spendsRight = spendsRight),
+            )
+        }
+        viewModelScope.launch {
+            val outcome: UseCaseState<Pair<GeneratedWorkoutPlan, PlanQuota?>> = withMinimumDuration {
+                if (spendsRight) {
+                    when (val result = regenerateWorkoutPlanUseCase()) {
+                        is UseCaseState.Success -> UseCaseState.Success(result.data.value to result.data.quota)
+                        is UseCaseState.Error -> result
                     }
-                    setState { copy(generating = false, errorMessage = result.message) }
+                } else {
+                    when (val result = generateWorkoutPlanUseCase(PlanGenerationPurpose.Initial)) {
+                        is UseCaseState.Success -> UseCaseState.Success(result.data to null)
+                        is UseCaseState.Error -> result
+                    }
                 }
             }
+            when (outcome) {
+                is UseCaseState.Success -> {
+                    val (plan, quota) = outcome.data
+                    if (quota != null) {
+                        trackEventUseCase(AnalyticsEvents.PLAN_REGENERATED, mapOf("remaining" to quota.remaining.toString()))
+                    }
+                    setState {
+                        copy(
+                            planQuota = quota ?: planQuota,
+                            generation = PlanGenerationUiState(
+                                phase = PlanGenerationPhase.Success,
+                                trainingDays = plan.trainingDays(),
+                                planTitle = plan.title,
+                                quota = quota,
+                                spendsRight = spendsRight,
+                            ),
+                        )
+                    }
+                }
+                is UseCaseState.Error -> onGenerationFailed(outcome.message, spendsRight)
+            }
         }
+    }
+
+    private suspend fun onGenerationFailed(code: String, spendsRight: Boolean) {
+        if (code == "trial_expired") {
+            setState { copy(generation = null) }
+            setEffect(WorkoutEffect.NavigateToPaywall)
+            return
+        }
+        val quota = (getPlanQuotaUseCase() as? UseCaseState.Success)?.data ?: currentState().planQuota
+        val blocked = code == PlanQuotaErrors.EXHAUSTED || code == PlanQuotaErrors.INITIAL_LIMIT ||
+            (spendsRight && quota?.exhausted == true)
+        setState {
+            copy(
+                planQuota = quota,
+                generation = PlanGenerationUiState(
+                    phase = PlanGenerationPhase.Failed,
+                    errorCode = code,
+                    canRetry = !blocked,
+                    spendsRight = spendsRight,
+                    quota = quota,
+                ),
+            )
+        }
+    }
+
+    private fun closeGeneration() {
+        if (currentState().generating) return
+        setState { copy(generation = null) }
+        selectDay(currentState().selectedDay)
     }
 
     private fun startSession() {

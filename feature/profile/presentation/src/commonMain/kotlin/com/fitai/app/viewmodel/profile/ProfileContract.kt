@@ -1,5 +1,6 @@
 package com.fitai.app.viewmodel.profile
 
+import com.fitai.app.access.PlanQuota
 import com.fitai.app.auth.AuthUser
 import com.fitai.app.engagement.WorkoutHistory
 import com.fitai.app.engagement.WorkoutStreak
@@ -8,6 +9,8 @@ import com.fitai.app.model.DietRestriction
 import com.fitai.app.model.LocalUserProfile
 import com.fitai.app.notifications.ReminderSettings
 import com.fitai.app.notifications.ReminderTexts
+import com.fitai.app.ui.plangeneration.PlanGenerationPhase
+import com.fitai.app.ui.plangeneration.PlanGenerationUiState
 
 enum class ProfileTab { Workouts, Charts }
 
@@ -24,7 +27,6 @@ data class ProfileState(
     val trendWeeks: Int = TREND_PERIODS.first(),
     val editing: Boolean = false,
     val saving: Boolean = false,
-    val regenerating: Boolean = false,
     val editName: String = "",
     val editEmail: String = "",
     val editAge: String = "",
@@ -37,7 +39,13 @@ data class ProfileState(
     val reminders: ReminderSettings? = null,
     val remindersBusy: Boolean = false,
     val signingOut: Boolean = false,
+    /** Workout plan regeneration rights, shared with the Workout tab. */
+    val planQuota: PlanQuota? = null,
+    val confirmRegenerate: Boolean = false,
+    val generation: PlanGenerationUiState? = null,
 ) {
+    val regenerating: Boolean get() = generation?.phase == PlanGenerationPhase.Running
+
     /** Signed in with a real account (not the anonymous session used before sign-up). */
     val hasAccount: Boolean get() = authUser?.isAnonymous == false
 
@@ -69,6 +77,9 @@ sealed interface ProfileIntent {
     data class ToggleDiet(val code: String) : ProfileIntent
     data object SaveProfile : ProfileIntent
     data object RegeneratePlans : ProfileIntent
+    data object ConfirmRegeneratePlans : ProfileIntent
+    data object DismissRegeneratePlans : ProfileIntent
+    data object CloseRegeneratePlans : ProfileIntent
     data class RemindersPermissionResolved(val granted: Boolean, val texts: ReminderTexts) : ProfileIntent
     data object DisableReminders : ProfileIntent
     data class ChangeReminderTime(val hour: Int, val minute: Int, val texts: ReminderTexts) : ProfileIntent

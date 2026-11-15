@@ -20,12 +20,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.fitai.app.access.PlanQuota
 import com.fitai.app.localization.LocalStrings
 import com.fitai.app.ui.components.FitAIButton
 import com.fitai.app.ui.components.FitAIButtonVariant
 import com.fitai.app.ui.components.FitAICard
 import com.fitai.app.ui.components.WorkoutPlanCard
 import com.fitai.app.ui.theme.FitAIColors
+import com.fitai.app.ui.plangeneration.PlanGenerationOverlay
+import com.fitai.app.ui.plangeneration.PlanQuotaRow
+import com.fitai.app.ui.plangeneration.PlanRegenerateConfirmDialog
 import com.fitai.app.ui.theme.FitAIIcons
 import com.fitai.app.ui.theme.FitAISpacing
 import com.fitai.app.viewmodel.WorkoutViewModel
@@ -73,6 +77,7 @@ fun WorkoutScreen(
                 text = strings.workoutRegenerate,
                 onClick = { viewModel.onIntent(WorkoutIntent.RegeneratePlan) },
                 enabled = !state.generating,
+                leadingIcon = FitAIIcons.AutoAwesome,
             )
         } else {
             WorkoutPlanCard(
@@ -81,11 +86,10 @@ fun WorkoutScreen(
                 isActive = true,
                 activeLabel = plan.title,
             )
-            FitAIButton(
-                text = strings.workoutRegenerate,
-                onClick = { viewModel.onIntent(WorkoutIntent.RegeneratePlan) },
-                variant = FitAIButtonVariant.Secondary,
-                enabled = !state.generating,
+            RegeneratePlanSection(
+                quota = state.planQuota,
+                generating = state.generating,
+                onRegenerate = { viewModel.onIntent(WorkoutIntent.RegeneratePlan) },
             )
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -136,6 +140,42 @@ fun WorkoutScreen(
                 }
             }
         }
+    }
+
+    if (state.confirmRegenerate) {
+        PlanRegenerateConfirmDialog(
+            quota = state.planQuota,
+            onConfirm = { viewModel.onIntent(WorkoutIntent.ConfirmRegenerate) },
+            onDismiss = { viewModel.onIntent(WorkoutIntent.DismissRegenerate) },
+        )
+    }
+    state.generation?.let { generation ->
+        PlanGenerationOverlay(
+            state = generation,
+            onRetry = { viewModel.onIntent(WorkoutIntent.RetryGeneration) },
+            onClose = { viewModel.onIntent(WorkoutIntent.CloseGeneration) },
+        )
+    }
+}
+
+@Composable
+private fun RegeneratePlanSection(
+    quota: PlanQuota?,
+    generating: Boolean,
+    onRegenerate: () -> Unit,
+) {
+    val strings = LocalStrings.current
+    val exhausted = quota?.exhausted == true
+    Column(verticalArrangement = Arrangement.spacedBy(FitAISpacing.sm)) {
+        FitAIButton(
+            text = strings.workoutRegenerate,
+            onClick = onRegenerate,
+            modifier = Modifier.fillMaxWidth(),
+            variant = FitAIButtonVariant.Secondary,
+            enabled = !generating && !exhausted,
+            leadingIcon = FitAIIcons.AutoAwesome,
+        )
+        if (quota != null) PlanQuotaRow(quota = quota)
     }
 }
 

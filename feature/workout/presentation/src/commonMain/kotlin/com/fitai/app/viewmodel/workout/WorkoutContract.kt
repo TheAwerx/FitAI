@@ -1,6 +1,7 @@
 package com.fitai.app.viewmodel.workout
 
 import com.fitai.app.access.FeatureAccess
+import com.fitai.app.access.PlanQuota
 import com.fitai.app.model.Exercise
 import com.fitai.app.model.SessionExercise
 import com.fitai.app.model.SessionSet
@@ -9,6 +10,8 @@ import com.fitai.app.model.WorkoutPlan
 import com.fitai.app.model.WorkoutSession
 import com.fitai.app.training.PersonalRecord
 import com.fitai.app.training.SetSuggestion
+import com.fitai.app.ui.plangeneration.PlanGenerationPhase
+import com.fitai.app.ui.plangeneration.PlanGenerationUiState
 import com.fitai.app.workout.ExerciseAlternativeOption
 import com.fitai.app.workout.SessionSummary
 
@@ -18,9 +21,15 @@ data class WorkoutState(
     val selectedDay: Int = com.fitai.app.util.currentDayOfWeek(),
     val dayExercises: List<Exercise> = emptyList(),
     val loading: Boolean = false,
-    val generating: Boolean = false,
     val errorMessage: String? = null,
-)
+    /** Regeneration rights; null until the first read. */
+    val planQuota: PlanQuota? = null,
+    val confirmRegenerate: Boolean = false,
+    /** Non-null while the generation overlay is on screen. */
+    val generation: PlanGenerationUiState? = null,
+) {
+    val generating: Boolean get() = generation?.phase == PlanGenerationPhase.Running
+}
 
 /** Replace sheet state shared by exercise detail and the active session. */
 data class ReplaceSheetState(
@@ -94,7 +103,12 @@ data class SessionSummaryState(
 
 sealed interface WorkoutIntent {
     data class SelectDay(val day: Int) : WorkoutIntent
+    /** "Planı yenile": asks for confirmation, or builds the first plan when there is none. */
     data object RegeneratePlan : WorkoutIntent
+    data object ConfirmRegenerate : WorkoutIntent
+    data object DismissRegenerate : WorkoutIntent
+    data object RetryGeneration : WorkoutIntent
+    data object CloseGeneration : WorkoutIntent
     data object StartSession : WorkoutIntent
     data object Refresh : WorkoutIntent
 }

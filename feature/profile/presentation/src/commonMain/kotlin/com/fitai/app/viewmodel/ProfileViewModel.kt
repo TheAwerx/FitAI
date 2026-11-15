@@ -3,6 +3,8 @@ package com.fitai.app.viewmodel
 import androidx.lifecycle.viewModelScope
 import com.fitai.app.access.AccessTier
 import com.fitai.app.access.GetAccessTierUseCase
+import com.fitai.app.access.GetPlanQuotaUseCase
+import com.fitai.app.access.PlanQuotaErrors
 import com.fitai.app.analytics.AnalyticsEvents
 import com.fitai.app.engagement.GetWorkoutHistoryUseCase
 import com.fitai.app.engagement.GetWorkoutStreakUseCase
@@ -27,6 +29,10 @@ import com.fitai.app.profile.ProfileSignOutUseCase
 import com.fitai.app.profile.RegeneratePlansUseCase
 import com.fitai.app.profile.UpdateProfileInput
 import com.fitai.app.profile.UpdateProfileUseCase
+import com.fitai.app.ui.plangeneration.PlanGenerationPhase
+import com.fitai.app.ui.plangeneration.PlanGenerationUiState
+import com.fitai.app.ui.plangeneration.trainingDays
+import com.fitai.app.ui.plangeneration.withMinimumDuration
 import com.fitai.app.viewmodel.profile.ProfileEffect
 import com.fitai.app.viewmodel.profile.ProfileIntent
 import com.fitai.app.viewmodel.profile.ProfileState
@@ -41,6 +47,7 @@ class ProfileViewModel(
     private val profileSignInWithAppleUseCase: ProfileSignInWithAppleUseCase,
     private val updateProfileUseCase: UpdateProfileUseCase,
     private val regeneratePlansUseCase: RegeneratePlansUseCase,
+    private val getPlanQuotaUseCase: GetPlanQuotaUseCase,
     private val getReminderSettingsUseCase: GetReminderSettingsUseCase,
     private val setRemindersEnabledUseCase: SetRemindersEnabledUseCase,
     private val updateReminderTimeUseCase: UpdateReminderTimeUseCase,
@@ -111,7 +118,10 @@ class ProfileViewModel(
                     copy(editDietRestrictions = toggleDietRestriction(editDietRestrictions, intent.code))
                 }
             ProfileIntent.SaveProfile -> saveProfile()
-            ProfileIntent.RegeneratePlans -> regeneratePlans()
+            ProfileIntent.RegeneratePlans -> requestRegenerate()
+            ProfileIntent.ConfirmRegeneratePlans -> regeneratePlans()
+            ProfileIntent.DismissRegeneratePlans -> setState { copy(confirmRegenerate = false) }
+            ProfileIntent.CloseRegeneratePlans -> if (!currentState().regenerating) setState { copy(generation = null) }
             is ProfileIntent.RemindersPermissionResolved -> onRemindersPermission(intent.granted, intent.texts)
             ProfileIntent.DisableReminders -> disableReminders()
             is ProfileIntent.ChangeReminderTime -> changeReminderTime(intent.hour, intent.minute, intent.texts)
@@ -130,6 +140,7 @@ class ProfileViewModel(
     }
 
     private fun refreshStats() {
+        loadPlanQuota()
         viewModelScope.launch {
             val history = (getWorkoutHistoryUseCase() as? UseCaseState.Success)?.data
             val streak = (getWorkoutStreakUseCase() as? UseCaseState.Success)?.data
@@ -235,17 +246,62 @@ class ProfileViewModel(
         }
     }
 
-    private fun regeneratePlans() {
+    private fun loadPlanQuota() {
         viewModelScope.launch {
-            setState { copy(regenerating = true, message = null) }
-            when (val result = regeneratePlansUseCase()) {
-                is UseCaseState.Success ->
-                    setState { copy(regenerating = false, message = "plans_regenerated") }
+            val quota = (getPlanQuotaUseCase() as? UseCaseState.Success)?.data ?: return@launch
+            setState { copy(planQuota = quota) }
+        }
+    }
+
+    private fun requestRegenerate() {
+        val state = currentState()
+        if (state.regenerating || state.planQuota?.exhausted == true) return
+        setState { copy(confirmRegenerate = true, message = null) }
+    }
+
+    private fun regeneratePlans() {
+        if (currentState().regenerating) return
+        setState { copy(confirmRegenerate = false, message = null, generation = PlanGenerationUiState()) }
+        viewModelScope.launch {
+            when (val result = withMinimumDuration { regeneratePlansUseCase() }) {
+                is UseCaseState.Success -> {
+                    val workout = result.data.workout
+                    trackEventUseCase(
+                        AnalyticsEvents.PLAN_REGENERATED,
+                        mapOf("remaining" to workout.quota.remaining.toString(), "source" to "settings"),
+                    )
+                    setState {
+                        copy(
+                            planQuota = workout.quota,
+                            message = result.data.dietError ?: "plans_regenerated",
+                            generation = PlanGenerationUiState(
+                                phase = PlanGenerationPhase.Success,
+                                trainingDays = workout.value.trainingDays(),
+                                planTitle = workout.value.title,
+                                quota = workout.quota,
+                            ),
+                        )
+                    }
+                }
                 is UseCaseState.Error -> {
                     if (result.message == "trial_expired") {
+                        setState { copy(generation = null) }
                         setEffect(ProfileEffect.NavigatePaywall)
+                        return@launch
                     }
-                    setState { copy(regenerating = false, message = result.message) }
+                    val quota = (getPlanQuotaUseCase() as? UseCaseState.Success)?.data ?: currentState().planQuota
+                    val blocked = result.message == PlanQuotaErrors.EXHAUSTED || quota?.exhausted == true
+                    setState {
+                        copy(
+                            planQuota = quota,
+                            generation = PlanGenerationUiState(
+                                phase = PlanGenerationPhase.Failed,
+                                errorCode = result.message,
+                                canRetry = !blocked,
+                                quota = quota,
+                            ),
+                        )
+                    }
                 }
             }
         }

@@ -15,7 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -51,6 +50,9 @@ import com.fitai.app.ui.components.FitAIButton
 import com.fitai.app.ui.components.FitAIButtonVariant
 import com.fitai.app.ui.components.FitAITextField
 import com.fitai.app.ui.notifications.ReminderTimePicker
+import com.fitai.app.ui.plangeneration.PlanGenerationOverlay
+import com.fitai.app.ui.plangeneration.PlanQuotaRow
+import com.fitai.app.ui.plangeneration.PlanRegenerateConfirmDialog
 import com.fitai.app.ui.notifications.formatReminderTime
 import com.fitai.app.ui.notifications.reminderTexts
 import com.fitai.app.ui.platform.rememberAppleSignInLauncher
@@ -171,16 +173,11 @@ fun SettingsScreen(
                     FitAIButton(
                         text = strings.profileRegeneratePlans,
                         onClick = { viewModel.onIntent(ProfileIntent.RegeneratePlans) },
-                        enabled = !state.regenerating && state.localUser != null,
+                        enabled = !state.regenerating && state.localUser != null && state.planQuota?.exhausted != true,
                         modifier = Modifier.weight(1f),
                     )
                 }
-                if (state.regenerating) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(FitAISpacing.sm)) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = FitAIColors.Primary, strokeWidth = 2.dp)
-                        Text(strings.profileRegenerating, color = FitAIColors.OnSurfaceMuted)
-                    }
-                }
+                state.planQuota?.let { quota -> PlanQuotaRow(quota = quota) }
             }
             state.reminders?.let { reminders ->
                 SettingsSection(strings.notificationsProfileSection) {
@@ -206,6 +203,21 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    if (state.confirmRegenerate) {
+        PlanRegenerateConfirmDialog(
+            quota = state.planQuota,
+            onConfirm = { viewModel.onIntent(ProfileIntent.ConfirmRegeneratePlans) },
+            onDismiss = { viewModel.onIntent(ProfileIntent.DismissRegeneratePlans) },
+        )
+    }
+    state.generation?.let { generation ->
+        PlanGenerationOverlay(
+            state = generation,
+            onRetry = { viewModel.onIntent(ProfileIntent.ConfirmRegeneratePlans) },
+            onClose = { viewModel.onIntent(ProfileIntent.CloseRegeneratePlans) },
+        )
     }
 }
 

@@ -230,6 +230,26 @@ interface Strings {
     val workoutTodaySubmit: String
     val workoutTodayAdapting: String
     val workoutTodayNoteTitle: String
+    // region:planquota:interface
+    fun planQuotaRemaining(remaining: Int, total: Int): String
+    val planQuotaHint: String
+    val planQuotaExhausted: String
+    fun planQuotaResetsInDays(days: Int): String
+    val planQuotaConfirmTitle: String
+    fun planQuotaConfirmBody(remainingAfter: Int, total: Int): String
+    val planQuotaConfirmAction: String
+    val planQuotaErrorExhausted: String
+    val planQuotaErrorInProgress: String
+    val planQuotaErrorInitialLimit: String
+    val planGenTitle: String
+    val planGenSubtitle: String
+    val planGenSteps: List<String>
+    val planGenMuscleGroups: List<String>
+    val planGenDoneTitle: String
+    val planGenDoneAction: String
+    val planGenFailedTitle: String
+    val planGenFailedBody: String
+    val planGenFailedKeptRight: String
     // region:onboarding:interface
     val onboardingSkip: String
     val onboardingAttributionTitle: String
@@ -857,6 +877,32 @@ object StringsTr : Strings {
     override val workoutTodaySubmit = "Seansımı uyarla"
     override val workoutTodayAdapting = "Seansın uyarlanıyor…"
     override val workoutTodayNoteTitle = "Koçun notu"
+    // region:planquota:tr
+    override fun planQuotaRemaining(remaining: Int, total: Int) = "$remaining/$total hak kaldı"
+    override val planQuotaHint = "Her yenileme 1 hak kullanır. İlk planın haktan düşmez."
+    override val planQuotaExhausted = "Yenileme hakkın bitti. Mevcut planınla devam edebilirsin."
+    override fun planQuotaResetsInDays(days: Int) = "Hakların $days gün sonra yenilenir."
+    override val planQuotaConfirmTitle = "Planın yenilensin mi?"
+    override fun planQuotaConfirmBody(remainingAfter: Int, total: Int) =
+        "Bu işlem 1 yenileme hakkı kullanır; sonrasında $remainingAfter/$total hakkın kalır. " +
+            "Şimdiki planın geçmiş planlara taşınır. Plan üretilemezse hakkın düşmez."
+    override val planQuotaConfirmAction = "Yenile"
+    override val planQuotaErrorExhausted = "Yenileme hakkın kalmadı."
+    override val planQuotaErrorInProgress = "Planın zaten hazırlanıyor. Birkaç saniye sonra tekrar dene."
+    override val planQuotaErrorInitialLimit = "Bu hesabın ücretsiz ilk plan hakkı doldu."
+    override val planGenTitle = "Yeni planın hazırlanıyor"
+    override val planGenSubtitle = "Hedefine, ekipmanına ve haftana göre"
+    override val planGenSteps = listOf(
+        "Hedefin analiz ediliyor",
+        "Ekipmanına göre egzersizler seçiliyor",
+        "Haftan kuruluyor",
+    )
+    override val planGenMuscleGroups = listOf("Göğüs", "Sırt", "Bacak", "Omuz", "Kol", "Core", "Kardiyo")
+    override val planGenDoneTitle = "Planın hazır"
+    override val planGenDoneAction = "Planı gör"
+    override val planGenFailedTitle = "Plan yenilenemedi"
+    override val planGenFailedBody = "Bağlantını kontrol edip tekrar dene."
+    override val planGenFailedKeptRight = "Hakkın kullanılmadı."
     // region:onboarding:tr
     override val onboardingSkip = "Atla"
     override val onboardingAttributionTitle = "Bizi nereden duydun?"
@@ -1591,6 +1637,32 @@ object StringsEn : Strings {
     override val workoutTodaySubmit = "Adapt my session"
     override val workoutTodayAdapting = "Adapting your session…"
     override val workoutTodayNoteTitle = "Coach's note"
+    // region:planquota:en
+    override fun planQuotaRemaining(remaining: Int, total: Int) = "$remaining/$total left"
+    override val planQuotaHint = "Each regeneration uses 1 credit. Your first plan is free."
+    override val planQuotaExhausted = "You've used all your regenerations. Keep going with your current plan."
+    override fun planQuotaResetsInDays(days: Int) = "Your regenerations come back in $days days."
+    override val planQuotaConfirmTitle = "Regenerate your plan?"
+    override fun planQuotaConfirmBody(remainingAfter: Int, total: Int) =
+        "This uses 1 regeneration; you'll have $remainingAfter/$total left. " +
+            "Your current plan moves to plan history. If the new plan fails, you keep the credit."
+    override val planQuotaConfirmAction = "Regenerate"
+    override val planQuotaErrorExhausted = "You have no regenerations left."
+    override val planQuotaErrorInProgress = "Your plan is already being built. Try again in a few seconds."
+    override val planQuotaErrorInitialLimit = "This account has used its free first plans."
+    override val planGenTitle = "Building your new plan"
+    override val planGenSubtitle = "Fitted to your goal, equipment and week"
+    override val planGenSteps = listOf(
+        "Analyzing your goal",
+        "Picking exercises for your equipment",
+        "Building your week",
+    )
+    override val planGenMuscleGroups = listOf("Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Cardio")
+    override val planGenDoneTitle = "Your plan is ready"
+    override val planGenDoneAction = "See plan"
+    override val planGenFailedTitle = "Couldn't regenerate your plan"
+    override val planGenFailedBody = "Check your connection and try again."
+    override val planGenFailedKeptRight = "No regeneration was used."
     // region:onboarding:en
     override val onboardingSkip = "Skip"
     override val onboardingAttributionTitle = "How did you hear about us?"

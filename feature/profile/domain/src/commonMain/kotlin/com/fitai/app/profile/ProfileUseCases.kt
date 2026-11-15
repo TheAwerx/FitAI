@@ -1,14 +1,16 @@
 package com.fitai.app.profile
 
+import com.fitai.app.access.PlanRegeneration
+import com.fitai.app.access.RegenerateWorkoutPlanUseCase
 import com.fitai.app.auth.AuthUser
 import com.fitai.app.auth.ObserveAuthStateUseCase
 import com.fitai.app.auth.SignInWithAppleUseCase
 import com.fitai.app.auth.SignInWithGoogleUseCase
 import com.fitai.app.auth.SignOutUseCase
 import com.fitai.app.domain.GenerateDietPlanUseCase
-import com.fitai.app.domain.GenerateWorkoutPlanUseCase
 import com.fitai.app.domain.UseCaseState
 import com.fitai.app.domain.useCaseCatching
+import com.fitai.app.model.GeneratedWorkoutPlan
 import com.fitai.app.model.LocalUserProfile
 import com.fitai.app.repository.LocalUserRepository
 import com.fitai.app.util.nowIsoTimestamp
@@ -84,18 +86,23 @@ class UpdateProfileUseCase(
     }
 }
 
+/** [dietError] is set when the workout plan was rebuilt (and its right spent) but the diet plan was not. */
+data class RegeneratedPlans(
+    val workout: PlanRegeneration<GeneratedWorkoutPlan>,
+    val dietError: String? = null,
+)
+
+/** Settings "Planı yeniden üret": spends the same workout plan rights as the Workout tab. */
 class RegeneratePlansUseCase(
-    private val generateWorkoutPlanUseCase: GenerateWorkoutPlanUseCase,
+    private val regenerateWorkoutPlanUseCase: RegenerateWorkoutPlanUseCase,
     private val generateDietPlanUseCase: GenerateDietPlanUseCase,
 ) {
-    suspend operator fun invoke(): UseCaseState<Unit> {
-        when (val workout = generateWorkoutPlanUseCase()) {
-            is UseCaseState.Error -> return workout
-            is UseCaseState.Success -> Unit
+    suspend operator fun invoke(): UseCaseState<RegeneratedPlans> {
+        val workout = when (val result = regenerateWorkoutPlanUseCase()) {
+            is UseCaseState.Error -> return result
+            is UseCaseState.Success -> result.data
         }
-        return when (val diet = generateDietPlanUseCase()) {
-            is UseCaseState.Error -> diet
-            is UseCaseState.Success -> UseCaseState.Success(Unit)
-        }
+        val dietError = (generateDietPlanUseCase() as? UseCaseState.Error)?.message
+        return UseCaseState.Success(RegeneratedPlans(workout, dietError))
     }
 }
