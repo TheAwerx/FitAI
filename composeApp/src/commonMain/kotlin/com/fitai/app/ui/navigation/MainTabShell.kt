@@ -28,8 +28,7 @@ import com.fitai.app.ui.screens.challenge.StarterChallengeHost
 import com.fitai.app.ui.screens.coach.CoachEntryCard
 import com.fitai.app.ui.screens.coach.CoachScreen
 import com.fitai.app.ui.screens.home.HomeScreen
-import com.fitai.app.ui.screens.nutrition.MealLogScreen
-import com.fitai.app.ui.screens.nutrition.NutritionScreen
+import com.fitai.app.ui.screens.nutrition.NutritionFlow
 import com.fitai.app.ui.screens.profile.MeasurementsScreen
 import com.fitai.app.ui.screens.profile.ProfileScreen
 import com.fitai.app.ui.screens.profile.SettingsScreen
@@ -55,13 +54,15 @@ fun MainTabShell(
     var workoutStack by remember { mutableStateOf<WorkoutStack>(WorkoutStack.List) }
     var profileStack by remember { mutableStateOf(ProfileStack.Hub) }
     var showMealLog by remember { mutableStateOf(false) }
+    var nutritionNested by remember { mutableStateOf(false) }
     var showCoach by remember { mutableStateOf(false) }
     var showStreak by remember { mutableStateOf(false) }
     var openWeighIn by remember { mutableStateOf(false) }
     var challengeRefresh by remember { mutableIntStateOf(0) }
     val strings = LocalStrings.current
 
-    val hasNestedScreen = showCoach || showMealLog || showStreak ||
+    // The Nutrition tab handles back inside NutritionFlow for its own screens.
+    val hasNestedScreen = showCoach || showStreak ||
         workoutStack != WorkoutStack.List || profileStack != ProfileStack.Hub
     NavigationBackHandler(
         state = rememberNavigationEventState(currentInfo = NavigationEventInfo.None),
@@ -72,7 +73,6 @@ fun MainTabShell(
                 selectedTab == MainTab.Home && showCoach -> showCoach = false
                 selectedTab == MainTab.Workout && workoutStack != WorkoutStack.List ->
                     workoutStack = WorkoutStack.List
-                selectedTab == MainTab.Nutrition && showMealLog -> showMealLog = false
                 selectedTab == MainTab.Profile && profileStack != ProfileStack.Hub -> profileStack = ProfileStack.Hub
                 else -> selectedTab = MainTab.Home
             }
@@ -87,7 +87,7 @@ fun MainTabShell(
     val fullScreenFlow = showStreak || showCoach ||
         workoutStack is WorkoutStack.ActiveSession || workoutStack is WorkoutStack.Streak ||
         workoutStack is WorkoutStack.SessionSummary || workoutStack == WorkoutStack.TodayMode ||
-        profileStack != ProfileStack.Hub || showMealLog
+        profileStack != ProfileStack.Hub || (selectedTab == MainTab.Nutrition && nutritionNested)
 
     Scaffold(
         modifier = modifier,
@@ -208,14 +208,12 @@ fun MainTabShell(
                         },
                     )
                 }
-                MainTab.Nutrition -> if (showMealLog) {
-                    MealLogScreen(onBack = { showMealLog = false }, onSaved = { showMealLog = false })
-                } else {
-                    NutritionScreen(
-                        onNavigateMealLog = { showMealLog = true },
-                        onNavigatePaywall = onNavigatePaywall,
-                    )
-                }
+                MainTab.Nutrition -> NutritionFlow(
+                    onNavigatePaywall = onNavigatePaywall,
+                    openQuickLog = showMealLog,
+                    onQuickLogOpened = { showMealLog = false },
+                    onNestedChange = { nutritionNested = it },
+                )
                 MainTab.Progress -> ProgressScreen(
                     openWeighIn = openWeighIn,
                     onWeighInOpened = { openWeighIn = false },

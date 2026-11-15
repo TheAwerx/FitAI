@@ -5,9 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -17,125 +15,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.fitai.app.access.FeatureAccess
 import com.fitai.app.localization.LocalStrings
 import com.fitai.app.model.NextMealSuggestion
-import com.fitai.app.nutrition.TodayNutritionOverview
 import com.fitai.app.ui.components.FitAIButton
 import com.fitai.app.ui.components.FitAIButtonVariant
 import com.fitai.app.ui.components.FitAICard
 import com.fitai.app.ui.components.FitAIProGateCard
 import com.fitai.app.ui.components.FitAIQuotaChip
 import com.fitai.app.ui.theme.FitAIColors
-import com.fitai.app.ui.theme.FitAIShapes
 import com.fitai.app.ui.theme.FitAISpacing
 import com.fitai.app.viewmodel.nutrition.MealFormFields
 import com.fitai.app.viewmodel.nutrition.NextMealState
 import com.fitai.app.viewmodel.nutrition.PlatePhotoState
 import com.fitai.app.viewmodel.nutrition.ReviewError
 import kotlin.math.roundToInt
-
-@Composable
-internal fun RemainingMacrosCard(
-    overview: TodayNutritionOverview,
-    modifier: Modifier = Modifier,
-) {
-    val targets = overview.targets ?: return
-    val remaining = overview.remaining ?: return
-    val consumed = overview.consumed
-    val strings = LocalStrings.current
-    FitAICard(modifier = modifier.fillMaxWidth()) {
-        Column(verticalArrangement = Arrangement.spacedBy(FitAISpacing.md)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = strings.nutritionRemainingTitle,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = FitAIColors.OnSurface,
-                )
-                Text(
-                    text = if (targets.isTrainingDay) strings.nutritionTrainingDayTarget else strings.nutritionRestDayTarget,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = FitAIColors.Primary,
-                    modifier = Modifier
-                        .background(FitAIColors.Primary.copy(alpha = 0.12f), FitAIShapes.chip)
-                        .padding(horizontal = FitAISpacing.sm, vertical = FitAISpacing.xs),
-                )
-            }
-            Text(
-                text = strings.nutritionKcalLeft(remaining.calories),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = FitAIColors.OnSurface,
-            )
-            MacroProgressRow(
-                label = strings.nutritionCalories,
-                value = strings.nutritionKcalProgress(consumed.calories, targets.calories),
-                consumed = consumed.calories.toDouble(),
-                target = targets.calories.toDouble(),
-            )
-            MacroProgressRow(
-                label = strings.nutritionProtein,
-                value = strings.nutritionGramsProgress(consumed.proteinG.roundToInt(), targets.proteinG),
-                consumed = consumed.proteinG,
-                target = targets.proteinG.toDouble(),
-            )
-            MacroProgressRow(
-                label = strings.nutritionCarbs,
-                value = strings.nutritionGramsProgress(consumed.carbsG.roundToInt(), targets.carbsG),
-                consumed = consumed.carbsG,
-                target = targets.carbsG.toDouble(),
-            )
-            MacroProgressRow(
-                label = strings.nutritionFat,
-                value = strings.nutritionGramsProgress(consumed.fatG.roundToInt(), targets.fatG),
-                consumed = consumed.fatG,
-                target = targets.fatG.toDouble(),
-            )
-        }
-    }
-}
-
-@Composable
-private fun MacroProgressRow(
-    label: String,
-    value: String,
-    consumed: Double,
-    target: Double,
-) {
-    val progress = if (target > 0) (consumed / target).toFloat().coerceIn(0f, 1f) else 0f
-    val over = target > 0 && consumed > target * 1.05
-    Column(verticalArrangement = Arrangement.spacedBy(FitAISpacing.xs)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = FitAIColors.OnSurface)
-            Text(value, style = MaterialTheme.typography.labelSmall, color = FitAIColors.OnSurfaceMuted)
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(CircleShape)
-                .background(FitAIColors.SurfaceVariant),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(progress)
-                    .fillMaxHeight()
-                    .clip(CircleShape)
-                    .background(if (over) FitAIColors.Warning else FitAIColors.Primary),
-            )
-        }
-    }
-}
 
 /** "Tabak → Plan" region: picker entry, analyzing, editable review, or the quota gate. */
 @Composable

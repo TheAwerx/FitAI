@@ -6,7 +6,10 @@ import com.fitai.app.model.DietRestriction
 import com.fitai.app.model.EquipmentOption
 import com.fitai.app.model.FitnessGoal
 import com.fitai.app.model.FocusArea
+import com.fitai.app.model.FoodCategory
+import com.fitai.app.model.FoodUnits
 import com.fitai.app.model.Gender
+import com.fitai.app.model.MealSlot
 import com.fitai.app.model.TrainingExperience
 import com.fitai.app.model.TrainingObstacle
 
@@ -302,6 +305,64 @@ interface Strings {
     val nutritionNextMealError: String
     val nutritionNextMealLockedBody: String
     fun nutritionNextMealMacros(calories: Int, proteinG: Int, carbsG: Int, fatG: Int): String
+    // region:fooddb:interface
+    fun mealSlotLabel(slot: MealSlot): String
+    fun foodUnitLabel(unit: String, amount: Double): String
+    fun foodCategoryLabel(code: String): String
+    fun foodSourceLabel(source: String?): String
+    /** "2 dilim · 50 g"; [amount] is already formatted. */
+    fun foodPortion(amount: String, unit: String, grams: Int): String
+    fun foodKcal(kcal: Int): String
+    val nutritionDiarySubtitle: String
+    val nutritionEaten: String
+    val nutritionRemaining: String
+    val nutritionGoal: String
+    fun nutritionKcalOver(kcal: Int): String
+    val nutritionPlanTotalsTitle: String
+    fun nutritionPlanTotalsBody(planned: Int, target: Int): String
+    fun nutritionPlanMacrosVsTarget(planned: Int, target: Int): String
+    fun nutritionPlannedKcal(kcal: Int): String
+    val nutritionTodayPlan: String
+    val nutritionAteAsPlanned: String
+    val nutritionAlternatives: String
+    fun nutritionAlternativeLabel(index: Int): String
+    val nutritionSwapIn: String
+    val nutritionPrepNote: String
+    val nutritionAddFood: String
+    val nutritionSlotEmpty: String
+    val nutritionShowPlan: String
+    val nutritionHidePlan: String
+    val nutritionPlanLegacy: String
+    val nutritionPlanLogged: String
+    val foodSearchPlaceholder: String
+    val foodSearchRecent: String
+    val foodSearchFrequent: String
+    val foodSearchMine: String
+    val foodSearchFromPlan: String
+    val foodSearchNoResults: String
+    val foodSearchEmptyHint: String
+    val foodCreateCustom: String
+    val foodQuickAdd: String
+    val foodAmount: String
+    val foodServing: String
+    val foodMeal: String
+    val foodAddToDiary: String
+    val foodUpdateEntry: String
+    val foodDeleteEntry: String
+    val foodDeleteCustom: String
+    fun foodPer100g(kcal: Int): String
+    val foodInvalidAmount: String
+    val foodFieldsInvalid: String
+    val customFoodTitle: String
+    val customFoodName: String
+    val customFoodServingUnit: String
+    val customFoodServingGrams: String
+    val customFoodPerServing: String
+    val customFoodSave: String
+    val mealEntryEditTitle: String
+    val nutritionRingLeft: String
+    val nutritionRingOver: String
+    val kcalUnit: String
     // region:coach:interface
     val coachTitle: String
     val coachEntryTeaser: String
@@ -975,6 +1036,122 @@ object StringsTr : Strings {
     override val nutritionNextMealLockedBody = "Kalan makrona göre sonraki öğününü AI planlasın. Pro'ya özel."
     override fun nutritionNextMealMacros(calories: Int, proteinG: Int, carbsG: Int, fatG: Int) =
         "$calories kcal · P $proteinG g · K $carbsG g · Y $fatG g"
+    // region:fooddb:tr
+    override fun mealSlotLabel(slot: MealSlot) = when (slot) {
+        MealSlot.Breakfast -> "Kahvaltı"
+        MealSlot.MorningSnack -> "Kuşluk ara öğünü"
+        MealSlot.Lunch -> "Öğle yemeği"
+        MealSlot.AfternoonSnack -> "İkindi ara öğünü"
+        MealSlot.Dinner -> "Akşam yemeği"
+        MealSlot.EveningSnack -> "Gece ara öğünü"
+    }
+    override fun foodUnitLabel(unit: String, amount: Double) = when (unit) {
+        FoodUnits.GRAM -> "g"
+        FoodUnits.ML -> "ml"
+        FoodUnits.PIECE -> "adet"
+        FoodUnits.SLICE -> "dilim"
+        FoodUnits.PORTION -> "porsiyon"
+        FoodUnits.BOWL -> "kase"
+        FoodUnits.GLASS -> "su bardağı"
+        FoodUnits.TEA_GLASS -> "çay bardağı"
+        FoodUnits.CUP -> "fincan"
+        FoodUnits.MUG -> "kupa"
+        FoodUnits.TBSP -> "yemek kaşığı"
+        FoodUnits.DSP -> "tatlı kaşığı"
+        FoodUnits.TSP -> "çay kaşığı"
+        FoodUnits.HANDFUL -> "avuç"
+        FoodUnits.LADLE -> "kepçe"
+        FoodUnits.CAN -> "kutu"
+        FoodUnits.PACK -> "paket"
+        FoodUnits.SCOOP -> "ölçek"
+        else -> unit
+    }
+    override fun foodCategoryLabel(code: String) = when (FoodCategory.fromCode(code)) {
+        FoodCategory.Bread -> "Ekmek ve hamur işi"
+        FoodCategory.Breakfast -> "Kahvaltılık"
+        FoodCategory.Egg -> "Yumurta"
+        FoodCategory.Cheese -> "Peynir"
+        FoodCategory.Dairy -> "Süt ürünü"
+        FoodCategory.Meat -> "Et"
+        FoodCategory.Poultry -> "Tavuk ve hindi"
+        FoodCategory.Fish -> "Balık ve deniz ürünü"
+        FoodCategory.Legume -> "Bakliyat"
+        FoodCategory.Grain -> "Tahıl ve pilav"
+        FoodCategory.Soup -> "Çorba"
+        FoodCategory.Dish -> "Ev yemeği"
+        FoodCategory.Street -> "Sokak lezzeti"
+        FoodCategory.Salad -> "Salata ve meze"
+        FoodCategory.Vegetable -> "Sebze"
+        FoodCategory.Fruit -> "Meyve"
+        FoodCategory.Nut -> "Kuruyemiş ve tohum"
+        FoodCategory.Dessert -> "Tatlı"
+        FoodCategory.Snack -> "Atıştırmalık"
+        FoodCategory.Drink -> "İçecek"
+        FoodCategory.Fat -> "Yağ"
+        FoodCategory.Sauce -> "Sos ve çeşni"
+        FoodCategory.Custom -> "Senin gıdan"
+        null -> "Gıda"
+    }
+    override fun foodSourceLabel(source: String?) = when (source) {
+        "usda" -> "Kaynak: USDA FoodData Central"
+        "recipe" -> "Kaynak: standart tarif tahmini"
+        "label" -> "Kaynak: ürün etiketi ortalaması"
+        "custom" -> "Kendi eklediğin gıda"
+        else -> "Kaynak: tahmini değer"
+    }
+    override fun foodPortion(amount: String, unit: String, grams: Int) =
+        if (unit == FoodUnits.GRAM) "$grams g" else "$amount ${foodUnitLabel(unit, 1.0)} · $grams g"
+    override fun foodKcal(kcal: Int) = "$kcal kcal"
+    override val nutritionDiarySubtitle = "Bugünkü öğünlerin ve planın"
+    override val nutritionEaten = "Alınan"
+    override val nutritionRemaining = "Kalan"
+    override val nutritionGoal = "Hedef"
+    override fun nutritionKcalOver(kcal: Int) = "$kcal kcal fazla"
+    override val nutritionPlanTotalsTitle = "Planın günlük toplamı"
+    override fun nutritionPlanTotalsBody(planned: Int, target: Int) = "$planned / $target kcal"
+    override fun nutritionPlanMacrosVsTarget(planned: Int, target: Int) = "$planned / $target g"
+    override fun nutritionPlannedKcal(kcal: Int) = "Plan $kcal kcal"
+    override val nutritionTodayPlan = "Planlanan"
+    override val nutritionAteAsPlanned = "Planladığımı yedim"
+    override val nutritionAlternatives = "Alternatifler"
+    override fun nutritionAlternativeLabel(index: Int) = "Alternatif $index"
+    override val nutritionSwapIn = "Bununla değiştir"
+    override val nutritionPrepNote = "Hazırlık"
+    override val nutritionAddFood = "Gıda ekle"
+    override val nutritionSlotEmpty = "Henüz bir şey eklemedin."
+    override val nutritionShowPlan = "Planı göster"
+    override val nutritionHidePlan = "Planı gizle"
+    override val nutritionPlanLegacy = "Bu plan yalnızca günlük hedefleri içeriyor. Öğün öğün plan için planı yenile."
+    override val nutritionPlanLogged = "Planlanan öğün günlüğe eklendi."
+    override val foodSearchPlaceholder = "Gıda ara: mercimek, peynir, ayran…"
+    override val foodSearchRecent = "Son kullanılanlar"
+    override val foodSearchFrequent = "Sık kullanılanlar"
+    override val foodSearchMine = "Gıdalarım"
+    override val foodSearchFromPlan = "Planından"
+    override val foodSearchNoResults = "Sonuç bulunamadı. Gıdayı kendin ekleyebilirsin."
+    override val foodSearchEmptyHint = "Yazmaya başla; Türkçe karakter kullanmasan da bulunur."
+    override val foodCreateCustom = "Kendi gıdanı oluştur"
+    override val foodQuickAdd = "Hızlı kalori ekle"
+    override val foodAmount = "Miktar"
+    override val foodServing = "Ölçü"
+    override val foodMeal = "Öğün"
+    override val foodAddToDiary = "Günlüğe ekle"
+    override val foodUpdateEntry = "Güncelle"
+    override val foodDeleteEntry = "Günlükten sil"
+    override val foodDeleteCustom = "Gıdayı sil"
+    override fun foodPer100g(kcal: Int) = "100 g: $kcal kcal"
+    override val foodInvalidAmount = "Geçerli bir miktar gir."
+    override val foodFieldsInvalid = "Ad, kalori ve makroları geçerli sayılarla doldur."
+    override val customFoodTitle = "Yeni gıda"
+    override val customFoodName = "Gıda adı"
+    override val customFoodServingUnit = "Porsiyon ölçüsü"
+    override val customFoodServingGrams = "Bir ölçünün ağırlığı (g)"
+    override val customFoodPerServing = "Bir ölçüdeki değerler"
+    override val customFoodSave = "Kaydet ve ekle"
+    override val mealEntryEditTitle = "Kaydı düzenle"
+    override val nutritionRingLeft = "kcal kaldı"
+    override val nutritionRingOver = "kcal fazla"
+    override val kcalUnit = "kcal"
     // region:coach:tr
     override val coachTitle = "AI Koç"
     override val coachEntryTeaser = "Kayıtlarını bilen koçuna sor, haftanı gör."
@@ -1735,6 +1912,125 @@ object StringsEn : Strings {
     override val nutritionNextMealLockedBody = "Let AI plan your next meal around your remaining macros. Pro only."
     override fun nutritionNextMealMacros(calories: Int, proteinG: Int, carbsG: Int, fatG: Int) =
         "$calories kcal · P $proteinG g · C $carbsG g · F $fatG g"
+    // region:fooddb:en
+    override fun mealSlotLabel(slot: MealSlot) = when (slot) {
+        MealSlot.Breakfast -> "Breakfast"
+        MealSlot.MorningSnack -> "Morning snack"
+        MealSlot.Lunch -> "Lunch"
+        MealSlot.AfternoonSnack -> "Afternoon snack"
+        MealSlot.Dinner -> "Dinner"
+        MealSlot.EveningSnack -> "Evening snack"
+    }
+    override fun foodUnitLabel(unit: String, amount: Double): String {
+        val one = amount <= 1.0
+        return when (unit) {
+            FoodUnits.GRAM -> "g"
+            FoodUnits.ML -> "ml"
+            FoodUnits.PIECE -> if (one) "piece" else "pieces"
+            FoodUnits.SLICE -> if (one) "slice" else "slices"
+            FoodUnits.PORTION -> if (one) "serving" else "servings"
+            FoodUnits.BOWL -> if (one) "bowl" else "bowls"
+            FoodUnits.GLASS -> if (one) "glass" else "glasses"
+            FoodUnits.TEA_GLASS -> if (one) "tea glass" else "tea glasses"
+            FoodUnits.CUP -> if (one) "small cup" else "small cups"
+            FoodUnits.MUG -> if (one) "mug" else "mugs"
+            FoodUnits.TBSP -> "tbsp"
+            FoodUnits.DSP -> "dsp"
+            FoodUnits.TSP -> "tsp"
+            FoodUnits.HANDFUL -> if (one) "handful" else "handfuls"
+            FoodUnits.LADLE -> if (one) "ladle" else "ladles"
+            FoodUnits.CAN -> if (one) "can" else "cans"
+            FoodUnits.PACK -> if (one) "pack" else "packs"
+            FoodUnits.SCOOP -> if (one) "scoop" else "scoops"
+            else -> unit
+        }
+    }
+    override fun foodCategoryLabel(code: String) = when (FoodCategory.fromCode(code)) {
+        FoodCategory.Bread -> "Bread & bakery"
+        FoodCategory.Breakfast -> "Breakfast"
+        FoodCategory.Egg -> "Eggs"
+        FoodCategory.Cheese -> "Cheese"
+        FoodCategory.Dairy -> "Dairy"
+        FoodCategory.Meat -> "Meat"
+        FoodCategory.Poultry -> "Poultry"
+        FoodCategory.Fish -> "Fish & seafood"
+        FoodCategory.Legume -> "Legumes"
+        FoodCategory.Grain -> "Grains & rice"
+        FoodCategory.Soup -> "Soup"
+        FoodCategory.Dish -> "Home cooking"
+        FoodCategory.Street -> "Street food"
+        FoodCategory.Salad -> "Salads & mezze"
+        FoodCategory.Vegetable -> "Vegetables"
+        FoodCategory.Fruit -> "Fruit"
+        FoodCategory.Nut -> "Nuts & seeds"
+        FoodCategory.Dessert -> "Desserts"
+        FoodCategory.Snack -> "Snacks"
+        FoodCategory.Drink -> "Drinks"
+        FoodCategory.Fat -> "Fats & oils"
+        FoodCategory.Sauce -> "Sauces & condiments"
+        FoodCategory.Custom -> "Your food"
+        null -> "Food"
+    }
+    override fun foodSourceLabel(source: String?) = when (source) {
+        "usda" -> "Source: USDA FoodData Central"
+        "recipe" -> "Source: standard recipe estimate"
+        "label" -> "Source: typical product label"
+        "custom" -> "A food you added"
+        else -> "Source: estimate"
+    }
+    override fun foodPortion(amount: String, unit: String, grams: Int) =
+        if (unit == FoodUnits.GRAM) "$grams g" else "$amount ${foodUnitLabel(unit, amount.replace(',', '.').toDoubleOrNull() ?: 1.0)} · $grams g"
+    override fun foodKcal(kcal: Int) = "$kcal kcal"
+    override val nutritionDiarySubtitle = "Today's meals and your plan"
+    override val nutritionEaten = "Eaten"
+    override val nutritionRemaining = "Left"
+    override val nutritionGoal = "Goal"
+    override fun nutritionKcalOver(kcal: Int) = "$kcal kcal over"
+    override val nutritionPlanTotalsTitle = "Plan daily total"
+    override fun nutritionPlanTotalsBody(planned: Int, target: Int) = "$planned / $target kcal"
+    override fun nutritionPlanMacrosVsTarget(planned: Int, target: Int) = "$planned / $target g"
+    override fun nutritionPlannedKcal(kcal: Int) = "Plan $kcal kcal"
+    override val nutritionTodayPlan = "Planned"
+    override val nutritionAteAsPlanned = "I ate as planned"
+    override val nutritionAlternatives = "Alternatives"
+    override fun nutritionAlternativeLabel(index: Int) = "Alternative $index"
+    override val nutritionSwapIn = "Swap in"
+    override val nutritionPrepNote = "Prep"
+    override val nutritionAddFood = "Add food"
+    override val nutritionSlotEmpty = "Nothing logged yet."
+    override val nutritionShowPlan = "Show plan"
+    override val nutritionHidePlan = "Hide plan"
+    override val nutritionPlanLegacy = "This plan only has daily targets. Refresh it for a meal-by-meal plan."
+    override val nutritionPlanLogged = "Planned meal added to your diary."
+    override val foodSearchPlaceholder = "Search foods: lentil soup, cheese, ayran…"
+    override val foodSearchRecent = "Recent"
+    override val foodSearchFrequent = "Frequent"
+    override val foodSearchMine = "My foods"
+    override val foodSearchFromPlan = "From your plan"
+    override val foodSearchNoResults = "No results. You can add the food yourself."
+    override val foodSearchEmptyHint = "Start typing; Turkish letters are optional."
+    override val foodCreateCustom = "Create a food"
+    override val foodQuickAdd = "Quick add calories"
+    override val foodAmount = "Amount"
+    override val foodServing = "Measure"
+    override val foodMeal = "Meal"
+    override val foodAddToDiary = "Add to diary"
+    override val foodUpdateEntry = "Update"
+    override val foodDeleteEntry = "Remove from diary"
+    override val foodDeleteCustom = "Delete food"
+    override fun foodPer100g(kcal: Int) = "100 g: $kcal kcal"
+    override val foodInvalidAmount = "Enter a valid amount."
+    override val foodFieldsInvalid = "Fill in the name, calories and macros with valid numbers."
+    override val customFoodTitle = "New food"
+    override val customFoodName = "Food name"
+    override val customFoodServingUnit = "Serving measure"
+    override val customFoodServingGrams = "Weight of one measure (g)"
+    override val customFoodPerServing = "Values per measure"
+    override val customFoodSave = "Save and add"
+    override val mealEntryEditTitle = "Edit entry"
+    override val nutritionRingLeft = "kcal left"
+    override val nutritionRingOver = "kcal over"
+    override val kcalUnit = "kcal"
     // region:coach:en
     override val coachTitle = "AI Coach"
     override val coachEntryTeaser = "Ask a coach who knows your logs. See your week."

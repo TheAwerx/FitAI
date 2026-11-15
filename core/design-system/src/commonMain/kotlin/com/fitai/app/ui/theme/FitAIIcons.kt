@@ -753,6 +753,21 @@ object FitAIIcons {
             "M11,9H9V2H7v7H5V2H3v7c0,2.12 1.66,3.84 3.75,3.97V22h2.5v-9.03C11.34,12.84 13,11.12 13,9V2h-2V9zM16,6v8h2.5v8H21V2C18.24,2 16,4.24 16,6z",
         )
     }
+    val Search: ImageVector by lazy {
+        pathIcon(
+            "Search",
+            "M15.5,14h-0.79l-0.28,-0.27C15.41,12.59 16,11.11 16,9.5 16,5.91 13.09,3 9.5,3S3,5.91 3,9.5 5.91,16 9.5,16" +
+                "c1.61,0 3.09,-0.59 4.23,-1.57l0.27,0.28v0.79l5,4.99L20.49,19l-4.99,-5zM9.5,14C7.01,14 5,11.99 5,9.5" +
+                "S7.01,5 9.5,5 14,7.01 14,9.5 11.99,14 9.5,14z",
+        )
+    }
+    val Delete: ImageVector by lazy {
+        pathIcon("Delete", "M6,19c0,1.1 0.9,2 2,2h8c1.1,0 2,-0.9 2,-2V7H6v12zM19,4h-3.5l-1,-1h-5l-1,1H5v2h14V4z")
+    }
+    val SwapHoriz: ImageVector by lazy {
+        pathIcon("SwapHoriz", "M6.99,11L3,15l3.99,4v-3H14v-2H6.99v-3zM21,9l-3.99,-4v3H10v2h7.01v3L21,9z")
+    }
+    val Remove: ImageVector by lazy { pathIcon("Remove", "M19,13H5v-2h14v2z") }
     val Home: ImageVector by lazy { pathIcon("Home", "M10,20v-6h4v6h5v-8h3L12,3 2,12h3v8z") }
     val ExpandMore: ImageVector by lazy { pathIcon("ExpandMore", "M16.59,8.59L12,13.17 7.41,8.59 6,10l6,6 6,-6z") }
     val Warning: ImageVector by lazy { pathIcon("Warning", "M1,21h22L12,2 1,21zM13,18h-2v-2h2v2zM13,14h-2v-4h2v4z") }
