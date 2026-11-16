@@ -1,0 +1,6 @@
+#include "Config.xcconfig"
+
+// TestFlight internal. Same Cloud Functions as Prod; the home-screen name shows which build it is.
+FITAI_ENVIRONMENT=qa
+INFOPLIST_KEY_CFBundleDisplayName=FitAI QA
+CODE_SIGN_ENTITLEMENTS=iosApp/Entitlements/Production.entitlements

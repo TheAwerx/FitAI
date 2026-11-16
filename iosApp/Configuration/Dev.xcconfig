@@ -1,0 +1,6 @@
+#include "Config.xcconfig"
+
+// Daily Run scheme. Local workout and diet plans; other Firebase calls stay live.
+FITAI_ENVIRONMENT=dev
+INFOPLIST_KEY_CFBundleDisplayName=FitAI Dev
+CODE_SIGN_ENTITLEMENTS=iosApp/Entitlements/Development.entitlements

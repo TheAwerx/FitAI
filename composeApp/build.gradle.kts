@@ -82,6 +82,19 @@ kotlin {
     }
 }
 
+val iosConfigSettings = providers.fileContents(
+    rootProject.layout.projectDirectory.file("iosApp/Configuration/Config.xcconfig"),
+).asText.map { text ->
+    text.lineSequence()
+        .map { it.substringBefore("//").trim() }
+        .filter { "=" in it }
+        .associate { line ->
+            line.substringBefore("=").trim() to line.substringAfter("=").trim()
+        }
+}
+val marketingVersion = iosConfigSettings.get().getValue("MARKETING_VERSION")
+val buildNumber = iosConfigSettings.get().getValue("CURRENT_PROJECT_VERSION").toInt()
+
 android {
     namespace = "com.fitai.app"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -90,8 +103,8 @@ android {
         applicationId = "com.fitai.app"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = buildNumber
+        versionName = marketingVersion
     }
     buildFeatures {
         buildConfig = true
@@ -102,11 +115,16 @@ android {
             dimension = "environment"
             isDefault = true
             versionNameSuffix = "-dev"
-            buildConfigField("boolean", "USE_REMOTE_PLAN_GENERATION", "false")
+            buildConfigField("String", "ENVIRONMENT", "\"dev\"")
+        }
+        create("qa") {
+            dimension = "environment"
+            versionNameSuffix = "-qa"
+            buildConfigField("String", "ENVIRONMENT", "\"qa\"")
         }
         create("prod") {
             dimension = "environment"
-            buildConfigField("boolean", "USE_REMOTE_PLAN_GENERATION", "true")
+            buildConfigField("String", "ENVIRONMENT", "\"prod\"")
         }
     }
     packaging {

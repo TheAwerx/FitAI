@@ -4,6 +4,12 @@ Bu dosya (Memory Bank), proje üzerinde çalışan tüm yapay zeka ajanlarının
 
 ## 📝 Son Değişiklikler (Recent Changes)
 
+## 2026-11-16 — iOS Dev / QA / Prod xcconfig
+- `iosApp/Configuration`: `Config.xcconfig` (takım, bundle id, SemVer + build numarası) ve onu dahil eden `Dev`, `QA`, `Prod`. Xcode: Debug→Dev, QA→QA, Release→Prod. Şemalar `iosApp` (günlük Debug), `QA`, `Prod`
+- Sürüm tek kaynak bu xcconfig; Android `versionName` / `versionCode` oradan okunur. Flavor `qa` eklendi (ekran adı FitAI QA)
+- Dev yerel plan; QA ve Prod `generateWorkoutPlan` / `generateDietPlan`. Bundle id üçünde `com.fitai.app` (Firebase plist ile aynı). Push: Dev `development`, QA/Prod `production`
+- `:composeApp:assembleDebug` ve `compileKotlinIosSimulatorArm64` başarılı
+
 ## 2026-11-15 — Ekstra testler: özellik listesi + fiziksel test
 - `docs/FitAI_Ozellik_Test_Listesi.md` / `.csv` (UTF-8 BOM, Notion'a aktarılabilir): 118 madde; Pixel_9a emülatöründe (dev) elle test, Firebase emülatörü (functions 50/50, sweep 4/4, kurallar 16/16), iOS sim duman testi. 88 ✅, 7 🔧, 8 ❌, 15 ⏸; kanıtlar `docs/screenshots/qa/`
 - Düzeltildi: uygulama içi dil değişince AI/plan dili (`FitAIApp` SideEffect kapsamı), dinlenme günü ipucu + seçili gün çipi görünür + "Aktif plan" etiketi, hızlı kalori makrosuz kaydedilir, sekme değişince eski arama sorgusu, TR ondalık virgül + EN "1 day", mock fiyat dili

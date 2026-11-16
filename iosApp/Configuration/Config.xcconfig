@@ -1,10 +1,14 @@
-TEAM_ID=
+// Shared by Dev.xcconfig, QA.xcconfig and Prod.xcconfig. Do not set FITAI_ENVIRONMENT here.
+// Android reads MARKETING_VERSION and CURRENT_PROJECT_VERSION from this file.
 
+DEVELOPMENT_TEAM=VJ46P5P6NP
+CODE_SIGN_STYLE=Automatic
+
+// Firebase GoogleService-Info.plist BUNDLE_ID and the Android applicationId.
+PRODUCT_BUNDLE_IDENTIFIER=com.fitai.app
 PRODUCT_NAME=FitAI
-PRODUCT_BUNDLE_IDENTIFIER=org.fitai.project.FitAI$(TEAM_ID)
 
-// dev = local workout/diet plans. Set to prod to call generateWorkoutPlan / generateDietPlan.
-FITAI_ENVIRONMENT=dev
-
+// SemVer, user-facing (CFBundleShortVersionString). Feature → minor, fix → patch.
+MARKETING_VERSION=1.0.0
+// Integer build (CFBundleVersion). +1 for every TestFlight or App Store upload.
 CURRENT_PROJECT_VERSION=1
-MARKETING_VERSION=1.0
