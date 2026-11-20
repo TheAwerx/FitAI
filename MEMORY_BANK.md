@@ -4,6 +4,14 @@ Bu dosya (Memory Bank), proje üzerinde çalışan tüm yapay zeka ajanlarının
 
 ## 📝 Son Değişiklikler (Recent Changes)
 
+## 2026-11-20 — Impeccable ile UI yenileme (Ana sayfa, Antrenman)
+- Skill: `.claude/skills/impeccable/` (pbakaus/impeccable v4.10.0, elle kopya). Web dedektör hook'u ve alt ajanlar kurulmadı (HTML/JSX kuralları, Compose'a uymuyor). Launcher ikilisi çalıştırılmadı; `DESIGN.md` doğrudan okunur
+- Tema: `FitAITheme` 15 tipografi rolünün hepsini tanımlıyor (`bodySmall`, `titleSmall` vb. ~50 yerde Roboto'ya düşüyordu); renk şemasında `surfaceContainer*`, `secondaryContainer` (nane, seçili çip), `outline` `#6B6B6B` var (Material'ın mor varsayılanları sızıyordu). Android sistem çubuğu ikonları açık renk. `DESIGN.md` kodla eşlendi (Primary `#46F1C5`, Sora/Lexend)
+- Bileşen: `ExerciseRow`, `WorkoutPlanCard` içerik yuvası; plan/öğün kartı ve TrialBanner'daki çift dolgu (32dp) giderildi; `FitAITextField` etiketi isteğe bağlı ve tek satır
+- Ana sayfa: günün egzersizleri plan kartının içinde. Antrenman: gün listesi tek kartta, aktif seansta tek "Tekrar / Ağırlık (kg)" başlığı + hizalı kopyala ikonu
+- Kural: alan etiketine sığmayan dar alanlarda sütun başlığı kullan; yeni ekranlarda tanımsız tipografi rolü kalmasın
+- Önce/sonra: `docs/screenshots/ui-refresh/`. `assembleDevDebug` + `linkDebugFrameworkIosSimulatorArm64` başarılı. Dal `ui-refresh/impeccable` (birleştirilmedi). Beslenme, Profil, Onboarding/Paywall henüz bu geçişten geçmedi
+
 ## 2026-11-16 — iOS Dev / QA / Prod xcconfig
 - `iosApp/Configuration`: `Config.xcconfig` (takım, bundle id, SemVer + build numarası) ve onu dahil eden `Dev`, `QA`, `Prod`. Xcode: Debug→Dev, QA→QA, Release→Prod. Şemalar `iosApp` (günlük Debug), `QA`, `Prod`
 - Sürüm tek kaynak bu xcconfig; Android `versionName` / `versionCode` oradan okunur. Flavor `qa` eklendi (ekran adı FitAI QA)
