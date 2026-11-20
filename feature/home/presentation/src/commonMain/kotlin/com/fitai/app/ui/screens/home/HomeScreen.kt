@@ -14,6 +14,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.fitai.app.localization.LocalStrings
+import com.fitai.app.model.Exercise
+import com.fitai.app.ui.components.ExerciseRow
 import com.fitai.app.ui.components.SkeletonLoader
 import com.fitai.app.ui.components.TrialBanner
 import com.fitai.app.ui.components.WorkoutPlanCard
@@ -50,8 +52,8 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(FitAISpacing.lg)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(FitAISpacing.lg),
         verticalArrangement = Arrangement.spacedBy(FitAISpacing.md),
     ) {
         HomeHeader(
@@ -80,7 +82,7 @@ fun HomeScreen(
         state.engagement?.let { engagement ->
             StreakXpRow(engagement.streak, engagement.weeklyXp, engagement.level)
         }
-        TodayWorkoutSection(state.activePlan?.title, state.todayExercises.map { "${it.name} — ${it.sets}×${it.reps}" })
+        TodayWorkoutSection(state.activePlan?.title, state.todayExercises)
         RemainingMacrosCard(state.nutrition) { viewModel.onIntent(HomeIntent.QuickLogMeal) }
         state.weeklyStats?.let { WeeklySummaryCard(it) }
         coachEntry()
@@ -88,20 +90,27 @@ fun HomeScreen(
 }
 
 @Composable
-private fun TodayWorkoutSection(planTitle: String?, exerciseLines: List<String>) {
+private fun TodayWorkoutSection(planTitle: String?, exercises: List<Exercise>) {
     val strings = LocalStrings.current
-    Text(strings.homeTodayWorkout, style = MaterialTheme.typography.titleMedium)
-    if (exerciseLines.isEmpty() || planTitle == null) {
-        Text(strings.homeNoWorkout, color = FitAIColors.OnSurfaceMuted)
-        return
-    }
-    WorkoutPlanCard(
-        title = planTitle,
-        subtitle = strings.homeTodayExerciseCount(exerciseLines.size),
-        isActive = true,
-        activeLabel = strings.workoutActivePlan,
-    )
-    exerciseLines.forEach { line ->
-        Text("• $line", style = MaterialTheme.typography.bodySmall, color = FitAIColors.OnSurfaceMuted)
+    // Heading sits closer to its card than to the block above it.
+    Column(
+        modifier = Modifier.padding(top = FitAISpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(FitAISpacing.sm),
+    ) {
+        Text(strings.homeTodayWorkout, style = MaterialTheme.typography.titleMedium, color = FitAIColors.OnSurface)
+        if (exercises.isEmpty() || planTitle == null) {
+            Text(strings.homeNoWorkout, style = MaterialTheme.typography.bodyMedium, color = FitAIColors.OnSurfaceMuted)
+            return@Column
+        }
+        WorkoutPlanCard(
+            title = planTitle,
+            subtitle = strings.homeTodayExerciseCount(exercises.size),
+            isActive = true,
+            activeLabel = strings.workoutActivePlan,
+        ) {
+            exercises.forEach { exercise ->
+                ExerciseRow(name = exercise.name, meta = strings.workoutSetsReps(exercise.sets, exercise.reps))
+            }
+        }
     }
 }
