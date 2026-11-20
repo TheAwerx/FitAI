@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import com.fitai.app.ui.theme.FitAIColors
 import com.fitai.app.ui.theme.FitAIShapes
 
@@ -18,7 +19,7 @@ import com.fitai.app.ui.theme.FitAIShapes
 fun FitAITextField(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String,
+    label: String?,
     modifier: Modifier = Modifier,
     placeholder: String? = null,
     leadingIcon: ImageVector? = null,
@@ -36,7 +37,8 @@ fun FitAITextField(
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
         enabled = enabled,
-        label = { Text(label) },
+        // Labels never wrap; a field too narrow for its label should use a column header instead.
+        label = label?.let { { Text(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
         placeholder = placeholder?.let { { Text(it) } },
         leadingIcon = leadingIcon?.let { icon ->
             {
@@ -59,7 +61,8 @@ fun FitAITextField(
         shape = FitAIShapes.button,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = FitAIColors.Primary,
-            unfocusedBorderColor = FitAIColors.SurfaceVariant,
+            unfocusedBorderColor = FitAIColors.Outline,
+            disabledBorderColor = FitAIColors.SurfaceVariant,
             focusedLabelColor = FitAIColors.PrimaryLight,
             unfocusedLabelColor = FitAIColors.OnSurfaceMuted,
             cursorColor = FitAIColors.Primary,

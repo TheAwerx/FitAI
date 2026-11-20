@@ -8,6 +8,28 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
 object FitAIIcons {
+    /** Material "content_copy" (filled). */
+    val ContentCopy: ImageVector
+        get() {
+            if (_contentCopy != null) return _contentCopy!!
+            _contentCopy = ImageVector.Builder(
+                name = "ContentCopy",
+                defaultWidth = 24.dp,
+                defaultHeight = 24.dp,
+                viewportWidth = 24f,
+                viewportHeight = 24f,
+            ).apply {
+                addPath(
+                    addPathNodes(
+                        "M16,1H4c-1.1,0 -2,0.9 -2,2v14h2V3h12V1zM19,5H8c-1.1,0 -2,0.9 -2,2v14c0,1.1 0.9,2 2,2h11" +
+                            "c1.1,0 2,-0.9 2,-2V7c0,-1.1 -0.9,-2 -2,-2zM19,21H8V7h11v14z",
+                    ),
+                    fill = SolidColor(Color.Black),
+                )
+            }.build()
+            return _contentCopy!!
+        }
+
     val FitnessCenter: ImageVector
         get() {
             if (_fitnessCenter != null) return _fitnessCenter!!
@@ -902,6 +924,7 @@ private var _run: ImageVector? = null
 private var _walk: ImageVector? = null
 private var _block: ImageVector? = null
 private var _domain: ImageVector? = null
+private var _contentCopy: ImageVector? = null
 private var _tips: ImageVector? = null
 private var _rule: ImageVector? = null
 private var _lock: ImageVector? = null

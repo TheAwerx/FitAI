@@ -31,7 +31,7 @@ colors:
   surface-container-high: '#202020'
   surface-container-highest: '#242424'
   surface-bright: '#2E2E2E'
-  outline: '#5C5C5C'
+  outline: '#6B6B6B'
   outline-variant: '#2E2E2E'
   inverse-surface: '#E5E2E1'
   inverse-on-surface: '#1A1A1A'
@@ -197,7 +197,7 @@ The palette is **dark-mode only** (Material 3 `darkColorScheme`). Roles:
 | On-surface muted | `#BACAC2` | Subtitles, placeholders, inactive tabs |
 | Surface steps | `#0A0A0A` / `#141414` / `#1A1A1A` / `#202020` / `#242424` / `#2E2E2E` | Material `surfaceContainer*` roles: lowest → bright. Neutral, no violet tint |
 | Selected container | `#123D34` on `#B9F8E6` | `secondaryContainer`: selected chips, nav indicator |
-| Outline / outline variant | `#5C5C5C` / `#2E2E2E` | Control borders (≥3:1) / dividers |
+| Outline / outline variant | `#6B6B6B` / `#2E2E2E` | Control borders, incl. unfocused text fields (≥3:1 on background and surface) / dividers |
 | Success / Warning / Error | `#4CAF50` / `#FFB300` / `#FF5252` | Status only |
 
 **Gradients (sparingly):**
@@ -283,7 +283,7 @@ Keep corners consistent — do not mix sharp rectangles with heavy pills on the 
 
 ### Inputs (`FitAITextField`)
 
-Outlined field, button radius (12dp). Focused border/label → primary / primary-light; unfocused → surface-variant / muted. Error → `#FF5252`. Full width by default.
+Outlined field, button radius (12dp). Focused border/label → primary / primary-light; unfocused → outline `#6B6B6B` / muted; disabled → surface-variant. Labels are single-line; when a field is too narrow for its label, use a column header above the fields (active-session set rows). Error → `#FF5252`. Full width by default.
 
 ### Fitness-specific
 

@@ -23,8 +23,8 @@ object FitAIColors {
     val SelectedContainer = Color(0xFF123D34)
     val OnSelectedContainer = Color(0xFFB9F8E6)
 
-    /** Control boundaries (≥3:1 on Background) and quiet dividers. */
-    val Outline = Color(0xFF5C5C5C)
+    /** Control boundaries (≥3:1 on Background and Surface) and quiet dividers. */
+    val Outline = Color(0xFF6B6B6B)
     val OutlineVariant = Color(0xFF2E2E2E)
 
     val ErrorContainer = Color(0xFF3D1414)
