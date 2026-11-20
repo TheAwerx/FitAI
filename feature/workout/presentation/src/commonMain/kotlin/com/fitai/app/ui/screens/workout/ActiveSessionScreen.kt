@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,6 +28,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.fitai.app.localization.LocalStrings
@@ -165,7 +169,7 @@ private fun ExerciseCard(
                     if (exercise != null) {
                         Text(
                             "${strings.workoutSetsReps(exercise.sets, exercise.reps)} · ${strings.workoutRest(exercise.restSeconds)}",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.bodySmall,
                             color = FitAIColors.OnSurfaceMuted,
                         )
                     }
@@ -179,6 +183,7 @@ private fun ExerciseCard(
             if (suggestion != null && suggestion.reason != OverloadReason.NoHistory) {
                 SuggestionHint(suggestion)
             }
+            if (sets.isNotEmpty()) SetColumnHeader()
             sets.forEach { set ->
                 SetRow(
                     set = set,
@@ -221,6 +226,38 @@ private fun SuggestionHint(suggestion: SetSuggestion) {
     }
 }
 
+/** Fixed leading/trailing column widths shared by [SetColumnHeader] and [SetRow] so fields line up. */
+private val SetCheckColumn = 48.dp
+private val SetLabelColumn = 48.dp
+private val SetActionColumn = 48.dp
+
+/** One "Reps / Weight (kg)" header per exercise instead of a label inside every field (they wrapped). */
+@Composable
+private fun SetColumnHeader() {
+    val strings = LocalStrings.current
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(FitAISpacing.sm),
+    ) {
+        Spacer(Modifier.width(SetCheckColumn + SetLabelColumn + FitAISpacing.sm))
+        Text(
+            strings.workoutActualReps,
+            style = MaterialTheme.typography.labelMedium,
+            color = FitAIColors.OnSurfaceMuted,
+            modifier = Modifier.weight(1f).padding(start = FitAISpacing.xs),
+            maxLines = 1,
+        )
+        Text(
+            strings.workoutWeightKg,
+            style = MaterialTheme.typography.labelMedium,
+            color = FitAIColors.OnSurfaceMuted,
+            modifier = Modifier.weight(1f).padding(start = FitAISpacing.xs),
+            maxLines = 1,
+        )
+        Spacer(Modifier.width(SetActionColumn))
+    }
+}
+
 @Composable
 private fun SetRow(
     set: SessionSet,
@@ -229,49 +266,66 @@ private fun SetRow(
     onIntent: (ActiveSessionIntent) -> Unit,
 ) {
     val strings = LocalStrings.current
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(FitAISpacing.sm),
-        ) {
-            Checkbox(
-                checked = set.completed,
-                onCheckedChange = { checked -> if (checked) onIntent(ActiveSessionIntent.CompleteSet(set.id)) },
-                enabled = !set.completed,
-                colors = CheckboxDefaults.colors(
-                    checkedColor = FitAIColors.Primary,
-                    checkmarkColor = FitAIColors.OnPrimary,
-                    uncheckedColor = FitAIColors.OnSurfaceMuted,
-                    disabledCheckedColor = FitAIColors.Primary.copy(alpha = 0.6f),
-                ),
-            )
-            Text(strings.workoutSetNumber(set.setNumber), style = MaterialTheme.typography.labelLarge, color = FitAIColors.OnSurface)
-            FitAITextField(
-                value = input.reps,
-                onValueChange = { onIntent(ActiveSessionIntent.UpdateReps(set.id, it)) },
-                label = strings.workoutActualReps,
-                placeholder = set.targetReps,
-                modifier = Modifier.weight(1f),
-                enabled = !set.completed,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
-            FitAITextField(
-                value = input.weight,
-                onValueChange = { onIntent(ActiveSessionIntent.UpdateWeight(set.id, it)) },
-                label = strings.workoutWeightKg,
-                modifier = Modifier.weight(1f),
-                enabled = !set.completed,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            )
-        }
+    val setLabel = strings.workoutSetNumber(set.setNumber)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(FitAISpacing.sm),
+    ) {
+        Checkbox(
+            checked = set.completed,
+            onCheckedChange = { checked -> if (checked) onIntent(ActiveSessionIntent.CompleteSet(set.id)) },
+            enabled = !set.completed,
+            modifier = Modifier.size(SetCheckColumn),
+            colors = CheckboxDefaults.colors(
+                checkedColor = FitAIColors.Primary,
+                checkmarkColor = FitAIColors.OnPrimary,
+                uncheckedColor = FitAIColors.OnSurfaceMuted,
+                disabledCheckedColor = FitAIColors.Primary.copy(alpha = 0.6f),
+            ),
+        )
+        Text(
+            setLabel,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (set.completed) FitAIColors.OnSurfaceMuted else FitAIColors.OnSurface,
+            modifier = Modifier.width(SetLabelColumn),
+            maxLines = 1,
+        )
+        FitAITextField(
+            value = input.reps,
+            onValueChange = { onIntent(ActiveSessionIntent.UpdateReps(set.id, it)) },
+            label = null,
+            placeholder = set.targetReps,
+            modifier = Modifier
+                .weight(1f)
+                .semantics { contentDescription = "$setLabel, ${strings.workoutActualReps}" },
+            enabled = !set.completed,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        )
+        FitAITextField(
+            value = input.weight,
+            onValueChange = { onIntent(ActiveSessionIntent.UpdateWeight(set.id, it)) },
+            label = null,
+            modifier = Modifier
+                .weight(1f)
+                .semantics { contentDescription = "$setLabel, ${strings.workoutWeightKg}" },
+            enabled = !set.completed,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        )
         if (canCopyPrevious) {
-            TextButton(
+            IconButton(
                 onClick = { onIntent(ActiveSessionIntent.CopyPreviousSet(set.id)) },
-                modifier = Modifier.align(Alignment.End),
+                modifier = Modifier.size(SetActionColumn),
             ) {
-                Text(strings.workoutCopyPreviousSet, style = MaterialTheme.typography.labelMedium, color = FitAIColors.OnSurfaceMuted)
+                Icon(
+                    FitAIIcons.ContentCopy,
+                    contentDescription = strings.workoutCopyPreviousSet,
+                    tint = FitAIColors.OnSurfaceMuted,
+                    modifier = Modifier.size(20.dp),
+                )
             }
+        } else {
+            Spacer(Modifier.width(SetActionColumn))
         }
     }
 }

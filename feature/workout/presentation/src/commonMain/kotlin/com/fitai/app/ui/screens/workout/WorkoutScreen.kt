@@ -1,6 +1,5 @@
 package com.fitai.app.ui.screens.workout
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +12,7 @@ import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,6 +28,7 @@ import com.fitai.app.access.PlanQuota
 import com.fitai.app.localization.LocalStrings
 import com.fitai.app.ui.components.FitAIButton
 import com.fitai.app.ui.components.FitAIButtonVariant
+import com.fitai.app.ui.components.ExerciseRow
 import com.fitai.app.ui.components.FitAICard
 import com.fitai.app.ui.components.WorkoutPlanCard
 import com.fitai.app.ui.theme.FitAIColors
@@ -68,8 +69,8 @@ fun WorkoutScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(FitAISpacing.lg)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(FitAISpacing.lg),
         verticalArrangement = Arrangement.spacedBy(FitAISpacing.md),
     ) {
         Text(strings.workoutTitle, style = MaterialTheme.typography.headlineMedium)
@@ -121,24 +122,19 @@ fun WorkoutScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = FitAIColors.OnSurfaceMuted,
                 )
-            }
-            state.dayExercises.forEach { exercise ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onNavigateExercise(exercise.id) }
-                        .padding(vertical = FitAISpacing.sm),
-                ) {
-                    Text(exercise.name, style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        strings.workoutSetsReps(exercise.sets, exercise.reps),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    Text(
-                        strings.workoutRest(exercise.restSeconds),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+            } else {
+                FitAICard(modifier = Modifier.fillMaxWidth()) {
+                    state.dayExercises.forEachIndexed { index, exercise ->
+                        if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        ExerciseRow(
+                            name = exercise.name,
+                            meta = "${strings.workoutSetsReps(exercise.sets, exercise.reps)} · ${strings.workoutRest(exercise.restSeconds)}",
+                            onClick = { onNavigateExercise(exercise.id) },
+                            trailing = {
+                                Icon(FitAIIcons.ChevronRight, contentDescription = null, tint = FitAIColors.OnSurfaceMuted)
+                            },
+                        )
+                    }
                 }
             }
             FitAIButton(
