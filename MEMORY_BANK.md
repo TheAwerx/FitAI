@@ -10,7 +10,7 @@ Bu dosya (Memory Bank), proje üzerinde çalışan tüm yapay zeka ajanlarının
 - Bileşen: `ExerciseRow`, `WorkoutPlanCard` içerik yuvası; plan/öğün kartı ve TrialBanner'daki çift dolgu (32dp) giderildi; `FitAITextField` etiketi isteğe bağlı ve tek satır
 - Ana sayfa: günün egzersizleri plan kartının içinde. Antrenman: gün listesi tek kartta, aktif seansta tek "Tekrar / Ağırlık (kg)" başlığı + hizalı kopyala ikonu
 - Kural: alan etiketine sığmayan dar alanlarda sütun başlığı kullan; yeni ekranlarda tanımsız tipografi rolü kalmasın
-- Önce/sonra: `docs/screenshots/ui-refresh/`. `assembleDevDebug` + `linkDebugFrameworkIosSimulatorArm64` başarılı. Dal `ui-refresh/impeccable` (birleştirilmedi). Beslenme, Profil, Onboarding/Paywall henüz bu geçişten geçmedi
+- Önce/sonra: `docs/screenshots/ui-refresh/`. `assembleDevDebug` + `linkDebugFrameworkIosSimulatorArm64` başarılı. Dal `ui-refresh/impeccable` main'e birleştirildi (fast-forward). Beslenme, Profil, Onboarding/Paywall henüz bu geçişten geçmedi
 
 ## 2026-11-16 — iOS Dev / QA / Prod xcconfig
 - `iosApp/Configuration`: `Config.xcconfig` (takım, bundle id, SemVer + build numarası) ve onu dahil eden `Dev`, `QA`, `Prod`. Xcode: Debug→Dev, QA→QA, Release→Prod. Şemalar `iosApp` (günlük Debug), `QA`, `Prod`
