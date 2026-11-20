@@ -3,66 +3,111 @@ name: FitAI
 description: Dark, high-energy fitness companion — personalized AI workout & nutrition tracking for Android and iOS (Compose Multiplatform).
 colors:
   background: '#0D0D0D'
-  on-background: '#F5F5F5'
+  on-background: '#E5E2E1'
   surface: '#1A1A1A'
   surface-variant: '#242424'
   on-surface: '#E0E0E0'
-  on-surface-variant: '#9E9E9E'
-  primary: '#00D4AA'
-  on-primary: '#0D0D0D'
+  on-surface-variant: '#BACAC2'
+  primary: '#46F1C5'
+  on-primary: '#00382B'
   primary-container: '#00A884'
-  on-primary-container: '#F5F5F5'
+  on-primary-container: '#0D0D0D'
   primary-light: '#5FFFD4'
   secondary: '#FF6B35'
   on-secondary: '#0D0D0D'
   tertiary: '#7B61FF'
-  on-tertiary: '#F5F5F5'
+  on-tertiary: '#E5E2E1'
   success: '#4CAF50'
   warning: '#FFB300'
   error: '#FF5252'
-  on-error: '#F5F5F5'
-  outline: '#242424'
-  outline-variant: '#242424'
-  inverse-surface: '#F5F5F5'
-  inverse-on-surface: '#0D0D0D'
+  on-error: '#E5E2E1'
+  error-container: '#3D1414'
+  on-error-container: '#FFDAD6'
+  secondary-container: '#123D34'
+  on-secondary-container: '#B9F8E6'
+  surface-container-lowest: '#0A0A0A'
+  surface-container-low: '#141414'
+  surface-container: '#1A1A1A'
+  surface-container-high: '#202020'
+  surface-container-highest: '#242424'
+  surface-bright: '#2E2E2E'
+  outline: '#5C5C5C'
+  outline-variant: '#2E2E2E'
+  inverse-surface: '#E5E2E1'
+  inverse-on-surface: '#1A1A1A'
 typography:
   display-large:
-    fontFamily: Sans Serif
+    fontFamily: Sora
     fontSize: 48px
     fontWeight: '700'
     lineHeight: 56px
   display-medium:
-    fontFamily: Sans Serif
+    fontFamily: Sora
     fontSize: 34px
     fontWeight: '600'
     lineHeight: 40px
+  display-small:
+    fontFamily: Sora
+    fontSize: 28px
+    fontWeight: '600'
+    lineHeight: 36px
   headline-large:
-    fontFamily: Sans Serif
+    fontFamily: Sora
     fontSize: 24px
     fontWeight: '600'
     lineHeight: 32px
   headline-medium:
-    fontFamily: Sans Serif
+    fontFamily: Sora
+    fontSize: 20px
+    fontWeight: '600'
+    lineHeight: 28px
+  headline-small:
+    fontFamily: Sora
+    fontSize: 18px
+    fontWeight: '600'
+    lineHeight: 26px
+  title-large:
+    fontFamily: Lexend
     fontSize: 20px
     fontWeight: '600'
     lineHeight: 28px
   title-medium:
-    fontFamily: Sans Serif
+    fontFamily: Lexend
     fontSize: 16px
     fontWeight: '600'
     lineHeight: 24px
+  title-small:
+    fontFamily: Lexend
+    fontSize: 14px
+    fontWeight: '600'
+    lineHeight: 20px
   body-large:
-    fontFamily: Sans Serif
+    fontFamily: Lexend
     fontSize: 16px
     fontWeight: '400'
     lineHeight: 24px
   body-medium:
-    fontFamily: Sans Serif
+    fontFamily: Lexend
     fontSize: 14px
     fontWeight: '400'
     lineHeight: 20px
+  body-small:
+    fontFamily: Lexend
+    fontSize: 12px
+    fontWeight: '400'
+    lineHeight: 16px
+  label-large:
+    fontFamily: Lexend
+    fontSize: 16px
+    fontWeight: '600'
+    lineHeight: 24px
+  label-medium:
+    fontFamily: Lexend
+    fontSize: 12px
+    fontWeight: '500'
+    lineHeight: 16px
   label-small:
-    fontFamily: Sans Serif
+    fontFamily: Lexend
     fontSize: 11px
     fontWeight: '500'
     lineHeight: 16px
@@ -142,18 +187,21 @@ The palette is **dark-mode only** (Material 3 `darkColorScheme`). Roles:
 | Background | `#0D0D0D` | App canvas, scaffold |
 | Surface | `#1A1A1A` | Cards, navigation bar, sheets |
 | Surface variant | `#242424` | Secondary buttons, borders, ring track |
-| Primary (mint teal) | `#00D4AA` | CTAs, selected tabs, progress arcs, focus rings |
+| Primary (mint teal) | `#46F1C5` | CTAs, selected tabs, progress arcs, focus rings |
 | Primary dark | `#00A884` | Primary container / pressed depth |
 | Primary light | `#5FFFD4` | Ghost button text, focused labels |
 | Accent / Secondary | `#FF6B35` | Energy highlights, expired trial, motivational accents |
 | Accent secondary / Tertiary | `#7B61FF` | Occasional tertiary emphasis (not primary CTA) |
-| On-background | `#F5F5F5` | Titles, primary body |
+| On-background | `#E5E2E1` | Titles, primary body |
 | On-surface | `#E0E0E0` | Card body text |
-| On-surface muted | `#9E9E9E` | Subtitles, placeholders, inactive tabs |
+| On-surface muted | `#BACAC2` | Subtitles, placeholders, inactive tabs |
+| Surface steps | `#0A0A0A` / `#141414` / `#1A1A1A` / `#202020` / `#242424` / `#2E2E2E` | Material `surfaceContainer*` roles: lowest → bright. Neutral, no violet tint |
+| Selected container | `#123D34` on `#B9F8E6` | `secondaryContainer`: selected chips, nav indicator |
+| Outline / outline variant | `#5C5C5C` / `#2E2E2E` | Control borders (≥3:1) / dividers |
 | Success / Warning / Error | `#4CAF50` / `#FFB300` / `#FF5252` | Status only |
 
 **Gradients (sparingly):**
-- Primary: `#00D4AA` → `#00A884` (hero cards, `FitAIGradientCard`)
+- Primary: `#00D4AA` → `#00A884` (legacy gradient stops; `Primary` itself is `#46F1C5`) (hero cards, `FitAIGradientCard`)
 - Energy: `#FF6B35` → `#FFB300` (motivation moments)
 - Dark: `#1A1A1A` → `#0D0D0D` (subtle depth)
 
@@ -161,18 +209,25 @@ Do **not** invent purple-on-white or cream/serif marketing looks. Stay on the da
 
 ## Typography
 
-Sans-serif Material 3 scale. Prefer `MaterialTheme.typography` tokens — never hardcode `fontSize` in feature screens.
+Material 3 scale, every role defined in `FitAITheme`: **Sora** (SemiBold/Bold) for display and headline roles, **Lexend** for title, body and label roles. A role missing from the theme silently falls back to the platform sans, so all 15 roles are set. Prefer `MaterialTheme.typography` tokens — never hardcode `fontSize` in feature screens.
 
 | Token | Size / Weight | Role |
 |-------|---------------|------|
-| `displayLarge` | 48 / Bold | Splash / brand moments |
-| `displayMedium` | 34 / SemiBold | Large welcome headlines |
-| `headlineLarge` | 24 / SemiBold | Screen titles |
-| `headlineMedium` | ~20 / SemiBold | Section headers |
-| `titleMedium` | ~16 / SemiBold | Card titles, plan names |
-| `bodyLarge` | 16 / Regular | Form fields, primary body |
-| `bodyMedium` | 14 / Regular | Subtitles, secondary copy |
-| `labelSmall` | 11 / Medium | Chips, “Active” badges, meta |
+| `displayLarge` | Sora 48 / Bold | Splash / brand moments |
+| `displayMedium` | Sora 34 / SemiBold | Large welcome headlines |
+| `displaySmall` | Sora 28 / SemiBold | Onboarding / paywall headlines |
+| `headlineLarge` | Sora 24 / SemiBold | Screen titles |
+| `headlineMedium` | Sora 20 / SemiBold | Section headers, brand mark |
+| `headlineSmall` | Sora 18 / SemiBold | Sub-section headers |
+| `titleLarge` | Lexend 20 / SemiBold | Stat values (kcal, streak days, weekly numbers) |
+| `titleMedium` | Lexend 16 / SemiBold | Card titles, plan names |
+| `titleSmall` | Lexend 14 / SemiBold | List-row titles (exercise names) |
+| `bodyLarge` | Lexend 16 / Regular | Form fields, primary body |
+| `bodyMedium` | Lexend 14 / Regular | Subtitles, secondary copy |
+| `bodySmall` | Lexend 12 / Regular | Row meta (sets × reps, rest), helper text |
+| `labelLarge` | Lexend 16 / SemiBold | Buttons |
+| `labelMedium` | Lexend 12 / Medium | Small actions, field labels |
+| `labelSmall` | Lexend 11 / Medium | Chips, “Active” badges, meta |
 
 Hierarchy: one clear screen title → short muted subtitle → content cards. Stats (kcal, reps) should feel denser/weightier than supporting labels.
 
@@ -212,7 +267,7 @@ Keep corners consistent — do not mix sharp rectangles with heavy pills on the 
 
 ### Buttons (`FitAIButton`)
 
-- **Primary:** Teal fill `#00D4AA`, text on dark `#0D0D0D` — main actions (Start workout, Continue, Save).
+- **Primary:** Mint fill `#46F1C5`, text `#00382B` — main actions (Start workout, Continue, Save).
 - **Secondary:** Surface-variant fill, on-surface text — alternate actions.
 - **Ghost:** Transparent, primary-light text — tertiary / text links.
 - **Outlined:** 1dp primary border, primary text (`FitAIOutlinedButton`).

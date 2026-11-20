@@ -11,6 +11,24 @@ object FitAIColors {
     val Background = Color(0xFF0D0D0D)
     val Surface = Color(0xFF1A1A1A)
     val SurfaceVariant = Color(0xFF242424)
+
+    // Tonal surface steps (Material 3 surfaceContainer*). Neutral greys, no hue, so sheets,
+    // dialogs and bars never pick up Material's default violet-tinted dark surfaces.
+    val SurfaceLowest = Color(0xFF0A0A0A)
+    val SurfaceLow = Color(0xFF141414)
+    val SurfaceHigh = Color(0xFF202020)
+    val SurfaceBright = Color(0xFF2E2E2E)
+
+    /** Selected chips and navigation indicators: a deep mint tint, not the accent orange. */
+    val SelectedContainer = Color(0xFF123D34)
+    val OnSelectedContainer = Color(0xFFB9F8E6)
+
+    /** Control boundaries (≥3:1 on Background) and quiet dividers. */
+    val Outline = Color(0xFF5C5C5C)
+    val OutlineVariant = Color(0xFF2E2E2E)
+
+    val ErrorContainer = Color(0xFF3D1414)
+    val OnErrorContainer = Color(0xFFFFDAD6)
     val OnPrimary = Color(0xFF00382B)
     val OnBackground = Color(0xFFE5E2E1)
     val OnSurface = Color(0xFFE0E0E0)
